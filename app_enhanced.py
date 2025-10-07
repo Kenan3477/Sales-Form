@@ -59,6 +59,9 @@ try:
     from asis_meta_learning_integration import meta_learning_bp
     from asis_meta_learning import asis_meta_learning
     
+    # Import Remote Deployment System
+    from remote_deployment import remote_deploy
+    
     print("✅ All ASIS components imported successfully")
 except ImportError as e:
     print(f"Warning: Could not import ASIS components: {e}")
@@ -203,6 +206,20 @@ try:
     print("✅ Knowledge API endpoints registered")
 except Exception as e:
     print(f"⚠️ Could not register knowledge blueprint: {e}")
+
+# Register meta-learning blueprint
+try:
+    app.register_blueprint(meta_learning_bp)
+    print("✅ Meta-Learning API endpoints registered")
+except Exception as e:
+    print(f"⚠️ Could not register meta-learning blueprint: {e}")
+
+# Register remote deployment blueprint
+try:
+    app.register_blueprint(remote_deploy)
+    print("✅ Remote Deployment API endpoints registered")
+except Exception as e:
+    print(f"⚠️ Could not register remote deployment blueprint: {e}")
 
 if not core_initialized:
     print("⚠️ Running with limited functionality - core systems failed")

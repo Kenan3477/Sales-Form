@@ -69,16 +69,45 @@
 ## 🎯 Post-Deployment
 
 ### Access Enhanced Dashboard:
+**Internal Network Access (Secure Development Setup):**
 ```
-http://YOUR_SERVER_IP:5000/dashboard/control
+ASIS Main Interface: http://192.168.2.156:5000/
+Dashboard Control:   http://192.168.2.156:5000/dashboard/control
+SSH Access:          ssh creator_kenandavies@192.168.2.156
+```
+
+### Security Configuration Applied:
+✅ **fail2ban** - Protects SSH from brute force attacks
+✅ **iptables firewall** - Restricts access to internal network only (192.168.0.0/16)
+✅ **Persistent rules** - Security settings survive reboots
+
+### Network Architecture:
+- **Server Internal IP:** 192.168.2.156 (Ubuntu desktop converted to server)
+- **Router Public IP:** 81.134.136.242 (no port forwarding - internal access only)
+- **SSH Ports:** 22, 2222 (both protected by fail2ban)
+- **ASIS Port:** 5000 (accessible from internal network)
+
+### Security Rules Active:
+```bash
+# Firewall allows only internal network access:
+iptables -A INPUT -s 192.168.0.0/16 -p tcp --dport 22 -j ACCEPT    # SSH
+iptables -A INPUT -s 192.168.0.0/16 -p tcp --dport 2222 -j ACCEPT  # SSH Alt
+iptables -A INPUT -s 192.168.0.0/16 -p tcp --dport 5000 -j ACCEPT  # ASIS
+iptables -P INPUT DROP  # Block all other traffic
 ```
 
 ### Activation Steps:
-1. Open the dashboard control interface
-2. Click "Activate Enhancement"
+1. Open the dashboard control interface: http://192.168.2.156:5000/dashboard/control
+2. Click "Activate Enhancement" 
 3. Monitor real-time system metrics
-4. Enjoy enhanced ASIS experience!
+4. Access comprehensive ASIS monitoring and control features
+
+### Development Benefits:
+- **Secure internal access** - No external exposure to internet threats
+- **Real-time monitoring** - CPU, memory, disk, and component health tracking
+- **Enhanced control** - Dashboard activation/deactivation capabilities
+- **Persistent security** - Firewall and fail2ban protection maintained across reboots
 
 ---
 
-*ASIS Dashboard Enhancement Deployment v1.0*
+*ASIS Dashboard Enhancement Deployment v1.0 - Secure Internal Configuration*
