@@ -3,7 +3,20 @@
 ASIS Enhanced Web Interface
 ==========================
 Flask web application for ASIS - World's First True AGI with Advanced Systems
-Integrates: Research Engine, Evolution Framework, Autonomous Agency
+In# Register knowledge blueprint
+try:
+    knowledge_bp = get_knowledge_blueprint()
+    app.register_blueprint(knowledge_bp)
+    print("✅ Knowledge API blueprint registered")
+except Exception as e:
+    print(f"⚠️ Could not register knowledge blueprint: {e}")
+
+# Register meta-learning blueprint
+try:
+    app.register_blueprint(meta_learning_bp, url_prefix='/api/meta-learning')
+    print("✅ Meta-Learning API blueprint registered")
+except Exception as e:
+    print(f"⚠️ Could not register meta-learning blueprint: {e}")s: Research Engine, Evolution Framework, Autonomous Agency
 """
 
 import os
@@ -42,6 +55,10 @@ try:
         enhance_response_with_knowledge
     )
     
+    # Import Advanced Meta-Learning System
+    from asis_meta_learning_integration import meta_learning_bp
+    from asis_meta_learning import asis_meta_learning
+    
     print("✅ All ASIS components imported successfully")
 except ImportError as e:
     print(f"Warning: Could not import ASIS components: {e}")
@@ -71,6 +88,7 @@ system_status = {
     'evolution_framework': False,
     'autonomous_agency': False,
     'unified_knowledge': False,
+    'meta_learning': False,
     'integration_complete': False,
     'agi_level': 0.0
 }
@@ -124,6 +142,16 @@ def initialize_advanced_systems():
             system_status['unified_knowledge'] = True
             print("✅ Unified Knowledge Architecture integrated")
         
+        # Initialize Meta-Learning System
+        try:
+            # Test meta-learning system availability
+            meta_status = asyncio.run(asis_meta_learning.get_system_status())
+            if meta_status.get('system_status') == 'initialized':
+                system_status['meta_learning'] = True
+                print("✅ Advanced Meta-Learning System integrated")
+        except Exception as meta_e:
+            print(f"⚠️ Meta-learning system not fully initialized: {meta_e}")
+        
         print(f"🚀 Advanced AGI Systems fully integrated - AGI Level: {system_status['agi_level']}%")
         return True
         
@@ -145,7 +173,10 @@ def calculate_agi_level():
         base_level += 10.0  # Autonomous intelligence boost
     
     if system_status['unified_knowledge']:
-        base_level += 5.0  # Knowledge architecture boost
+        base_level += 10.0  # Knowledge architecture boost
+    
+    if system_status['meta_learning']:
+        base_level += 10.0  # Meta-learning system boost
     
     # Integration bonus
     active_systems = sum([
@@ -190,8 +221,42 @@ def dashboard():
 
 @app.route('/api/status')
 def api_status():
-    """Get system status"""
-    return jsonify(system_status)
+    """Get system status with enhanced meta-learning information"""
+    enhanced_status = system_status.copy()
+    
+    # Add meta-learning specific status
+    if system_status['meta_learning']:
+        try:
+            # Get detailed meta-learning status
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            meta_status = loop.run_until_complete(asis_meta_learning.get_system_status())
+            loop.close()
+            
+            enhanced_status['meta_learning_details'] = {
+                'health_score': meta_status.get('health_score', 1.0),
+                'optimizer_active': True,
+                'strategy_generator_active': True,
+                'effectiveness_evaluator_active': True,
+                'version': meta_status.get('version', '1.0.0')
+            }
+        except Exception as e:
+            enhanced_status['meta_learning_details'] = {
+                'status': 'error',
+                'message': str(e)
+            }
+    
+    # Add capability summary
+    enhanced_status['capabilities'] = {
+        'core_asis': 'Base AGI functionality',
+        'research_engine': 'Advanced internet research and analysis',
+        'evolution_framework': 'Self-improvement and adaptation',
+        'autonomous_agency': 'Independent task execution',
+        'unified_knowledge': 'Persistent memory and knowledge graphs',
+        'meta_learning': 'Advanced learning optimization and strategy generation'
+    }
+    
+    return jsonify(enhanced_status)
 
 @app.route('/api/research', methods=['POST'])
 def api_research():
@@ -414,6 +479,8 @@ if __name__ == '__main__':
     print(f"   Research Engine: {'✅' if system_status['research_engine'] else '❌'}")
     print(f"   Evolution Framework: {'✅' if system_status['evolution_framework'] else '❌'}")
     print(f"   Autonomous Agency: {'✅' if system_status['autonomous_agency'] else '❌'}")
+    print(f"   Unified Knowledge: {'✅' if system_status['unified_knowledge'] else '❌'}")
+    print(f"   Meta-Learning: {'✅' if system_status['meta_learning'] else '❌'}")
 
     # Run the Flask app with SocketIO
     socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
