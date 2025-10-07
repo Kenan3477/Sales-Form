@@ -407,7 +407,17 @@ def api_chat():
         enhanced_response = enhance_response_with_knowledge(message, response)
         enhanced_response['agi_level'] = system_status['agi_level']
         
-        return jsonify(enhanced_response)
+        # Format response for frontend compatibility
+        formatted_response = {
+            'response': enhanced_response.get('content', ''),  # JavaScript expects 'response' field
+            'confidence': enhanced_response.get('confidence', 0.8),
+            'agi_level': enhanced_response.get('agi_level', 100.0),
+            'type': 'conversation',
+            'enhanced_with': enhanced_response.get('enhanced_with', ''),
+            'knowledge_context': enhanced_response.get('knowledge_context', {})
+        }
+        
+        return jsonify(formatted_response)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
