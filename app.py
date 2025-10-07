@@ -26,8 +26,6 @@ try:
     from asis_enhanced_learning_display import ASISEnhancedLearningDisplay
     from asis_learning_analytics_dashboard import ASISLearningAnalyticsDashboard
     from asis_learning_verification_tools import ASISLearningVerificationTools
-    from asis_dashboard_enhancer import ASISDashboardEnhancer
-    from dashboard_control import DashboardController
 except ImportError as e:
     print(f"Warning: Could not import ASIS components: {e}")
     print("Some features may not be available.")
@@ -41,16 +39,11 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Global ASIS interface instance
 asis_interface = None
-dashboard_controller = None
-dashboard_enhancer = None
-web_api = None
-
 asis_status = {
     'initialized': False,
     'activated': False,
     'conversation_active': False,
     'system_health': 'Unknown',
-    'dashboard_enhanced': False,
     'last_update': datetime.now().isoformat()
 }
 
@@ -100,11 +93,6 @@ def index():
 def dashboard():
     """ASIS features dashboard"""
     return render_template('dashboard.html', asis_status=asis_status)
-
-@app.route('/dashboard/control')
-def dashboard_control():
-    """Dashboard control interface"""
-    return render_template('dashboard_control.html', asis_status=asis_status)
 
 @app.route('/api/status')
 def get_status():
@@ -454,155 +442,6 @@ def handle_message(data):
             'error': f'Processing error: {str(e)}',
             'response': '❌ Sorry, I encountered an error processing your message.'
         })
-
-# Dashboard Control Endpoints
-@app.route('/api/dashboard/control/<action>', methods=['POST'])
-def dashboard_control_api(action):
-    """Control dashboard enhancement (activate/deactivate/status)"""
-    global dashboard_controller, dashboard_enhancer, web_api
-    
-    try:
-        # Initialize dashboard controller if not exists
-        if not dashboard_controller:
-            dashboard_controller = DashboardController()
-        
-        # Set web_api reference for dashboard enhancer
-        if not web_api:
-            web_api = app  # Use Flask app as web_api reference
-        
-        if action == 'activate':
-            # Create a mock web_api object for dashboard enhancer
-            class MockWebAPI:
-                def __init__(self):
-                    self.app = app
-                    self.system_status = asis_status
-                    self.active_connections = []
-                    self.chat_history = []
-                    self.research_projects = []
-            
-            mock_web_api = MockWebAPI()
-            
-            try:
-                dashboard_enhancer = ASISDashboardEnhancer(mock_web_api)
-                result = {
-                    'success': True,
-                    'message': 'Dashboard enhancement activated successfully',
-                    'status': 'active',
-                    'monitoring_active': True
-                }
-                asis_status['dashboard_enhanced'] = True
-            except Exception as e:
-                result = {
-                    'success': False,
-                    'error': f'Failed to activate: {str(e)}',
-                    'status': 'error'
-                }
-                
-        elif action == 'deactivate':
-            if dashboard_enhancer:
-                dashboard_enhancer.system_monitor.stop_monitoring()
-                dashboard_enhancer = None
-            result = {
-                'success': True,
-                'message': 'Dashboard enhancement deactivated',
-                'status': 'inactive',
-                'monitoring_active': False
-            }
-            asis_status['dashboard_enhanced'] = False
-            
-        elif action == 'status':
-            status = {
-                'dashboard_enhanced': dashboard_enhancer is not None,
-                'monitoring_active': dashboard_enhancer.system_monitor.monitoring_active if dashboard_enhancer else False,
-                'asis_status': asis_status,
-                'timestamp': datetime.now().isoformat()
-            }
-            
-            if dashboard_enhancer:
-                enhancement_data = dashboard_enhancer.get_dashboard_enhancement_data()
-                status.update(enhancement_data)
-                
-            result = {
-                'success': True,
-                'status': status
-            }
-            
-        elif action == 'health':
-            if dashboard_enhancer:
-                current_metrics = dashboard_enhancer.system_monitor.get_current_metrics()
-                result = {
-                    'success': True,
-                    'health_data': current_metrics,
-                    'monitoring_active': True
-                }
-            else:
-                result = {
-                    'success': False,
-                    'error': 'Dashboard enhancement not active',
-                    'monitoring_active': False
-                }
-                
-        else:
-            result = {
-                'success': False,
-                'error': f'Unknown action: {action}',
-                'available_actions': ['activate', 'deactivate', 'status', 'health']
-            }
-            
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Dashboard control error: {str(e)}',
-            'action': action
-        }), 500
-
-@app.route('/api/dashboard/fix-db', methods=['POST'])
-def fix_database_issues():
-    """Attempt to fix database locking issues"""
-    try:
-        import sqlite3
-        import os
-        import time
-        
-        # Stop monitoring if active
-        if dashboard_enhancer:
-            dashboard_enhancer.system_monitor.stop_monitoring()
-            time.sleep(2)
-        
-        db_files = ['asis_consciousness.db', 'asis_memory.db', 'asis_learning.db']
-        fixed_dbs = []
-        
-        for db_file in db_files:
-            if os.path.exists(db_file):
-                try:
-                    conn = sqlite3.connect(db_file, timeout=1.0)
-                    conn.execute("PRAGMA journal_mode=WAL;")
-                    conn.commit()
-                    conn.close()
-                    fixed_dbs.append(db_file)
-                except Exception as e:
-                    print(f"Could not fix {db_file}: {e}")
-        
-        # Restart monitoring if it was active
-        if dashboard_enhancer:
-            time.sleep(1)
-            dashboard_enhancer.system_monitor.start_monitoring()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Database fix attempted. Fixed {len(fixed_dbs)} databases.',
-            'fixed_databases': fixed_dbs,
-            'timestamp': datetime.now().isoformat()
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Database fix failed: {str(e)}',
-            'timestamp': datetime.now().isoformat()
-        }), 500
 
 # Error handlers
 @app.errorhandler(404)

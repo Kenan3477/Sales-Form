@@ -1,0 +1,34 @@
+# ASIS Dashboard Enhancement Manual Deployment
+Created: 2025-10-03T11:19:35.492525
+
+## Files Included:
+- asis_dashboard_enhancer.py
+- dashboard_control.py
+- templates/dashboard_control.html
+- test_dashboard_integration.py
+- deployment_requirements.txt
+- install.sh
+
+## Installation Steps:
+
+1. Upload this entire folder to your ASIS server
+2. On your server, navigate to your ASIS directory:
+   cd /home/creator_kenandavies/ASIS
+
+3. Copy the deployment files:
+   cp /path/to/upload/asis_dashboard_manual_deploy/* ./
+   cp /path/to/upload/asis_dashboard_manual_deploy/templates/* templates/
+
+4. Run the installation:
+   chmod +x install.sh
+   ./install.sh
+
+5. Access enhanced dashboard:
+   http://81.134.136.242:5000/dashboard/control
+
+## Manual Commands (if install.sh doesn't work):
+
+pip install -r deployment_requirements.txt
+python test_dashboard_integration.py
+pkill -f "python.*app.py" || true
+nohup python app.py > asis.log 2>&1 &
