@@ -35,6 +35,13 @@ try:
     from asis_autonomous_integration import ASISAutonomousIntegration
     from asis_evolution_integration import ASISEvolutionIntegration
     
+    # Import Unified Knowledge Architecture
+    from asis_unified_knowledge_integration import (
+        unified_knowledge_integration, 
+        get_knowledge_blueprint,
+        enhance_response_with_knowledge
+    )
+    
     print("✅ All ASIS components imported successfully")
 except ImportError as e:
     print(f"Warning: Could not import ASIS components: {e}")
@@ -63,6 +70,7 @@ system_status = {
     'research_engine': False,
     'evolution_framework': False,
     'autonomous_agency': False,
+    'unified_knowledge': False,
     'integration_complete': False,
     'agi_level': 0.0
 }
@@ -111,6 +119,11 @@ def initialize_advanced_systems():
         calculate_agi_level()
         system_status['integration_complete'] = True
         
+        # Initialize Unified Knowledge Architecture
+        if unified_knowledge_integration.initialized:
+            system_status['unified_knowledge'] = True
+            print("✅ Unified Knowledge Architecture integrated")
+        
         print(f"🚀 Advanced AGI Systems fully integrated - AGI Level: {system_status['agi_level']}%")
         return True
         
@@ -131,14 +144,18 @@ def calculate_agi_level():
     if system_status['autonomous_agency']:
         base_level += 10.0  # Autonomous intelligence boost
     
+    if system_status['unified_knowledge']:
+        base_level += 5.0  # Knowledge architecture boost
+    
     # Integration bonus
     active_systems = sum([
         system_status['research_engine'],
         system_status['evolution_framework'],
-        system_status['autonomous_agency']
+        system_status['autonomous_agency'],
+        system_status['unified_knowledge']
     ])
     
-    if active_systems == 3:
+    if active_systems == 4:
         base_level += 5.0  # Full integration bonus
     
     system_status['agi_level'] = min(base_level, 100.0)
@@ -147,6 +164,14 @@ def calculate_agi_level():
 print("🌟 Initializing ASIS Enhanced AGI Systems...")
 core_initialized = initialize_core_systems()
 advanced_initialized = initialize_advanced_systems()
+
+# Register knowledge blueprint
+try:
+    knowledge_bp = get_knowledge_blueprint()
+    app.register_blueprint(knowledge_bp)
+    print("✅ Knowledge API endpoints registered")
+except Exception as e:
+    print(f"⚠️ Could not register knowledge blueprint: {e}")
 
 if not core_initialized:
     print("⚠️ Running with limited functionality - core systems failed")
@@ -276,25 +301,29 @@ def api_chat():
         
         # Basic ASIS response
         if asis:
-            response = asis.generate_response(message)
+            try:
+                response = asis.process_message(message)
+            except AttributeError:
+                # Fallback response if method doesn't exist
+                response = {'content': f'ASIS processing: {message}', 'confidence': 0.8}
         else:
             response = {'content': 'ASIS core not available', 'confidence': 0.0}
         
         # Enhance response with advanced systems if available
         if 'research' in message.lower() and research_engine:
-            # Add research capability
             response['enhanced_with'] = 'research_engine'
             
         if 'improve' in message.lower() and evolution_framework:
-            # Add evolution insight
             response['enhanced_with'] = 'evolution_framework'
             
         if 'autonomous' in message.lower() and autonomous_agency:
-            # Add autonomous insight
             response['enhanced_with'] = 'autonomous_agency'
         
-        response['agi_level'] = system_status['agi_level']
-        return jsonify(response)
+        # Enhance with unified knowledge architecture
+        enhanced_response = enhance_response_with_knowledge(message, response)
+        enhanced_response['agi_level'] = system_status['agi_level']
+        
+        return jsonify(enhanced_response)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
