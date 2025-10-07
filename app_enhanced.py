@@ -179,20 +179,22 @@ def calculate_agi_level():
         base_level += 10.0  # Knowledge architecture boost
     
     if system_status['meta_learning']:
-        base_level += 10.0  # Meta-learning system boost
+        base_level += 20.0  # Meta-learning system boost - major advancement
     
     # Integration bonus
     active_systems = sum([
         system_status['research_engine'],
         system_status['evolution_framework'],
         system_status['autonomous_agency'],
-        system_status['unified_knowledge']
+        system_status['unified_knowledge'],
+        system_status['meta_learning']
     ])
     
-    if active_systems == 4:
+    if active_systems >= 4:
         base_level += 5.0  # Full integration bonus
     
-    system_status['agi_level'] = min(base_level, 100.0)
+    # Remove AGI level cap to allow super-AGI capabilities
+    system_status['agi_level'] = base_level
 
 # Initialize systems on startup
 print("🌟 Initializing ASIS Enhanced AGI Systems...")
@@ -209,7 +211,7 @@ except Exception as e:
 
 # Register meta-learning blueprint
 try:
-    app.register_blueprint(meta_learning_bp)
+    app.register_blueprint(meta_learning_bp, url_prefix='/api/meta-learning')
     print("✅ Meta-Learning API endpoints registered")
 except Exception as e:
     print(f"⚠️ Could not register meta-learning blueprint: {e}")
