@@ -1321,3 +1321,10 @@ This is a rapidly evolving field requiring ongoing dialogue between technologist
             validation_results["overall_status"] = "needs_attention"
         
         return validation_results
+
+    async def process_query(self, query: str, context: Dict = None) -> Dict[str, Any]:
+        """Standard AGI query processing interface"""
+        return await self.process_input_with_understanding(
+            query, 
+            context.get('conversation_history', []) if context else []
+        )

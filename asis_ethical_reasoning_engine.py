@@ -752,6 +752,14 @@ class EthicalReasoningEngine:
         except Exception as e:
             logger.error(f"Failed to update ethical patterns: {e}")
 
+    async def analyze_ethical_implications(self, scenario: str, context: Dict = None) -> Dict[str, Any]:
+        """Standard ethical analysis interface"""
+        return await self.comprehensive_ethical_analysis({
+            "scenario": scenario,
+            "stakeholders": context.get('stakeholders', []) if context else [],
+            "context": context or {}
+        })
+
 # Individual Framework Implementations
 
 class UtilitarianFramework:

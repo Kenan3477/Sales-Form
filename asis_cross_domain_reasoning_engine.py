@@ -1033,6 +1033,14 @@ class CrossDomainReasoningEngine:
         except Exception as e:
             logger.error(f"Failed to store reasoning session: {e}")
 
+    async def reason_across_domains(self, problem: str, source_domain: str = None, target_domain: str = None) -> Dict[str, Any]:
+        """Standard cross-domain reasoning interface"""
+        return await self.advanced_cross_domain_reasoning(problem, {
+            "source_domain": source_domain,
+            "target_domain": target_domain,
+            "problem_context": problem
+        })
+
 # Integration function
 async def integrate_with_asis_agi(agi_system):
     """Integrate cross-domain reasoning with ASIS AGI"""
