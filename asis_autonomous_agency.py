@@ -1411,6 +1411,10 @@ class ASISAutonomousAgency:
             'agency_health': self._calculate_agency_health()
         }
     
+    def get_status(self) -> Dict[str, Any]:
+        """Get agency status - alias for get_agency_status"""
+        return self.get_agency_status()
+    
     def _calculate_agency_health(self) -> Dict[str, Any]:
         """Calculate overall agency health score"""
         metrics = self.agency_metrics
