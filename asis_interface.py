@@ -24,6 +24,7 @@ from asis_adaptive_meta_learning import ASISAdaptiveMetaLearning
 from asis_enhanced_learning_display import ASISEnhancedLearningDisplay
 from asis_learning_analytics_dashboard import ASISLearningAnalyticsDashboard
 from asis_learning_verification_tools import ASISLearningVerificationTools
+from asis_true_self_modification import ASISTrueSelfModification
 
 # Import ChatGPT Agent capabilities
 try:
@@ -79,6 +80,10 @@ class ASISInterface:
         # Initialize Learning Verification Tools
         self.learning_verification_tools = ASISLearningVerificationTools()
         print("🔍 Learning verification tools system activated")
+        
+        # Initialize True Self-Modification Engine
+        self.self_modification_engine = ASISTrueSelfModification()
+        print("🛠️ True Self-Modification Engine activated")
         
         # Initialize Direct Response System for truly conversational responses
         self.initialize_direct_responses()
@@ -149,7 +154,8 @@ class ASISInterface:
             "autonomous_task_execution": bool(self.agent_system),
             "multi_step_reasoning": bool(self.agent_system),
             "tool_orchestration": bool(self.agent_system),
-            "agent_mode": bool(self.agent_system)
+            "agent_mode": bool(self.agent_system),
+            "true_self_modification": True
         }
         
         # Conversation history
@@ -853,6 +859,50 @@ class ASISInterface:
                     print(verification_display)
                     continue
                 
+                elif user_input.lower() in ['self modify', 'self-modify', 'modify yourself', 'improve yourself', 'self improvement']:
+                    print("\n🛠️ True Self-Modification Engine:")
+                    print("=" * 50)
+                    print("🤖 ASIS: Initiating self-modification cycle...")
+                    
+                    # Run async self-modification cycle
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    modification_result = loop.run_until_complete(
+                        self.self_modification_engine.run_full_self_modification_cycle()
+                    )
+                    loop.close()
+                    
+                    print(f"\n✅ Self-modification complete!")
+                    print(f"📊 Modifications Applied: {modification_result['modifications_applied']}")
+                    print(f"📈 Quality Improvement: {modification_result['quality_improvement']:.1f} points")
+                    print(f"⏱️ Duration: {modification_result['cycle_duration']:.2f} seconds")
+                    continue
+                
+                elif user_input.lower() in ['modification status', 'self mod status', 'modification history']:
+                    print("\n🛠️ Self-Modification Status:")
+                    print("=" * 50)
+                    status = self.self_modification_engine.get_self_modification_status()
+                    history = self.self_modification_engine.get_modification_history()
+                    
+                    print(f"🤖 Engine Version: {status['system_version']}")
+                    print(f"📊 Current Quality Score: {status['quality_score']:.1f}/100")
+                    print(f"🔧 Recent Modifications: {status['recent_modifications']}")
+                    
+                    if history:
+                        print(f"\n📝 Latest Modification:")
+                        latest = history[0]
+                        print(f"   Type: {latest['type']}")
+                        print(f"   Status: {latest['status']}")
+                        print(f"   Safety Score: {latest['safety_score']:.2f}")
+                        print(f"   Success: {'✅' if latest['success'] else '❌'}")
+                    
+                    print(f"\n🛠️ Capabilities:")
+                    for capability, enabled in status['capabilities'].items():
+                        status_icon = "✅" if enabled else "❌"
+                        print(f"   {status_icon} {capability.replace('_', ' ').title()}")
+                    continue
+                
                 elif user_input.lower().startswith('agent ') and self.agent_system:
                     # Extract task from agent command
                     task_description = user_input[6:].strip()
@@ -1399,6 +1449,8 @@ class ASISInterface:
         print("• 'evidence' - Show enhanced learning evidence display")
         print("• 'dashboard' - Show learning analytics dashboard")
         print("• 'verify' - Run independent learning verification")
+        print("• 'self modify' - Run True Self-Modification cycle")
+        print("• 'modification status' - Show self-modification status")
         print("• 'help' - Show this help message")
         print("• 'rate: X' - Rate last response (1-5)")
         print("\nConversation topics you can explore:")
