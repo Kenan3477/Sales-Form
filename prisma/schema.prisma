@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      String   @default("AGENT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales Sale[]
+
+  @@map("users")
+}
+
+model Sale {
+  id                      String   @id @default(cuid())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Customer information
+  customerFirstName      String
+  customerLastName       String
+  title                  String?
+  phoneNumber            String
+  email                  String
+  notes                  String?
+
+  // Address information
+  mailingStreet          String?
+  mailingCity            String?
+  mailingProvince        String?
+  mailingPostalCode      String?
+
+  // Direct debit information
+  accountName            String
+  sortCode               String
+  accountNumber          String
+  directDebitDate        DateTime
+
+  // Coverage selection
+  applianceCoverSelected Boolean  @default(false)
+  boilerCoverSelected    Boolean  @default(false)
+  boilerPriceSelected    Float?
+
+  // Total cost
+  totalPlanCost          Float
+
+  // Relations
+  createdById            String
+  createdBy              User     @relation(fields: [createdById], references: [id])
+  appliances             Appliance[]
+
+  @@map("sales")
+}
+
+model Appliance {
+  id          String  @id @default(cuid())
+  saleId      String
+  appliance   String
+  otherText   String?
+  coverLimit  Float
+  cost        Float
+
+  sale        Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("appliances")
+}
+
+model FieldConfiguration {
+  id          String  @id @default(cuid())
+  fieldName   String  @unique
+  isRequired  Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("field_configurations")
+}
