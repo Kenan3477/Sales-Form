@@ -1,0 +1,11 @@
+api_host: 0.0.0.0
+api_port: 8000
+cli_enabled: true
+environment: development
+gui_enabled: true
+log_level: INFO
+monitoring_enabled: true
+safety_thresholds:
+  critical_threshold: 0.3
+  monitoring_threshold: 0.8
+  warning_threshold: 0.6

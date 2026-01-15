@@ -1,0 +1,2 @@
+test_setting=true
+autonomous=enabled

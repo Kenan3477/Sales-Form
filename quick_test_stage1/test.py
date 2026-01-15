@@ -1,0 +1,1 @@
+print('ASIS test file')

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: asis-safety
+  labels:
+    app.kubernetes.io/name: asis-safety
+    app.kubernetes.io/version: "1.0.0"

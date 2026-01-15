@@ -1,0 +1,6 @@
+university,department,faculty_name,email,title,research_areas,profile_url,contact_verified,data_source
+Carnegie Mellon University,Machine Learning Department,Dr. Tom Mitchell,tom.mitchell@cmu.edu,Professor,"[""Machine Learning"", ""Cognitive Science"", ""AI""]",http://www.cs.cmu.edu/~tom/,1,manual_research
+Harvard University,Computer Science,Dr. Finale Doshi-Velez,finale@seas.harvard.edu,Associate Professor,"[""Machine Learning"", ""AI Safety"", ""Healthcare AI""]",https://finale.seas.harvard.edu/,1,manual_research
+MIT,EECS,Dr. Regina Barzilay,regina@csail.mit.edu,Professor,"[""Natural Language Processing"", ""Machine Learning"", ""AI""]",https://people.csail.mit.edu/regina/,1,manual_research
+Stanford University,Computer Science,Dr. Fei-Fei Li,feifeili@cs.stanford.edu,Professor,"[""Computer Vision"", ""AI"", ""Machine Learning""]",https://profiles.stanford.edu/fei-fei-li,1,manual_research
+UC Berkeley,EECS,Dr. Dawn Song,dawnsong@berkeley.edu,Professor,"[""AI Security"", ""Machine Learning"", ""Blockchain""]",https://people.eecs.berkeley.edu/~dawnsong/,1,manual_research

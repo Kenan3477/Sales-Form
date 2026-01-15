@@ -1,0 +1,19 @@
+{
+  "agent_id": "agent_00d248bf",
+  "specialization": "security",
+  "capabilities": [
+    "security_analysis",
+    "vulnerability_assessment",
+    "compliance"
+  ],
+  "resources": {
+    "cpu_cores": 1,
+    "memory_gb": 2,
+    "storage_gb": 10,
+    "network_bandwidth": "100mbps",
+    "priority_level": "high"
+  },
+  "communication_port": 9001,
+  "status": "initializing",
+  "created_at": "2025-10-08T15:08:46.441439"
+}

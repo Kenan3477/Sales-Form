@@ -1,0 +1,25 @@
+# Railway Minimal Requirements - ASIS Platform
+# Essential packages only for Railway deployment
+
+# Core Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+
+# Database & Caching (basic versions)
+asyncpg==0.29.0
+redis==5.0.1
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Payment Processing
+stripe==7.8.0
+
+# Core Dependencies
+pydantic==2.5.0
+requests==2.31.0
+
+# Configuration
+python-dotenv==1.0.0

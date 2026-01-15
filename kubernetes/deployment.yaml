@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asis-safety
+  namespace: asis-safety
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: asis-safety
+  template:
+    metadata:
+      labels:
+        app: asis-safety
+    spec:
+      containers:
+      - name: asis-safety
+        image: asis/safety-system:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"

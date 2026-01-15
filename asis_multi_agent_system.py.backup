@@ -1,0 +1,999 @@
+#!/usr/bin/env python3
+"""
+ASIS Multi-Agent Coordination System
+===================================
+Spawning and coordinating multiple ASIS instances for complex task execution
+Enables distributed intelligence and specialized agent coordination
+"""
+
+import os
+import json
+import uuid
+import time
+import asyncio
+import sqlite3
+import subprocess
+from typing import Dict, List, Any, Optional, Set
+from datetime import datetime
+import threading
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+import queue
+import socket
+import pickle
+
+class AgentManager:
+    """Manages creation, lifecycle, and monitoring of ASIS agent instances"""
+    
+    def __init__(self, db_path: str = "asis_multi_agent.db"):
+        self.db_path = db_path
+        self.active_agents = {}
+        self.agent_processes = {}
+        self.communication_ports = {}
+        self.base_port = 9000
+        self._initialize_database()
+    
+    def _initialize_database(self):
+        """Initialize multi-agent tracking database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS agents (
+                agent_id TEXT PRIMARY KEY,
+                specialization TEXT,
+                status TEXT,
+                capabilities TEXT,
+                resources TEXT,
+                communication_port INTEGER,
+                created_at TEXT,
+                last_activity TEXT,
+                task_count INTEGER
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS agent_tasks (
+                task_id TEXT PRIMARY KEY,
+                agent_id TEXT,
+                task_type TEXT,
+                task_data TEXT,
+                status TEXT,
+                created_at TEXT,
+                completed_at TEXT,
+                result_data TEXT
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS coordination_sessions (
+                session_id TEXT PRIMARY KEY,
+                complex_task TEXT,
+                participating_agents TEXT,
+                coordination_strategy TEXT,
+                status TEXT,
+                created_at TEXT,
+                completed_at TEXT,
+                final_result TEXT
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+    
+    async def create_agent(self, agent_config: Dict[str, Any]) -> str:
+        """Create a new specialized ASIS agent instance"""
+        
+        agent_id = f"agent_{uuid.uuid4().hex[:8]}"
+        
+        # Allocate communication port
+        port = await self._allocate_port()
+        
+        # Create agent configuration
+        agent_data = {
+            "agent_id": agent_id,
+            "specialization": agent_config.get("specialization", "general"),
+            "capabilities": agent_config.get("capabilities", []),
+            "resources": agent_config.get("resources", {}),
+            "communication_port": port,
+            "status": "initializing",
+            "created_at": datetime.now().isoformat()
+        }
+        
+        # Start agent process
+        process = await self._start_agent_process(agent_data)
+        
+        if process:
+            self.active_agents[agent_id] = agent_data
+            self.agent_processes[agent_id] = process
+            self.communication_ports[agent_id] = port
+            
+            # Store in database
+            await self._store_agent_data(agent_data)
+            
+            print(f"[OK] Agent {agent_id} created with specialization: {agent_config['specialization']}")
+            return agent_id
+        else:
+            print(f"[ERROR] Failed to create agent {agent_id}")
+            return None
+    
+    async def _allocate_port(self) -> int:
+        """Allocate available port for agent communication"""
+        port = self.base_port
+        while port in self.communication_ports.values():
+            port += 1
+        return port
+    
+    async def _start_agent_process(self, agent_data: Dict) -> Optional[subprocess.Popen]:
+        """Start agent process with specialized configuration"""
+        
+        try:
+            # Create agent-specific configuration file
+            config_file = f"agent_config_{agent_data['agent_id']}.json"
+            with open(config_file, 'w') as f:
+                json.dump(agent_data, f, indent=2)
+            
+            # Start agent process
+            cmd = [
+                "python", "-c", f"""
+import sys
+import json
+import asyncio
+from asis_specialized_agent import ASISSpecializedAgent
+
+# Load configuration
+with open('{config_file}', 'r') as f:
+    config = json.load(f)
+
+# Create and run specialized agent
+async def run_agent():
+    agent = ASISSpecializedAgent(config)
+    await agent.start()
+
+if __name__ == "__main__":
+    asyncio.run(run_agent())
+"""
+            ]
+            
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=os.getcwd()
+            )
+            
+            # Wait a moment to ensure process starts
+            await asyncio.sleep(1)
+            
+            if process.poll() is None:  # Process is running
+                return process
+            else:
+                print(f"[ERROR] Agent process failed to start: {process.stderr.read().decode()}")
+                return None
+                
+        except Exception as e:
+            print(f"[ERROR] Error starting agent process: {e}")
+            return None
+    
+    async def assign_task(self, agent_id: str, task: Dict[str, Any]) -> bool:
+        """Assign task to specific agent"""
+        
+        if agent_id not in self.active_agents:
+            print(f"[ERROR] Agent {agent_id} not found")
+            return False
+        
+        task_id = f"task_{uuid.uuid4().hex[:8]}"
+        
+        # Send task to agent via communication port
+        success = await self._send_task_to_agent(agent_id, task_id, task)
+        
+        if success:
+            # Store task assignment
+            await self._store_task_assignment(task_id, agent_id, task)
+            print(f"[OK] Task {task_id} assigned to agent {agent_id}")
+            return True
+        else:
+            print(f"[ERROR] Failed to assign task to agent {agent_id}")
+            return False
+    
+    async def _send_task_to_agent(self, agent_id: str, task_id: str, task: Dict) -> bool:
+        """Send task to agent via socket communication"""
+        
+        try:
+            port = self.communication_ports.get(agent_id)
+            if not port:
+                return False
+            
+            # Create socket connection
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(('localhost', port))
+            
+            # Send task data
+            message = {
+                "type": "task_assignment",
+                "task_id": task_id,
+                "task_data": task
+            }
+            
+            data = pickle.dumps(message)
+            sock.send(len(data).to_bytes(4, byteorder='big'))
+            sock.send(data)
+            
+            # Receive acknowledgment
+            response = sock.recv(1024)
+            sock.close()
+            
+            return response == b"ACK"
+            
+        except Exception as e:
+            print(f"[ERROR] Communication error with agent {agent_id}: {e}")
+            return False
+    
+    async def terminate_agent(self, agent_id: str) -> bool:
+        """Terminate agent and cleanup resources"""
+        
+        if agent_id not in self.active_agents:
+            return False
+        
+        try:
+            # Terminate process
+            process = self.agent_processes.get(agent_id)
+            if process:
+                process.terminate()
+                process.wait(timeout=5)
+            
+            # Cleanup resources
+            del self.active_agents[agent_id]
+            del self.agent_processes[agent_id]
+            del self.communication_ports[agent_id]
+            
+            # Remove config file
+            config_file = f"agent_config_{agent_id}.json"
+            if os.path.exists(config_file):
+                os.remove(config_file)
+            
+            # Update database
+            await self._update_agent_status(agent_id, "terminated")
+            
+            print(f"[OK] Agent {agent_id} terminated successfully")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Error terminating agent {agent_id}: {e}")
+            return False
+    
+    async def get_agent_status(self, agent_id: str) -> Dict[str, Any]:
+        """Get current status of agent"""
+        
+        if agent_id in self.active_agents:
+            return self.active_agents[agent_id]
+        return {"status": "not_found"}
+    
+    async def list_active_agents(self) -> List[Dict[str, Any]]:
+        """List all active agents"""
+        return list(self.active_agents.values())
+    
+    async def _store_agent_data(self, agent_data: Dict):
+        """Store agent data in database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO agents (agent_id, specialization, status, capabilities, resources, 
+                              communication_port, created_at, last_activity, task_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            agent_data["agent_id"],
+            agent_data["specialization"],
+            agent_data["status"],
+            json.dumps(agent_data["capabilities"]),
+            json.dumps(agent_data["resources"]),
+            agent_data["communication_port"],
+            agent_data["created_at"],
+            agent_data["created_at"],
+            0
+        ))
+        
+        conn.commit()
+        conn.close()
+    
+    async def _store_task_assignment(self, task_id: str, agent_id: str, task: Dict):
+        """Store task assignment in database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO agent_tasks (task_id, agent_id, task_type, task_data, 
+                                   status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            task_id,
+            agent_id,
+            task.get("type", "unknown"),
+            json.dumps(task),
+            "assigned",
+            datetime.now().isoformat()
+        ))
+        
+        conn.commit()
+        conn.close()
+    
+    async def _update_agent_status(self, agent_id: str, status: str):
+        """Update agent status in database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE agents SET status = ?, last_activity = ? WHERE agent_id = ?
+        ''', (status, datetime.now().isoformat(), agent_id))
+        
+        conn.commit()
+        conn.close()
+
+class TaskDistributor:
+    """Distributes complex tasks among multiple agents"""
+    
+    def __init__(self):
+        self.task_strategies = {
+            "parallel": self._parallel_decomposition,
+            "sequential": self._sequential_decomposition,
+            "hierarchical": self._hierarchical_decomposition,
+            "pipeline": self._pipeline_decomposition
+        }
+    
+    async def decompose_task(self, complex_task: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Decompose complex task into subtasks"""
+        
+        task_type = complex_task.get("type", "unknown")
+        complexity = complex_task.get("complexity", "medium")
+        strategy = complex_task.get("decomposition_strategy", "parallel")
+        
+        print(f"[PROCESS] Decomposing {task_type} task using {strategy} strategy...")
+        
+        if strategy in self.task_strategies:
+            subtasks = await self.task_strategies[strategy](complex_task)
+        else:
+            subtasks = await self._parallel_decomposition(complex_task)
+        
+        print(f"[OK] Task decomposed into {len(subtasks)} subtasks")
+        return subtasks
+    
+    async def _parallel_decomposition(self, task: Dict) -> List[Dict]:
+        """Decompose task for parallel execution"""
+        
+        subtasks = []
+        task_data = task.get("data", {})
+        
+        # Example: Code analysis task
+        if task.get("type") == "code_analysis":
+            files = task_data.get("files", [])
+            chunk_size = max(1, len(files) // 4)  # Divide among 4 agents
+            
+            for i in range(0, len(files), chunk_size):
+                chunk = files[i:i + chunk_size]
+                subtasks.append({
+                    "type": "code_analysis_chunk",
+                    "data": {"files": chunk},
+                    "priority": "normal",
+                    "specialization_required": "code_analysis"
+                })
+        
+        # Example: Research task
+        elif task.get("type") == "research":
+            queries = task_data.get("queries", [])
+            for query in queries:
+                subtasks.append({
+                    "type": "research_query",
+                    "data": {"query": query},
+                    "priority": "normal",
+                    "specialization_required": "research"
+                })
+        
+        # Generic decomposition
+        else:
+            data_chunks = self._split_data(task_data, 4)
+            for i, chunk in enumerate(data_chunks):
+                subtasks.append({
+                    "type": f"{task.get('type', 'generic')}_part_{i}",
+                    "data": chunk,
+                    "priority": "normal",
+                    "specialization_required": task.get("specialization_required", "general")
+                })
+        
+        return subtasks
+    
+    async def _sequential_decomposition(self, task: Dict) -> List[Dict]:
+        """Decompose task for sequential execution"""
+        
+        subtasks = []
+        
+        # Example: Development pipeline
+        if task.get("type") == "development_pipeline":
+            pipeline_stages = [
+                {"type": "analysis", "specialization": "code_analysis"},
+                {"type": "design", "specialization": "architecture"},
+                {"type": "implementation", "specialization": "development"},
+                {"type": "testing", "specialization": "testing"},
+                {"type": "deployment", "specialization": "deployment"}
+            ]
+            
+            for i, stage in enumerate(pipeline_stages):
+                subtasks.append({
+                    "type": stage["type"],
+                    "data": task.get("data", {}),
+                    "priority": "high" if i == 0 else "normal",
+                    "specialization_required": stage["specialization"],
+                    "depends_on": pipeline_stages[i-1]["type"] if i > 0 else None
+                })
+        
+        return subtasks
+    
+    async def _hierarchical_decomposition(self, task: Dict) -> List[Dict]:
+        """Decompose task hierarchically"""
+        
+        subtasks = []
+        
+        # Create manager task
+        subtasks.append({
+            "type": "task_manager",
+            "data": {"original_task": task},
+            "priority": "high",
+            "specialization_required": "coordination"
+        })
+        
+        # Create worker tasks
+        worker_count = task.get("worker_count", 3)
+        for i in range(worker_count):
+            subtasks.append({
+                "type": "worker_task",
+                "data": {"worker_id": i, "task_data": task.get("data", {})},
+                "priority": "normal",
+                "specialization_required": task.get("specialization_required", "general"),
+                "managed_by": "task_manager"
+            })
+        
+        return subtasks
+    
+    async def _pipeline_decomposition(self, task: Dict) -> List[Dict]:
+        """Decompose task for pipeline processing"""
+        
+        subtasks = []
+        data = task.get("data", {})
+        
+        # Create pipeline stages
+        stages = [
+            {"name": "input_processing", "specialization": "data_processing"},
+            {"name": "transformation", "specialization": "data_transformation"},
+            {"name": "analysis", "specialization": "analysis"},
+            {"name": "output_generation", "specialization": "output_generation"}
+        ]
+        
+        for i, stage in enumerate(stages):
+            subtasks.append({
+                "type": f"pipeline_{stage['name']}",
+                "data": data,
+                "priority": "normal",
+                "specialization_required": stage["specialization"],
+                "pipeline_stage": i,
+                "pipeline_total": len(stages)
+            })
+        
+        return subtasks
+    
+    def _split_data(self, data: Dict, num_chunks: int) -> List[Dict]:
+        """Split data into chunks for parallel processing"""
+        
+        if not data:
+            return [{}] * num_chunks
+        
+        chunks = []
+        items = list(data.items())
+        chunk_size = max(1, len(items) // num_chunks)
+        
+        for i in range(0, len(items), chunk_size):
+            chunk_items = items[i:i + chunk_size]
+            chunks.append(dict(chunk_items))
+        
+        return chunks
+
+class CoordinationEngine:
+    """Coordinates execution across multiple agents"""
+    
+    def __init__(self):
+        self.coordination_strategies = {
+            "parallel": self._coordinate_parallel,
+            "sequential": self._coordinate_sequential,
+            "hierarchical": self._coordinate_hierarchical,
+            "pipeline": self._coordinate_pipeline
+        }
+        self.active_coordinations = {}
+    
+    async def coordinate_execution(self, agents: List[Dict]) -> Dict[str, Any]:
+        """Coordinate execution across multiple agents"""
+        
+        coordination_id = f"coord_{uuid.uuid4().hex[:8]}"
+        
+        print(f"[TARGET] Starting coordination {coordination_id} with {len(agents)} agents")
+        
+        # Determine coordination strategy
+        strategy = self._determine_strategy(agents)
+        
+        # Execute coordination
+        if strategy in self.coordination_strategies:
+            results = await self.coordination_strategies[strategy](agents)
+        else:
+            results = await self._coordinate_parallel(agents)
+        
+        coordination_result = {
+            "coordination_id": coordination_id,
+            "strategy": strategy,
+            "agents": len(agents),
+            "results": results,
+            "completed_at": datetime.now().isoformat()
+        }
+        
+        print(f"[OK] Coordination {coordination_id} completed successfully")
+        return coordination_result
+    
+    def _determine_strategy(self, agents: List[Dict]) -> str:
+        """Determine best coordination strategy based on agents and tasks"""
+        
+        # Check if tasks have dependencies
+        has_dependencies = any(
+            agent["subtask"].get("depends_on") for agent in agents
+        )
+        
+        if has_dependencies:
+            return "sequential"
+        
+        # Check if it's a pipeline
+        has_pipeline_stages = any(
+            "pipeline_stage" in agent["subtask"] for agent in agents
+        )
+        
+        if has_pipeline_stages:
+            return "pipeline"
+        
+        # Check for hierarchical structure
+        has_manager = any(
+            agent["subtask"].get("type") == "task_manager" for agent in agents
+        )
+        
+        if has_manager:
+            return "hierarchical"
+        
+        # Default to parallel
+        return "parallel"
+    
+    async def _coordinate_parallel(self, agents: List[Dict]) -> List[Dict]:
+        """Coordinate parallel execution"""
+        
+        print("[PROCESS] Executing tasks in parallel...")
+        
+        # Create tasks for concurrent execution
+        tasks = []
+        for agent in agents:
+            task = self._execute_agent_task(agent)
+            tasks.append(task)
+        
+        # Wait for all tasks to complete
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results
+        processed_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                processed_results.append({
+                    "agent_id": agents[i]["id"],
+                    "status": "error",
+                    "error": str(result)
+                })
+            else:
+                processed_results.append({
+                    "agent_id": agents[i]["id"],
+                    "status": "completed",
+                    "result": result
+                })
+        
+        return processed_results
+    
+    async def _coordinate_sequential(self, agents: List[Dict]) -> List[Dict]:
+        """Coordinate sequential execution"""
+        
+        print("[PROCESS] Executing tasks sequentially...")
+        
+        # Sort agents by dependencies
+        sorted_agents = self._sort_by_dependencies(agents)
+        
+        results = []
+        context = {}
+        
+        for agent in sorted_agents:
+            # Add context from previous results
+            agent["subtask"]["context"] = context
+            
+            # Execute task
+            result = await self._execute_agent_task(agent)
+            
+            # Update context for next task
+            if isinstance(result, dict):
+                context.update(result)
+            
+            results.append({
+                "agent_id": agent["id"],
+                "status": "completed",
+                "result": result
+            })
+        
+        return results
+    
+    async def _coordinate_hierarchical(self, agents: List[Dict]) -> List[Dict]:
+        """Coordinate hierarchical execution"""
+        
+        print("[PROCESS] Executing tasks hierarchically...")
+        
+        # Find manager agent
+        manager = next(
+            (agent for agent in agents if agent["subtask"].get("type") == "task_manager"),
+            None
+        )
+        
+        workers = [agent for agent in agents if agent != manager]
+        
+        results = []
+        
+        # Start manager
+        if manager:
+            manager_task = self._execute_agent_task(manager)
+            
+            # Start workers
+            worker_tasks = [self._execute_agent_task(worker) for worker in workers]
+            
+            # Wait for workers to complete
+            worker_results = await asyncio.gather(*worker_tasks, return_exceptions=True)
+            
+            # Process worker results
+            for i, result in enumerate(worker_results):
+                results.append({
+                    "agent_id": workers[i]["id"],
+                    "status": "completed" if not isinstance(result, Exception) else "error",
+                    "result": result if not isinstance(result, Exception) else str(result)
+                })
+            
+            # Complete manager task
+            manager_result = await manager_task
+            results.append({
+                "agent_id": manager["id"],
+                "status": "completed",
+                "result": manager_result
+            })
+        
+        return results
+    
+    async def _coordinate_pipeline(self, agents: List[Dict]) -> List[Dict]:
+        """Coordinate pipeline execution"""
+        
+        print("[PROCESS] Executing tasks as pipeline...")
+        
+        # Sort agents by pipeline stage
+        sorted_agents = sorted(
+            agents,
+            key=lambda x: x["subtask"].get("pipeline_stage", 0)
+        )
+        
+        results = []
+        pipeline_data = None
+        
+        for agent in sorted_agents:
+            # Pass data from previous stage
+            if pipeline_data:
+                agent["subtask"]["pipeline_input"] = pipeline_data
+            
+            # Execute stage
+            result = await self._execute_agent_task(agent)
+            
+            # Prepare data for next stage
+            pipeline_data = result
+            
+            results.append({
+                "agent_id": agent["id"],
+                "stage": agent["subtask"].get("pipeline_stage", 0),
+                "status": "completed",
+                "result": result
+            })
+        
+        return results
+    
+    async def _execute_agent_task(self, agent: Dict) -> Any:
+        """Execute task on specific agent"""
+        
+        try:
+            # Simulate task execution (in practice, this would communicate with agent)
+            await asyncio.sleep(1)  # Simulate work
+            
+            # Mock result based on task type
+            task_type = agent["subtask"].get("type", "unknown")
+            
+            if "analysis" in task_type:
+                return {"analysis_complete": True, "findings": ["issue1", "issue2"]}
+            elif "research" in task_type:
+                return {"research_complete": True, "insights": ["insight1", "insight2"]}
+            elif "implementation" in task_type:
+                return {"implementation_complete": True, "code_generated": True}
+            else:
+                return {"task_complete": True, "data": "processed"}
+                
+        except Exception as e:
+            return {"error": str(e)}
+    
+    def _sort_by_dependencies(self, agents: List[Dict]) -> List[Dict]:
+        """Sort agents by their dependencies"""
+        
+        sorted_agents = []
+        remaining_agents = agents.copy()
+        
+        while remaining_agents:
+            # Find agents with no dependencies or dependencies already satisfied
+            ready_agents = []
+            
+            for agent in remaining_agents:
+                depends_on = agent["subtask"].get("depends_on")
+                if not depends_on or any(
+                    a["subtask"].get("type") == depends_on for a in sorted_agents
+                ):
+                    ready_agents.append(agent)
+            
+            if not ready_agents:
+                # No more agents can be satisfied, add remaining ones
+                sorted_agents.extend(remaining_agents)
+                break
+            
+            # Add ready agents and remove from remaining
+            sorted_agents.extend(ready_agents)
+            for agent in ready_agents:
+                remaining_agents.remove(agent)
+        
+        return sorted_agents
+
+class ASISMultiAgentSystem:
+    """Main multi-agent coordination system"""
+    
+    def __init__(self):
+        self.agent_manager = AgentManager()
+        self.task_distributor = TaskDistributor()
+        self.coordination_engine = CoordinationEngine()
+        self.specialization_map = {
+            "code_analysis": ["code_analysis", "syntax_checking", "pattern_recognition"],
+            "research": ["web_research", "data_gathering", "knowledge_synthesis"],
+            "development": ["code_generation", "implementation", "debugging"],
+            "testing": ["unit_testing", "integration_testing", "validation"],
+            "deployment": ["system_deployment", "monitoring", "maintenance"],
+            "security": ["security_analysis", "vulnerability_assessment", "compliance"],
+            "optimization": ["performance_optimization", "resource_management", "efficiency"]
+        }
+        print("ASIS Multi-Agent System initialized")
+    
+    async def spawn_specialized_agent(self, specialization: str, task: Dict) -> str:
+        """Spawn a specialized ASIS agent for specific tasks"""
+        
+        print(f"[START] Spawning {specialization} specialist agent...")
+        
+        agent_config = {
+            "specialization": specialization,
+            "capabilities": await self._determine_capabilities(specialization),
+            "resources": await self._allocate_resources(task),
+            "communication_channel": f"asis_agent_{uuid.uuid4()}"
+        }
+        
+        agent_id = await self.agent_manager.create_agent(agent_config)
+        
+        if agent_id:
+            await self.agent_manager.assign_task(agent_id, task)
+            return agent_id
+        else:
+            raise Exception(f"Failed to spawn {specialization} agent")
+    
+    async def coordinate_multi_agent_task(self, complex_task: Dict) -> Dict[str, Any]:
+        """Coordinate multiple agents to complete complex task"""
+        
+        print(f"[TARGET] Coordinating multi-agent task: {complex_task.get('type', 'unknown')}")
+        
+        try:
+            # Decompose task
+            subtasks = await self.task_distributor.decompose_task(complex_task)
+            
+            # Spawn specialized agents
+            agents = []
+            for subtask in subtasks:
+                specialization = await self._determine_required_specialization(subtask)
+                agent_id = await self.spawn_specialized_agent(specialization, subtask)
+                agents.append({"id": agent_id, "subtask": subtask})
+            
+            # Coordinate execution
+            coordination_result = await self.coordination_engine.coordinate_execution(agents)
+            
+            # Synthesize results
+            final_result = await self._synthesize_multi_agent_results(coordination_result)
+            
+            # Cleanup agents
+            cleanup_tasks = []
+            for agent in agents:
+                cleanup_tasks.append(self.agent_manager.terminate_agent(agent["id"]))
+            
+            await asyncio.gather(*cleanup_tasks, return_exceptions=True)
+            
+            print("[OK] Multi-agent coordination completed successfully")
+            return final_result
+            
+        except Exception as e:
+            print(f"[ERROR] Multi-agent coordination failed: {e}")
+            return {"error": str(e), "status": "failed"}
+    
+    async def _determine_capabilities(self, specialization: str) -> List[str]:
+        """Determine capabilities based on specialization"""
+        return self.specialization_map.get(specialization, ["general_purpose"])
+    
+    async def _allocate_resources(self, task: Dict) -> Dict[str, Any]:
+        """Allocate resources based on task requirements"""
+        
+        complexity = task.get("complexity", "medium")
+        priority = task.get("priority", "normal")
+        
+        resource_allocation = {
+            "cpu_cores": 2 if complexity == "high" else 1,
+            "memory_gb": 4 if complexity == "high" else 2,
+            "storage_gb": 10,
+            "network_bandwidth": "100mbps",
+            "priority_level": priority
+        }
+        
+        return resource_allocation
+    
+    async def _determine_required_specialization(self, subtask: Dict) -> str:
+        """Determine required specialization for subtask"""
+        
+        required = subtask.get("specialization_required", "general")
+        
+        # Map specific requirements to available specializations
+        specialization_mapping = {
+            "code_analysis": "code_analysis",
+            "research": "research",
+            "development": "development",
+            "testing": "testing",
+            "deployment": "deployment",
+            "security": "security",
+            "optimization": "optimization",
+            "general": "code_analysis"  # Default fallback
+        }
+        
+        return specialization_mapping.get(required, "code_analysis")
+    
+    async def _synthesize_multi_agent_results(self, coordination_result: Dict) -> Dict[str, Any]:
+        """Synthesize results from multiple agents into final result"""
+        
+        agents_count = coordination_result.get("agents", 0)
+        strategy = coordination_result.get("strategy", "unknown")
+        results = coordination_result.get("results", [])
+        
+        # Count successful results
+        successful_results = [r for r in results if r.get("status") == "completed"]
+        failed_results = [r for r in results if r.get("status") != "completed"]
+        
+        # Aggregate data from successful results
+        aggregated_data = {}
+        insights = []
+        
+        for result in successful_results:
+            result_data = result.get("result", {})
+            if isinstance(result_data, dict):
+                aggregated_data.update(result_data)
+                
+                # Extract insights
+                if "insights" in result_data:
+                    insights.extend(result_data["insights"])
+                if "findings" in result_data:
+                    insights.extend(result_data["findings"])
+        
+        # Calculate success metrics
+        success_rate = len(successful_results) / max(len(results), 1)
+        
+        synthesized_result = {
+            "coordination_summary": {
+                "strategy": strategy,
+                "total_agents": agents_count,
+                "successful_agents": len(successful_results),
+                "failed_agents": len(failed_results),
+                "success_rate": success_rate
+            },
+            "aggregated_results": aggregated_data,
+            "insights": list(set(insights)),  # Remove duplicates
+            "performance_metrics": {
+                "coordination_time": coordination_result.get("completed_at"),
+                "efficiency_score": success_rate * 100
+            },
+            "status": "completed" if success_rate > 0.5 else "partial_failure",
+            "recommendations": await self._generate_recommendations(results)
+        }
+        
+        return synthesized_result
+    
+    async def _generate_recommendations(self, results: List[Dict]) -> List[str]:
+        """Generate recommendations based on results"""
+        
+        recommendations = []
+        
+        failed_count = len([r for r in results if r.get("status") != "completed"])
+        
+        if failed_count > 0:
+            recommendations.append(f"Consider retry mechanism for {failed_count} failed agents")
+        
+        if len(results) > 5:
+            recommendations.append("Consider task decomposition optimization for large agent counts")
+        
+        recommendations.append("Monitor agent performance for future optimizations")
+        
+        return recommendations
+    
+    async def get_system_status(self) -> Dict[str, Any]:
+        """Get current multi-agent system status"""
+        
+        active_agents = await self.agent_manager.list_active_agents()
+        
+        return {
+            "system_active": True,
+            "active_agents": len(active_agents),
+            "agent_details": active_agents,
+            "specializations_available": list(self.specialization_map.keys()),
+            "coordination_strategies": ["parallel", "sequential", "hierarchical", "pipeline"],
+            "system_version": "1.0.0"
+        }
+    
+    async def demonstrate_multi_agent_coordination(self) -> Dict[str, Any]:
+        """Demonstrate multi-agent coordination capabilities"""
+        
+        print("[START] Demonstrating ASIS Multi-Agent Coordination...")
+        
+        # Create demo complex task
+        demo_task = {
+            "type": "code_analysis",
+            "complexity": "high",
+            "data": {
+                "files": [f"file_{i}.py" for i in range(8)],
+                "analysis_types": ["syntax", "security", "performance"]
+            },
+            "decomposition_strategy": "parallel",
+            "priority": "high"
+        }
+        
+        # Execute multi-agent coordination
+        result = await self.coordinate_multi_agent_task(demo_task)
+        
+        return {
+            "demonstration": "completed",
+            "demo_task": demo_task,
+            "coordination_result": result,
+            "system_status": await self.get_system_status()
+        }
+
+# Integration function for ASIS True Self-Modification
+async def integrate_multi_agent_system():
+    """Integration function for ASIS systems"""
+    
+    print("[LINK] Integrating Multi-Agent System with ASIS...")
+    
+    # Initialize multi-agent system
+    multi_agent_system = ASISMultiAgentSystem()
+    
+    # Run demonstration
+    demo_result = await multi_agent_system.demonstrate_multi_agent_coordination()
+    
+    print("[OK] ASIS Multi-Agent System integration complete!")
+    
+    return {
+        "integration_status": "complete",
+        "multi_agent_system": multi_agent_system,
+        "demonstration_result": demo_result
+    }
+
+if __name__ == "__main__":
+    asyncio.run(integrate_multi_agent_system())
