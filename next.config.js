@@ -1,16 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs']
-  },
+  // Updated for Next.js 16
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   
-  // Webpack configuration for Prisma
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('_http_common')
-    }
-    return config
-  },
+  // Add empty turbopack config to silence the warning
+  turbopack: {},
 
   // Security headers
   async headers() {
