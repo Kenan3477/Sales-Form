@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Updated for Next.js 16 - simplified configuration
+  // Disable turbopack to avoid build issues
   experimental: {
-    turbopack: true,
+    turbopack: false,
   },
 
   // Security headers
