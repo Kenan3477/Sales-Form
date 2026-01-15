@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         status: 'already_exists',
         message: 'Admin user already exists',
-        admin: { email: existingAdmin.email, name: existingAdmin.name }
+        admin: { email: existingAdmin.email, role: existingAdmin.role }
       });
     }
 
@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       data: {
         email: 'admin@salesportal.com',
         password: adminPassword,
-        name: 'Admin User',
         role: 'ADMIN',
       },
     });
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
       data: {
         email: 'agent@salesportal.com',
         password: agentPassword,
-        name: 'Sales Agent',
         role: 'AGENT',
       },
     });
@@ -75,8 +73,8 @@ export async function POST(request: NextRequest) {
       status: 'success',
       message: 'Production database seeded successfully',
       users: {
-        admin: { email: admin.email, name: admin.name },
-        agent: { email: agent.email, name: agent.name }
+        admin: { email: admin.email, role: admin.role },
+        agent: { email: agent.email, role: agent.role }
       }
     });
 
