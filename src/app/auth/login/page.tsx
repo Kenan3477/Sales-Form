@@ -94,20 +94,6 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Demo accounts:
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Admin: admin@salesportal.com / admin123
-              </p>
-              <p className="text-xs text-gray-500">
-                Agent: agent@salesportal.com / agent123
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
