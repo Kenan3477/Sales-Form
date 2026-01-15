@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           status: 'already_initialized',
           message: 'Database already has admin users',
-          admin: { email: existingAdmin.email, name: existingAdmin.name }
+          admin: { email: existingAdmin.email, role: existingAdmin.role }
         });
       }
 
@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
         data: {
           email: 'admin@salesportal.com',
           password: adminPassword,
-          name: 'Admin User',
           role: 'ADMIN',
         },
       });
@@ -37,7 +36,6 @@ export async function GET(request: NextRequest) {
         data: {
           email: 'agent@salesportal.com',
           password: agentPassword,
-          name: 'Sales Agent',
           role: 'AGENT',
         },
       });
@@ -66,8 +64,8 @@ export async function GET(request: NextRequest) {
         status: 'initialized',
         message: 'Database initialized successfully',
         users: {
-          admin: { email: admin.email, name: admin.name },
-          agent: { email: agent.email, name: agent.name }
+          admin: { email: admin.email, role: admin.role },
+          agent: { email: agent.email, role: agent.role }
         },
         defaultCredentials: {
           admin: 'admin@salesportal.com / admin123',
