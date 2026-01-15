@@ -1,30 +1,38 @@
-FROM python:3.11-slim
+# Use Node.js 18 Alpine as base image
+FROM node:18-alpine
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Set work directory
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+# Install system dependencies for Prisma
+RUN apk add --no-cache libc6-compat openssl
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
 
-# Copy project
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
 COPY . .
 
-# Create a non-root user
-RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
-USER appuser
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build the application
+RUN npm run build
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Set ownership
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 # Expose port
-EXPOSE $PORT
+EXPOSE 3000
 
-# Run the ASIS production file with verification and version endpoints
-CMD ["python", "asis_100_percent_production_agi.py"]
+# Start the application
+CMD ["npm", "start"]

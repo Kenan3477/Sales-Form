@@ -6,19 +6,19 @@ echo "🚀 Starting Railway build process..."
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm install
+npm ci
 
 # Generate Prisma client
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
-# Run database migrations/push
+# Run database push (create tables)
 echo "🗄️ Setting up database..."
-npx prisma db push --accept-data-loss
+npx prisma db push --force-reset
 
 # Seed the database with initial data
 echo "🌱 Seeding database..."
-npx prisma db seed || npm run db:seed
+npx prisma db seed
 
 # Build the Next.js application
 echo "🏗️ Building Next.js application..."
