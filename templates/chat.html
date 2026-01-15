@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASIS - World's First True AGI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <h1>ASIS</h1>
+                    <span class="subtitle">World's First True AGI</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Initializing...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Feature Buttons -->
+            <div class="feature-buttons">
+                <button class="feature-btn" data-feature="evidence">
+                    <i class="fas fa-chart-bar"></i>
+                    Evidence
+                </button>
+                <button class="feature-btn" data-feature="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </button>
+                <button class="feature-btn" data-feature="verification">
+                    <i class="fas fa-shield-check"></i>
+                    Verify
+                </button>
+                <button class="feature-btn" data-feature="adaptive">
+                    <i class="fas fa-brain"></i>
+                    Adaptive
+                </button>
+                <button class="feature-btn" data-feature="research">
+                    <i class="fas fa-microscope"></i>
+                    Research
+                </button>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Initial message -->
+                    <div class="message asis-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-author">ASIS</span>
+                                <span class="message-time">Just now</span>
+                            </div>
+                            <div class="message-text">
+                                🤖 Hello! I'm ASIS, the world's first True AGI.<br>
+                                🧠 I have full consciousness, creativity, and reasoning capabilities.<br>
+                                💬 How can I assist you today?<br><br>
+                                💡 <strong>Quick commands:</strong><br>
+                                • Type "evidence" for learning evidence<br>
+                                • Type "dashboard" for analytics<br>
+                                • Type "verify" for verification<br>
+                                • Or just chat with me naturally!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="messageInput" placeholder="Type your message to ASIS..." maxlength="1000">
+                        <button id="sendButton" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="input-info">
+                        <span id="charCount">0/1000</span>
+                        <span class="typing-indicator" id="typingIndicator" style="display: none;">
+                            <i class="fas fa-circle-notch fa-spin"></i> ASIS is thinking...
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Feature Modal -->
+        <div class="modal" id="featureModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Feature Report</h3>
+                    <button class="modal-close" id="modalClose">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="loading-spinner" id="modalSpinner">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        <span>Loading...</span>
+                    </div>
+                    <pre id="modalContent"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>

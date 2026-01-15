@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: asis-safety-metrics
+  namespace: asis-safety
+spec:
+  selector:
+    matchLabels:
+      app: asis-safety
+  endpoints:
+  - port: http
+    interval: 30s

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASIS Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <h1>ASIS Dashboard</h1>
+                    <span class="subtitle">Advanced Learning Analytics</span>
+                </div>
+                <a href="/" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Chat
+                </a>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <main class="dashboard-content">
+            <div class="dashboard-grid">
+                <!-- System Status -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <i class="fas fa-heartbeat"></i>
+                        <h3>System Status</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="status-item">
+                            <span>Health:</span>
+                            <span id="systemHealth">{{ asis_status.system_health }}</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Activated:</span>
+                            <span id="systemActivated">{{ 'Yes' if asis_status.activated else 'No' }}</span>
+                        </div>
+                        <div class="status-item">
+                            <span>Last Update:</span>
+                            <span id="lastUpdate">{{ asis_status.last_update }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <i class="fas fa-lightning-bolt"></i>
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <div class="card-content">
+                        <button class="action-btn" data-action="evidence">
+                            <i class="fas fa-chart-bar"></i>
+                            Learning Evidence
+                        </button>
+                        <button class="action-btn" data-action="dashboard">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Analytics Dashboard
+                        </button>
+                        <button class="action-btn" data-action="verification">
+                            <i class="fas fa-shield-check"></i>
+                            Run Verification
+                        </button>
+                        <button class="action-btn" data-action="adaptive">
+                            <i class="fas fa-brain"></i>
+                            Adaptive Learning
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Feature Reports -->
+                <div class="dashboard-card full-width">
+                    <div class="card-header">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>Feature Reports</h3>
+                        <div class="card-actions">
+                            <button id="refreshReports">
+                                <i class="fas fa-sync-alt"></i>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="report-tabs">
+                            <button class="tab-btn active" data-tab="evidence">Evidence</button>
+                            <button class="tab-btn" data-tab="dashboard">Analytics</button>
+                            <button class="tab-btn" data-tab="verification">Verification</button>
+                            <button class="tab-btn" data-tab="adaptive">Adaptive</button>
+                            <button class="tab-btn" data-tab="research">Research</button>
+                        </div>
+                        <div class="report-content">
+                            <div class="loading-spinner" id="reportSpinner">
+                                <i class="fas fa-circle-notch fa-spin"></i>
+                                <span>Loading report...</span>
+                            </div>
+                            <pre id="reportContent"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

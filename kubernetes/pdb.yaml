@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: asis-safety-pdb
+  namespace: asis-safety
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: asis-safety

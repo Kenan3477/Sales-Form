@@ -1,0 +1,9 @@
+{
+  "original_file": "test_sensitive_data.txt",
+  "encrypted_file": "test_sensitive_data.txt.encrypted",
+  "key_id": "aes_1759406388",
+  "algorithm": "AES-256-CBC",
+  "encrypted_at": "2025-10-02T12:59:48.280152",
+  "original_size": 50,
+  "encrypted_size": 80
+}

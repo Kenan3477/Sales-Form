@@ -1,0 +1,14 @@
+{
+  "agent_id": "agent_28ba24e7",
+  "specialization": "performance_optimizer",
+  "capabilities": [
+    "code_analysis",
+    "improvement_generation"
+  ],
+  "resources": {
+    "priority": 8
+  },
+  "communication_port": 9000,
+  "status": "initializing",
+  "created_at": "2025-10-08T16:01:45.458825"
+}

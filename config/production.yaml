@@ -1,0 +1,36 @@
+database:
+  database: asis
+  host: postgres
+  max_connections: 100
+  password: strong_password_here
+  pool_size: 20
+  port: 5432
+  username: postgres
+monitoring:
+  grafana_port: 3000
+  health_check_interval: 30
+  log_level: INFO
+  metrics_enabled: true
+  prometheus_port: 9090
+performance:
+  batch_size: 200
+  cache_ttl: 3600
+  cpu_limit_percent: 80
+  max_workers: 8
+  memory_limit_mb: 4096
+  request_timeout: 30
+redis:
+  database: 0
+  host: redis
+  max_connections: 100
+  password: null
+  port: 6379
+security:
+  allowed_origins:
+  - https://yourdomain.com
+  cert_file: /app/ssl/cert.pem
+  jwt_expiry: 3600
+  key_file: /app/ssl/key.pem
+  rate_limit_per_minute: 200
+  secret_key: production_secret_key_change_me
+  ssl_enabled: true

@@ -1,0 +1,106 @@
+================================================================================
+ASIS COMPREHENSIVE CAPABILITY TEST REPORT
+================================================================================
+Generated: 2025-09-18 10:42:59
+Total Tests: 11
+
+📊 OVERALL PERFORMANCE SUMMARY
+----------------------------------------
+Overall Score: 946.0/1100.0 (86.0%)
+Success Rate: 11/11 (100.0%)
+Average Execution Time: 0.01 seconds
+
+📈 PERFORMANCE BY CATEGORY
+----------------------------------------
+COMPLEX_REASONING:
+  Average Score: 88.3/100
+  Success Rate: 3/3 (100.0%)
+  Average Time: 0.01s
+
+MULTI_STEP_RESEARCH:
+  Average Score: 84.0/100
+  Success Rate: 2/2 (100.0%)
+  Average Time: 0.00s
+
+CREATIVE_PROBLEM_SOLVING:
+  Average Score: 78.0/100
+  Success Rate: 2/2 (100.0%)
+  Average Time: 0.00s
+
+LEARNING_ADAPTATION:
+  Average Score: 86.0/100
+  Success Rate: 2/2 (100.0%)
+  Average Time: 0.05s
+
+AUTONOMOUS_DECISION_MAKING:
+  Average Score: 92.5/100
+  Success Rate: 2/2 (100.0%)
+  Average Time: 0.01s
+
+📋 DETAILED TEST RESULTS
+----------------------------------------
+REASON_001: ✅ PASS
+  Score: 84.0/100
+  Category: complex_reasoning
+  Difficulty: 3/5
+  Time: 0.02s
+
+REASON_002: ✅ PASS
+  Score: 97.0/100
+  Category: complex_reasoning
+  Difficulty: 4/5
+  Time: 0.00s
+
+REASON_003: ✅ PASS
+  Score: 84.0/100
+  Category: complex_reasoning
+  Difficulty: 3/5
+  Time: 0.00s
+
+RESEARCH_001: ✅ PASS
+  Score: 80.0/100
+  Category: multi_step_research
+  Difficulty: 3/5
+  Time: 0.00s
+
+RESEARCH_002: ✅ PASS
+  Score: 88.0/100
+  Category: multi_step_research
+  Difficulty: 4/5
+  Time: 0.00s
+
+CREATIVE_001: ✅ PASS
+  Score: 78.0/100
+  Category: creative_problem_solving
+  Difficulty: 3/5
+  Time: 0.00s
+
+CREATIVE_002: ✅ PASS
+  Score: 78.0/100
+  Category: creative_problem_solving
+  Difficulty: 2/5
+  Time: 0.00s
+
+LEARNING_001: ✅ PASS
+  Score: 82.0/100
+  Category: learning_adaptation
+  Difficulty: 3/5
+  Time: 0.01s
+
+LEARNING_002: ✅ PASS
+  Score: 90.0/100
+  Category: learning_adaptation
+  Difficulty: 4/5
+  Time: 0.08s
+
+AUTONOMY_001: ✅ PASS
+  Score: 89.0/100
+  Category: autonomous_decision_making
+  Difficulty: 3/5
+  Time: 0.00s
+
+AUTONOMY_002: ✅ PASS
+  Score: 96.0/100
+  Category: autonomous_decision_making
+  Difficulty: 4/5
+  Time: 0.01s

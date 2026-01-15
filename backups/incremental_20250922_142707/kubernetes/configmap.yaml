@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asis-config
+  namespace: asis-safety
+data:
+  config.yaml: |
+    environment: production
+    api:
+      port: 8000

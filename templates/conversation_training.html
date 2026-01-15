@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASIS Conversation Training</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .nav-links {
+            margin: 20px 0;
+        }
+
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        .training-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .training-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-title {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #36d1dc, #5b86e5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ffa726);
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .pattern-card {
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .pattern-card:hover {
+            transform: translateY(-3px);
+            border-color: #667eea;
+        }
+
+        .pattern-card.selected {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .conversation-example {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            border-left: 4px solid #2196f3;
+        }
+
+        .asis-message {
+            background: #f3e5f5;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .quality-meter {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .quality-bar {
+            flex: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        .quality-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .quality-excellent { background: #4caf50; }
+        .quality-good { background: #ff9800; }
+        .quality-poor { background: #f44336; }
+
+        .analysis-results {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .improvement-suggestions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .suggestion-item {
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-area {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .test-area h3 {
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .chat-interface {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .chat-history {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #333;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .effectiveness-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+        }
+
+        .effectiveness-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .training-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .pattern-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 ASIS Conversation Training</h1>
+            <p>Enhance ASIS conversational abilities and response quality</p>
+            <div class="nav-links">
+                <a href="/">← Dashboard</a>
+                <a href="/knowledge-training">Knowledge Training</a>
+            </div>
+        </div>
+
+        <div class="training-grid">
+            <!-- Add Conversation Example -->
+            <div class="training-section">
+                <h2 class="section-title">✨ Add Conversation Example</h2>
+                
+                <div class="pattern-grid">
+                    {% for pattern_name, pattern_info in patterns.items() %}
+                    <div class="pattern-card" onclick="selectPattern('{{ pattern_name }}')">
+                        <div style="font-size: 1.5em; margin-bottom: 5px;">{{ pattern_info.icon }}</div>
+                        <div style="font-size: 0.9em;">{{ pattern_name.title() }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <form id="conversation-form">
+                    <div class="form-group">
+                        <label for="pattern_type">Pattern Type:</label>
+                        <select id="pattern_type" name="pattern_type" required>
+                            <option value="">Select Pattern</option>
+                            {% for pattern_name in patterns.keys() %}
+                            <option value="{{ pattern_name }}">{{ pattern_name.title() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="user_input">User Input:</label>
+                        <textarea id="user_input" name="user_input" placeholder="What the user might say..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ideal_response">Ideal ASIS Response:</label>
+                        <textarea id="ideal_response" name="ideal_response" placeholder="How ASIS should ideally respond..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="context_tags">Context Tags (comma-separated):</label>
+                        <input type="text" id="context_tags" name="context_tags" placeholder="e.g., technical, friendly, detailed">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="effectiveness_score">Effectiveness Score: <span id="effectiveness-display">0.8</span></label>
+                        <input type="range" id="effectiveness_score" name="effectiveness_score" min="0.1" max="1.0" step="0.1" value="0.8" class="effectiveness-slider">
+                    </div>
+
+                    <button type="submit" class="btn">Add Conversation Example</button>
+                </form>
+            </div>
+
+            <!-- Analyze Conversation -->
+            <div class="training-section">
+                <h2 class="section-title">🔍 Analyze Conversation</h2>
+                
+                <form id="analysis-form">
+                    <div class="form-group">
+                        <label for="test_user_input">User Input:</label>
+                        <textarea id="test_user_input" name="test_user_input" placeholder="Enter what a user might say..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="test_asis_response">ASIS Response:</label>
+                        <textarea id="test_asis_response" name="test_asis_response" placeholder="Enter ASIS's actual response..." required></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn">Analyze Conversation</button>
+                        <button type="button" class="btn btn-secondary" onclick="generateAsisResponse()">Get ASIS Response</button>
+                    </div>
+                </form>
+
+                <div id="analysis-results" class="analysis-results" style="display: none;">
+                    <h4>📊 Quality Analysis</h4>
+                    <div id="quality-scores"></div>
+                    
+                    <div id="improvement-suggestions" class="improvement-suggestions">
+                        <h5>💡 Improvement Suggestions</h5>
+                        <div id="suggestions-list"></div>
+                    </div>
+
+                    <div id="improved-response" style="margin-top: 20px;">
+                        <h5>🔧 Improved Response</h5>
+                        <div id="improved-text" class="asis-message"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Testing Area -->
+        <div class="test-area">
+            <h3>🧪 Live Conversation Testing</h3>
+            <p>Test ASIS responses in real-time and get instant feedback</p>
+            
+            <div class="chat-interface">
+                <div class="form-group">
+                    <input type="text" id="live-input" placeholder="Type a message to test ASIS..." style="background: rgba(255,255,255,0.9); color: #333;">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn" onclick="sendLiveMessage()" style="background: rgba(255,255,255,0.2);">Send Message</button>
+                    <button class="btn btn-secondary" onclick="clearChatHistory()" style="background: rgba(255,255,255,0.2);">Clear Chat</button>
+                </div>
+
+                <div class="chat-history" id="chat-history">
+                    <div style="text-align: center; color: #666; font-style: italic;">
+                        Start a conversation to see ASIS responses and quality analysis
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="status-messages"></div>
+    </div>
+
+    <script>
+        let selectedPattern = '';
+        let chatHistory = [];
+
+        function selectPattern(pattern) {
+            selectedPattern = pattern;
+            
+            // Update visual selection
+            document.querySelectorAll('.pattern-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.closest('.pattern-card').classList.add('selected');
+            
+            // Update form pattern
+            document.getElementById('pattern_type').value = pattern;
+            
+            showStatusMessage(`Selected pattern: ${pattern.charAt(0).toUpperCase() + pattern.slice(1)}`, 'success');
+        }
+
+        function updateEffectivenessDisplay() {
+            const slider = document.getElementById('effectiveness_score');
+            const display = document.getElementById('effectiveness-display');
+            display.textContent = slider.value;
+        }
+
+        function showStatusMessage(message, type) {
+            const statusDiv = document.getElementById('status-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `status-message status-${type}`;
+            messageDiv.textContent = message;
+            
+            statusDiv.appendChild(messageDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        function addConversationExample(formData) {
+            fetch('/api/train-conversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatusMessage(data.message, 'success');
+                    document.getElementById('conversation-form').reset();
+                    updateEffectivenessDisplay();
+                } else {
+                    showStatusMessage(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showStatusMessage('Error adding conversation example: ' + error.message, 'error');
+            });
+        }
+
+        function analyzeConversation(userInput, asisResponse) {
+            fetch('/api/analyze-conversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_input: userInput,
+                    asis_response: asisResponse
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayAnalysisResults(data.analysis, data.improved_response);
+                    showStatusMessage('Conversation analyzed successfully!', 'success');
+                } else {
+                    showStatusMessage(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showStatusMessage('Error analyzing conversation: ' + error.message, 'error');
+            });
+        }
+
+        function generateAsisResponse() {
+            const userInput = document.getElementById('test_user_input').value.trim();
+            
+            if (!userInput) {
+                showStatusMessage('Please enter user input first', 'error');
+                return;
+            }
+
+            fetch('/api/test-asis-response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_input: userInput
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('test_asis_response').value = data.asis_response;
+                    
+                    if (data.analysis) {
+                        displayAnalysisResults(data.analysis, data.improved_response);
+                    }
+                    
+                    showStatusMessage('ASIS response generated and analyzed!', 'success');
+                } else {
+                    showStatusMessage(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showStatusMessage('Error generating ASIS response: ' + error.message, 'error');
+            });
+        }
+
+        function displayAnalysisResults(analysis, improvedResponse) {
+            const resultsDiv = document.getElementById('analysis-results');
+            const qualityScoresDiv = document.getElementById('quality-scores');
+            const suggestionsDiv = document.getElementById('suggestions-list');
+            const improvedDiv = document.getElementById('improved-text');
+
+            // Display quality scores
+            qualityScoresDiv.innerHTML = '';
+            Object.entries(analysis.quality_scores).forEach(([dimension, score]) => {
+                const qualityClass = score >= 0.8 ? 'quality-excellent' : score >= 0.6 ? 'quality-good' : 'quality-poor';
+                const percentage = (score * 100).toFixed(1);
+                
+                const scoreDiv = document.createElement('div');
+                scoreDiv.className = 'quality-meter';
+                scoreDiv.innerHTML = `
+                    <span style="width: 100px; font-size: 0.9em;">${dimension.charAt(0).toUpperCase() + dimension.slice(1)}:</span>
+                    <div class="quality-bar">
+                        <div class="quality-fill ${qualityClass}" style="width: ${percentage}%"></div>
+                    </div>
+                    <span style="width: 50px; text-align: right; font-weight: bold;">${percentage}%</span>
+                `;
+                qualityScoresDiv.appendChild(scoreDiv);
+            });
+
+            // Display improvement suggestions
+            suggestionsDiv.innerHTML = '';
+            analysis.improvement_suggestions.forEach(suggestion => {
+                const suggestionDiv = document.createElement('div');
+                suggestionDiv.className = 'suggestion-item';
+                suggestionDiv.textContent = suggestion;
+                suggestionsDiv.appendChild(suggestionDiv);
+            });
+
+            // Display improved response if available
+            if (improvedResponse) {
+                improvedDiv.textContent = improvedResponse;
+                document.getElementById('improved-response').style.display = 'block';
+            } else {
+                document.getElementById('improved-response').style.display = 'none';
+            }
+
+            resultsDiv.style.display = 'block';
+        }
+
+        function sendLiveMessage() {
+            const input = document.getElementById('live-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            addToChatHistory('user', message);
+            input.value = '';
+
+            // Get ASIS response and analysis
+            fetch('/api/test-asis-response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_input: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addToChatHistory('asis', data.asis_response, data.analysis);
+                } else {
+                    addToChatHistory('system', 'Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                addToChatHistory('system', 'Error: ' + error.message);
+            });
+        }
+
+        function addToChatHistory(sender, message, analysis = null) {
+            const chatDiv = document.getElementById('chat-history');
+            
+            if (chatHistory.length === 0) {
+                chatDiv.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                messageDiv.className = 'user-message';
+                messageDiv.innerHTML = `<strong>You:</strong> ${message}`;
+            } else if (sender === 'asis') {
+                messageDiv.className = 'asis-message';
+                let qualityInfo = '';
+                if (analysis) {
+                    const overallQuality = (analysis.quality_scores.overall * 100).toFixed(1);
+                    const qualityClass = analysis.quality_scores.overall >= 0.8 ? 'quality-excellent' : 
+                                       analysis.quality_scores.overall >= 0.6 ? 'quality-good' : 'quality-poor';
+                    qualityInfo = `<div style="margin-top: 8px; font-size: 0.8em;">
+                        <span class="quality-indicator ${qualityClass}"></span>Quality: ${overallQuality}%
+                    </div>`;
+                }
+                messageDiv.innerHTML = `<strong>ASIS:</strong> ${message}${qualityInfo}`;
+            } else {
+                messageDiv.style.cssText = 'background: #ffebee; border-left-color: #f44336; color: #c62828;';
+                messageDiv.innerHTML = `<strong>System:</strong> ${message}`;
+            }
+            
+            chatDiv.appendChild(messageDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+            
+            chatHistory.push({ sender, message, analysis });
+        }
+
+        function clearChatHistory() {
+            document.getElementById('chat-history').innerHTML = `
+                <div style="text-align: center; color: #666; font-style: italic;">
+                    Start a conversation to see ASIS responses and quality analysis
+                </div>
+            `;
+            chatHistory = [];
+        }
+
+        // Event Listeners
+        document.getElementById('effectiveness_score').addEventListener('input', updateEffectivenessDisplay);
+
+        document.getElementById('conversation-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const contextTags = document.getElementById('context_tags').value
+                .split(',')
+                .map(tag => tag.trim())
+                .filter(tag => tag.length > 0);
+            
+            const formData = {
+                pattern_type: document.getElementById('pattern_type').value,
+                user_input: document.getElementById('user_input').value,
+                ideal_response: document.getElementById('ideal_response').value,
+                context_tags: contextTags,
+                effectiveness_score: parseFloat(document.getElementById('effectiveness_score').value)
+            };
+            
+            addConversationExample(formData);
+        });
+
+        document.getElementById('analysis-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userInput = document.getElementById('test_user_input').value;
+            const asisResponse = document.getElementById('test_asis_response').value;
+            
+            analyzeConversation(userInput, asisResponse);
+        });
+
+        document.getElementById('live-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendLiveMessage();
+            }
+        });
+
+        // Initialize
+        updateEffectivenessDisplay();
+    </script>
+</body>
+</html>

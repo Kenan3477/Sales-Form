@@ -1,0 +1,29 @@
+{
+  "server": {
+    "host": "81.134.136.242",
+    "port": 22,
+    "username": "creator_kenandavies",
+    "password": "SkyeAlbert2025!",
+    "key_file": null,
+    "asis_path": "/home/creator_kenandavies/ASIS"
+  },
+  "deployment": {
+    "backup_before_deploy": true,
+    "restart_asis_after_deploy": true,
+    "validate_deployment": true,
+    "deployment_method": "ssh"
+  },
+  "files": {
+    "enhancement_files": [
+      "asis_dashboard_enhancer.py",
+      "dashboard_control.py",
+      "templates/dashboard_control.html",
+      "test_dashboard_integration.py",
+      "deployment_requirements.txt"
+    ],
+    "backup_files": [
+      "app.py",
+      "templates/dashboard.html"
+    ]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "total_tests": 4,
+  "passed_tests": 3,
+  "success_rate": 0.75,
+  "duration_seconds": 24.662932,
+  "test_results": [
+    {
+      "test": "technical_research",
+      "success": true,
+      "details": {
+        "topics_researched": 3,
+        "successful_sessions": 3,
+        "new_findings": 3,
+        "initial_findings": 1,
+        "final_findings": 4
+      },
+      "timestamp": "2025-09-24T14:04:42.905696"
+    },
+    {
+      "test": "cross_domain_learning",
+      "success": true,
+      "details": {
+        "domains_tested": 4,
+        "successful_domains": 4,
+        "domain_results": {
+          "Healthcare AI": true,
+          "Financial Technology": true,
+          "Climate Science": true,
+          "Space Technology": true
+        }
+      },
+      "timestamp": "2025-09-24T14:04:57.106069"
+    },
+    {
+      "test": "interaction_learning",
+      "success": false,
+      "details": {
+        "error": "cannot import name 'ASISAdvancedPatternRecognition' from 'asis_advanced_pattern_recognition' (C:\\Users\\ADMIN\\SI\\asis_advanced_pattern_recognition.py)"
+      },
+      "timestamp": "2025-09-24T14:04:57.314938"
+    },
+    {
+      "test": "knowledge_synthesis",
+      "success": true,
+      "details": {
+        "knowledge_entries": 8,
+        "has_learning_analysis": true,
+        "synthesis_score": 1.0,
+        "knowledge_summary": {
+          "total_entries": 8,
+          "average_confidence": 0.75,
+          "total_sessions": 8,
+          "recent_activity_7days": 8,
+          "categories_explored": [
+            "Latest AI Research",
+            "AI trends 2024",
+            "Quantum Computing",
+            "Neural Networks",
+            "Blockchain Technology",
+            "Healthcare AI",
+            "Financial Technology",
+            "Climate Science",
+            "Space Technology"
+          ],
+          "knowledge_growth_active": true,
+          "last_updated": "2025-09-24T14:04:57.381652"
+        }
+      },
+      "timestamp": "2025-09-24T14:04:57.382651"
+    }
+  ],
+  "final_database_stats": {
+    "research_db": {
+      "exists": true,
+      "size": 49152,
+      "research_sessions_count": 9,
+      "sqlite_sequence_count": 3,
+      "research_findings_count": 8,
+      "research_targets_count": 152,
+      "learning_insights_count": 0
+    },
+    "meta_learning_db": {
+      "exists": true,
+      "size": 24576,
+      "user_adaptations_count": 10,
+      "sqlite_sequence_count": 1,
+      "strategy_performance_count": 0,
+      "meta_learning_insights_count": 0,
+      "learning_optimizations_count": 0
+    },
+    "memory_db": {
+      "exists": true,
+      "size": 16384,
+      "complete_conversations_count": 9
+    }
+  }
+}
