@@ -1,32 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable turbopack to avoid build issues
-  experimental: {
-    turbopack: false,
-  },
-
-  // Security headers
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-        ],
-      },
-    ]
-  },
+  // Minimal config for Next.js 16 compatibility
+  // Removed all experimental features to avoid conflicts
 }
 
 module.exports = nextConfig
