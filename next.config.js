@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Updated for Next.js 16
-  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
-  
-  // Add empty turbopack config to silence the warning
-  turbopack: {},
+  // Updated for Next.js 16 - simplified configuration
+  experimental: {
+    turbopack: true,
+  },
 
   // Security headers
   async headers() {
