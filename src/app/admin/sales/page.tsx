@@ -114,6 +114,8 @@ export default function AdminSalesPage() {
       const customers = new Set<string>()
       let isFirstLine = true
       let customerCount = 0
+      let processedRows = 0
+      let skippedRows = 0
       
       lines.forEach((line, index) => {
         const trimmed = line.trim()
@@ -139,27 +141,39 @@ export default function AdminSalesPage() {
         let validColumns: string[] = []
         
         columns.forEach(col => {
-          if (col && col.length > 2) {
+          if (col && col.length > 1) { // Reduced minimum length from 3 to 2
             const cleaned = col.trim()
             validColumns.push(cleaned)
             
-            // Check if this looks like a name (contains spaces and letters, not just numbers)
-            if (cleaned.includes(' ') && /[a-zA-Z]/.test(cleaned) && !cleaned.includes('@') && !/^\d+$/.test(cleaned)) {
+            // Check if this looks like a name - more flexible validation
+            // Accept single names or multi-word names with letters
+            if (/[a-zA-Z]/.test(cleaned) && !cleaned.includes('@') && !/^\d+$/.test(cleaned) && 
+                cleaned.length > 1) { // Very flexible - just needs letters and length > 1
               hasName = true
             }
             
-            // Check if this looks like a UK postcode
-            if (/^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i.test(cleaned) || 
-                /^[A-Z]{1,2}[0-9]{1,2}\s?[0-9][A-Z]{2}$/i.test(cleaned)) {
+            // More comprehensive UK postcode validation
+            const postcodePattern = /^([A-Z][A-HJ-Y]?\d[A-Z\d]?\s?\d[A-Z]{2}|GIR\s?0A{2})$/i
+            if (postcodePattern.test(cleaned.replace(/\s+/g, ' '))) {
               hasPostcode = true
             }
           }
         })
         
         // Only process this row if it has both name and postcode
-        if (!hasName || !hasPostcode || validColumns.length < 2) {
+        if (!hasName || !hasPostcode || validColumns.length < 1) {
+          skippedRows++
+          console.log('Skipping row:', { 
+            row: trimmed.substring(0, 100), 
+            hasName, 
+            hasPostcode, 
+            validColumnsCount: validColumns.length,
+            validColumns: validColumns.slice(0, 4) // Show first 4 columns
+          })
           return // Skip this row
         }
+        
+        processedRows++
         
         // Create customer object with all identifiers for this row
         const customerIdentifiers: string[] = []
@@ -199,6 +213,14 @@ export default function AdminSalesPage() {
         })
         
         customerCount++
+      })
+
+      console.log('CSV Processing Summary:', {
+        totalLines: lines.length,
+        processedRows,
+        skippedRows,
+        uniqueCustomers: customers.size,
+        customerCount
       })
 
       setDuplicateExclusions(Array.from(customers))
