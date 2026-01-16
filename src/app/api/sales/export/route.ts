@@ -244,9 +244,6 @@ export async function GET(request: NextRequest) {
       const singleAppPrice = sale.appliances.reduce((sum: number, app: any) => sum + Number(app.cost), 0)
       const boilerPrice = sale.boilerCoverSelected && sale.boilerPriceSelected ? Number(sale.boilerPriceSelected) : 0
       
-      // Debug specific fields
-      console.log(`Sale ${sale.id}: title="${sale.title}", mailingCity="${sale.mailingCity}"`)
-      
       const row = [
         '', // Record Id - blank as requested
         '', // Customers Owner.id - blank

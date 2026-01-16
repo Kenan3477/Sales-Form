@@ -34,6 +34,8 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [fixingData, setFixingData] = useState(false)
+  const [fixResult, setFixResult] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -102,6 +104,32 @@ export default function AdminSettingsPage() {
       console.error('Error saving field configurations:', error)
     }
     setSaving(false)
+  }
+
+  const handleFixData = async () => {
+    setFixingData(true)
+    setFixResult('')
+    setError('')
+
+    try {
+      const response = await fetch('/api/fix-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setFixResult(`Success! Updated ${result.updatedRecords} sales records out of ${result.totalSales} total sales. Title and Mailing City fields have been populated for records that were missing this data.`)
+      } else {
+        setError('Failed to fix sales data')
+      }
+    } catch (error) {
+      setError('Failed to fix sales data')
+      console.error('Error fixing sales data:', error)
+    }
+    setFixingData(false)
   }
 
   if (status === 'loading' || loading) {
@@ -213,6 +241,39 @@ export default function AdminSettingsPage() {
                 >
                   {saving ? 'Saving...' : 'Save Configuration'}
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Fix Section */}
+          <div className="mt-8 bg-white shadow sm:rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Fix Export Data</h3>
+              <div className="mt-2 max-w-xl text-sm text-gray-500">
+                <p>Some sales records may be missing Title and Mailing City data, causing exports to show blank values. This tool will populate missing fields with default values.</p>
+              </div>
+              
+              {fixResult && (
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-md p-4">
+                  <div className="text-sm text-green-700">
+                    {fixResult}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={handleFixData}
+                  disabled={fixingData}
+                  className="bg-yellow-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-yellow-700 disabled:opacity-50"
+                >
+                  {fixingData ? 'Fixing Data...' : 'Fix Missing Title & Mailing City Data'}
+                </button>
+              </div>
+              
+              <div className="mt-3 text-xs text-gray-500">
+                This will set default values: Title = "Mr", Mailing City = "London" for records that don't have these fields populated.
               </div>
             </div>
           </div>
