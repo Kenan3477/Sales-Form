@@ -55,6 +55,10 @@ export default function AdminSalesPage() {
     agent: '',
     search: ''
   })
+  const [duplicateCheckFile, setDuplicateCheckFile] = useState<File | null>(null)
+  const [showDuplicateCheck, setShowDuplicateCheck] = useState(false)
+  const [duplicateExclusions, setDuplicateExclusions] = useState<string[]>([])
+  const [duplicateCheckUploadError, setDuplicateCheckUploadError] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -91,6 +95,50 @@ export default function AdminSalesPage() {
     setLoading(false)
   }
 
+  const handleDuplicateCheckFile = async (file: File | null) => {
+    setDuplicateCheckFile(file)
+    setDuplicateCheckUploadError('')
+    setDuplicateExclusions([])
+
+    if (!file) {
+      return
+    }
+
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').filter(line => line.trim() !== '')
+      
+      // Parse CSV or text file to extract customer identifiers
+      // Supports email, phone, or "firstname lastname" format
+      const exclusions = new Set<string>()
+      
+      lines.forEach(line => {
+        const trimmed = line.trim()
+        if (trimmed) {
+          // If it's a CSV, split by comma and take relevant columns
+          const parts = trimmed.split(',').map(p => p.trim().replace(/"/g, ''))
+          
+          // Add various customer identifiers that could be used for matching
+          parts.forEach(part => {
+            if (part && part.length > 2) {
+              exclusions.add(part.toLowerCase())
+            }
+          })
+          
+          // Also add the whole line in case it's a simple text format
+          exclusions.add(trimmed.toLowerCase())
+        }
+      })
+
+      setDuplicateExclusions(Array.from(exclusions))
+      console.log(`Loaded ${exclusions.size} duplicate check entries from file`)
+      
+    } catch (error) {
+      console.error('Error processing duplicate check file:', error)
+      setDuplicateCheckUploadError('Failed to process file. Please ensure it\'s a valid CSV or text file.')
+    }
+  }
+
   const exportToCSV = async () => {
     try {
       const params = new URLSearchParams()
@@ -105,7 +153,26 @@ export default function AdminSalesPage() {
         params.append('agent', filters.agent)
       }
 
-      const response = await fetch(`/api/sales/export?${params.toString()}`)
+      // If duplicate exclusions exist, send them as a POST request
+      let response
+      if (duplicateExclusions.length > 0) {
+        response = await fetch('/api/sales/export', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filters: {
+              dateFrom: filters.dateFrom,
+              dateTo: filters.dateTo,
+              agent: filters.agent
+            },
+            excludeCustomers: duplicateExclusions
+          })
+        })
+      } else {
+        response = await fetch(`/api/sales/export?${params.toString()}`)
+      }
       
       if (!response.ok) {
         throw new Error('Export failed')
@@ -115,7 +182,10 @@ export default function AdminSalesPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `sales_export_${new Date().toISOString().split('T')[0]}.csv`
+      const filename = duplicateExclusions.length > 0 
+        ? `sales_export_deduplicated_${new Date().toISOString().split('T')[0]}.csv`
+        : `sales_export_${new Date().toISOString().split('T')[0]}.csv`
+      a.download = filename
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -133,23 +203,43 @@ export default function AdminSalesPage() {
     }
 
     try {
-      const params = new URLSearchParams()
-      
-      // Add selected sale IDs
-      selectedSales.forEach(id => params.append('ids', id))
-      
-      // Add other filters if needed
-      if (filters.dateFrom) {
-        params.append('dateFrom', filters.dateFrom)
-      }
-      if (filters.dateTo) {
-        params.append('dateTo', filters.dateTo)
-      }
-      if (filters.agent) {
-        params.append('agent', filters.agent)
-      }
+      // If duplicate exclusions exist, send them as a POST request
+      let response
+      if (duplicateExclusions.length > 0) {
+        response = await fetch('/api/sales/export', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filters: {
+              dateFrom: filters.dateFrom,
+              dateTo: filters.dateTo,
+              agent: filters.agent
+            },
+            selectedIds: selectedSales,
+            excludeCustomers: duplicateExclusions
+          })
+        })
+      } else {
+        const params = new URLSearchParams()
+        
+        // Add selected sale IDs
+        selectedSales.forEach(id => params.append('ids', id))
+        
+        // Add other filters if needed
+        if (filters.dateFrom) {
+          params.append('dateFrom', filters.dateFrom)
+        }
+        if (filters.dateTo) {
+          params.append('dateTo', filters.dateTo)
+        }
+        if (filters.agent) {
+          params.append('agent', filters.agent)
+        }
 
-      const response = await fetch(`/api/sales/export?${params.toString()}`)
+        response = await fetch(`/api/sales/export?${params.toString()}`)
+      }
       
       if (!response.ok) {
         throw new Error('Export failed')
@@ -159,7 +249,10 @@ export default function AdminSalesPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `selected_sales_export_${new Date().toISOString().split('T')[0]}.csv`
+      const filename = duplicateExclusions.length > 0
+        ? `selected_sales_export_deduplicated_${new Date().toISOString().split('T')[0]}.csv`
+        : `selected_sales_export_${new Date().toISOString().split('T')[0]}.csv`
+      a.download = filename
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -322,6 +415,78 @@ export default function AdminSalesPage() {
                 Manage all sales submissions from agents.
               </p>
             </div>
+
+            {/* Duplicate Check Section */}
+            <div className="mb-4">
+              <button
+                onClick={() => setShowDuplicateCheck(!showDuplicateCheck)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+              >
+                {showDuplicateCheck ? 'Hide' : 'Show'} Duplicate Check
+              </button>
+            </div>
+          </div>
+
+          {/* Duplicate Check Upload Panel */}
+          {showDuplicateCheck && (
+            <div className="mb-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h3 className="text-lg font-medium text-purple-900 mb-3">Duplicate Check</h3>
+              <p className="text-sm text-purple-700 mb-4">
+                Upload a file containing existing CRM customers to exclude them from exports. 
+                Supports CSV or text files with emails, phone numbers, or customer names.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-purple-700 mb-2">
+                    Upload CRM Customer File
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={(e) => handleDuplicateCheckFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-purple-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+                  />
+                  <p className="mt-1 text-xs text-purple-600">
+                    CSV or TXT format. Should contain customer emails, phone numbers, or names.
+                  </p>
+                </div>
+
+                {duplicateCheckUploadError && (
+                  <div className="text-red-600 text-sm">
+                    {duplicateCheckUploadError}
+                  </div>
+                )}
+
+                {duplicateCheckFile && (
+                  <div className="bg-white border border-purple-300 rounded-md p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-purple-900">{duplicateCheckFile.name}</p>
+                        <p className="text-xs text-purple-600">
+                          {duplicateExclusions.length} customer identifiers loaded
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDuplicateCheckFile(null)}
+                        className="text-purple-400 hover:text-purple-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {duplicateExclusions.length > 0 && (
+                  <div className="text-sm text-green-600">
+                    ✅ Ready to export with duplicate exclusion ({duplicateExclusions.length} entries)
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="mb-6 flex justify-between items-start">
             <div className="flex space-x-3">
               <Link
                 href="/admin/sales/import"
