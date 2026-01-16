@@ -51,13 +51,19 @@ export default function SalesImportForm() {
       })
 
       const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Import failed')
+      }
+      
       setResult(data)
     } catch (error) {
+      console.error('Import error:', error)
       setResult({
         success: false,
         imported: 0,
         total: 0,
-        errors: [{ error: 'Upload failed. Please try again.' }]
+        errors: [{ error: `Upload failed: ${error instanceof Error ? error.message : 'Please try again.'}` }]
       })
     } finally {
       setIsUploading(false)

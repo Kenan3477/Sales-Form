@@ -302,19 +302,19 @@ export async function GET(request: NextRequest) {
         '', // Brand - blank
         'DD', // Processor - hardcoded to DD
         '', // Appliance 2 Age - blank
-        sale.appliances[0]?.appliance || '', // Appliance 1 Brand - using appliance name as brand
+        '', // Appliance 1 Brand - blank (we only have appliance type, not brand)
         sale.appliances[4]?.appliance || '', // Appliance 5 Type - using appliance name as type
         sale.appliances[3]?.appliance || '', // Appliance 4 Type - using appliance name as type
         sale.appliances[2]?.appliance || '', // Appliance 3 Type - using appliance name as type
         '', // Appliance 1 Age - blank
-        sale.appliances[4]?.appliance || '', // Appliance 5 Brand - using appliance name as brand
-        sale.appliances[3]?.appliance || '', // Appliance 4 Brand - using appliance name as brand
-        sale.appliances[2]?.appliance || '', // Appliance 3 Brand - using appliance name as brand
+        '', // Appliance 5 Brand - blank (we only have appliance type, not brand)
+        '', // Appliance 4 Brand - blank (we only have appliance type, not brand)
+        '', // Appliance 3 Brand - blank (we only have appliance type, not brand)
         '', // Appliance 5 Age - blank
         '', // Appliance 4 Age - blank
         sale.appliances[1]?.appliance || '', // Appliance 2 Type - using appliance name as type
         sale.appliances[0]?.appliance || '', // Appliance 1 Type - using appliance name as type
-        sale.appliances[1]?.appliance || '', // Appliance 2 Brand - using appliance name as brand
+        '', // Appliance 2 Brand - blank (we only have appliance type, not brand)
         '', // Appliance 3 Age - blank
         '', // TV Value - blank
         '', // TV Brand - blank
