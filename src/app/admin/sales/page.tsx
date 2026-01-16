@@ -595,6 +595,12 @@ export default function AdminSalesPage() {
           <div className="mb-6 flex justify-between items-start">
             <div className="flex space-x-3">
               <Link
+                href="/admin/sales/sms"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Send SMS
+              </Link>
+              <Link
                 href="/admin/sales/import"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
               >
