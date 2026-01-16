@@ -1,0 +1,3 @@
+customerFirstName,customerLastName,title,phoneNumber,email,accountName,sortCode,accountNumber,directDebitDate,applianceCoverSelected,boilerCoverSelected,boilerPriceSelected,totalPlanCost,mailingStreet,mailingCity,mailingProvince,mailingPostalCode,appliance1,appliance1Cost,appliance1CoverLimit,appliance2,appliance2Cost,appliance2CoverLimit,notes
+Jane,Smith,Mrs,07123456789,jane.smith@test.com,Jane Smith,98-76-54,87654321,2026-03-15,true,true,29.99,49.98,456 Test Avenue,Manchester,Greater Manchester,M1 2AB,Washing Machine,19.99,600,Refrigerator,10.00,400,Test import customer
+Bob,Johnson,Mr,08987654321,bob.johnson@test.com,Bob Johnson,11-22-33,11223344,2026-04-01,true,false,,15.00,789 Sample Road,Birmingham,West Midlands,B1 1AA,Dishwasher,15.00,350,,,,,Another test customer
