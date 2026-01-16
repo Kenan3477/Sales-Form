@@ -24,7 +24,11 @@ export const saleSchema = z.object({
   directDebitDate: z.string().min(1, 'Direct debit date is required'),
   applianceCoverSelected: z.boolean(),
   boilerCoverSelected: z.boolean(),
-  boilerPriceSelected: z.union([z.string(), z.number()]).nullable().transform((val) => val ? Number(val) : null),
+  boilerPriceSelected: z.union([z.string(), z.number(), z.null()]).nullable().transform((val) => {
+    if (val === null || val === undefined || val === '') return null
+    const num = Number(val)
+    return isNaN(num) ? null : num
+  }),
   appliances: z.array(applianceSchema),
 })
 
