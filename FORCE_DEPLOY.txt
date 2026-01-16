@@ -1,1 +1,2 @@
 # Vercel Deployment Force Fri Jan 16 14:30:41 GMT 2026
+# Force Vercel redeploy with env vars Fri Jan 16 15:51:38 GMT 2026
