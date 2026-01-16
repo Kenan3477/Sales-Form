@@ -16,7 +16,7 @@ interface ImportResult {
 
 export default function SalesImportForm() {
   const [file, setFile] = useState<File | null>(null)
-  const [format, setFormat] = useState<'csv' | 'json'>('csv')
+  const [format, setFormat] = useState<'csv' | 'json' | 'firebase'>('csv')
   const [isUploading, setIsUploading] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [showSampleFormat, setShowSampleFormat] = useState(false)
@@ -25,9 +25,13 @@ export default function SalesImportForm() {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
       setFile(selectedFile)
-      // Auto-detect format from file extension
+      // Auto-detect format from file extension or name
       if (selectedFile.name.endsWith('.json')) {
-        setFormat('json')
+        if (selectedFile.name.includes('firebase') || selectedFile.name.includes('export')) {
+          setFormat('firebase')
+        } else {
+          setFormat('json')
+        }
       } else if (selectedFile.name.endsWith('.csv')) {
         setFormat('csv')
       }
@@ -44,8 +48,11 @@ export default function SalesImportForm() {
     formData.append('file', file)
     formData.append('format', format)
 
+    // Use different endpoint for Firebase imports
+    const endpoint = format === 'firebase' ? '/api/sales/import/firebase' : '/api/sales/import'
+
     try {
-      const response = await fetch('/api/sales/import', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData
       })
@@ -141,7 +148,7 @@ export default function SalesImportForm() {
                 type="radio"
                 value="csv"
                 checked={format === 'csv'}
-                onChange={(e) => setFormat(e.target.value as 'csv' | 'json')}
+                onChange={(e) => setFormat(e.target.value as 'csv' | 'json' | 'firebase')}
                 className="mr-2"
               />
               CSV
@@ -151,10 +158,20 @@ export default function SalesImportForm() {
                 type="radio"
                 value="json"
                 checked={format === 'json'}
-                onChange={(e) => setFormat(e.target.value as 'csv' | 'json')}
+                onChange={(e) => setFormat(e.target.value as 'csv' | 'json' | 'firebase')}
                 className="mr-2"
               />
               JSON
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                value="firebase"
+                checked={format === 'firebase'}
+                onChange={(e) => setFormat(e.target.value as 'csv' | 'json' | 'firebase')}
+                className="mr-2"
+              />
+              Firebase Export
             </label>
           </div>
         </div>
@@ -189,10 +206,44 @@ export default function SalesImportForm() {
                   </code>
                 </div>
               </div>
-            ) : (
+            ) : format === 'json' ? (
               <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
                 {sampleJSON}
               </pre>
+            ) : (
+              <div className="text-xs bg-white p-2 rounded border">
+                <p className="font-medium mb-2">Firebase Export Structure Expected:</p>
+                <pre className="text-xs">{`{
+  "data": {
+    "sales": {
+      "-FirebaseId1": {
+        "contact": {
+          "name": "John Doe",
+          "phone": "01234567890", 
+          "email": "john@example.com",
+          "address": "123 Main St",
+          "postcode": "SW1A 1AA"
+        },
+        "payment": {
+          "accountNumber": "12345678",
+          "sortCode": "12-34-56",
+          "ddDate": "22 January/1/2026"
+        },
+        "plan": {
+          "totalCost": 29.99,
+          "type": "Appliance + Boiler"
+        },
+        "appliances": [
+          {
+            "type": "washing_machine",
+            "monthlyCost": 15.99
+          }
+        ]
+      }
+    }
+  }
+}`}</pre>
+              </div>
             )}
           </div>
         )}
