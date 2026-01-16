@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
         '', // Renewal Date - blank
         '', // Cancellation Fee - blank
         '', // Date of renewal notification - blank
-        sale.agentName || sale.createdBy.email, // Lead Sales Agent - prefer agentName, fall back to email
+        sale.createdBy.email, // Lead Sales Agent - using email for now until agentName field is available
         createdAt.toLocaleDateString('en-GB'), // Date of Sale
         sale.mailingStreet || '', // First Line Add
         // Customer Package - determine based on what coverage is selected
