@@ -15,7 +15,7 @@ export const saleSchema = z.object({
   email: z.string().email('Valid email is required'),
   notes: z.string().optional(),
   mailingStreet: z.string().optional(),
-  mailingCity: z.string().optional(),
+  mailingCity: z.string().min(1, 'City is required'),
   mailingProvince: z.string().optional(),
   mailingPostalCode: z.string().optional(),
   accountName: z.string().min(1, 'Account name is required'),
