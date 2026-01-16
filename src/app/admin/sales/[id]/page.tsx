@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/schemas'
 
@@ -40,9 +40,11 @@ interface Sale {
   }
 }
 
-export default function SaleDetailPage({ params }: { params: { id: string } }) {
+export default function SaleDetailPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const params = useParams()
+  const saleId = params.id as string
   const [sale, setSale] = useState<Sale | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -56,14 +58,14 @@ export default function SaleDetailPage({ params }: { params: { id: string } }) {
   }, [status, session, router])
 
   useEffect(() => {
-    if (session?.user?.role === 'ADMIN' && params.id) {
+    if (session?.user?.role === 'ADMIN' && saleId) {
       fetchSale()
     }
-  }, [session, params.id])
+  }, [session, saleId])
 
   const fetchSale = async () => {
     try {
-      const response = await fetch(`/api/sales/${params.id}`)
+      const response = await fetch(`/api/sales/${saleId}`)
       if (response.ok) {
         const data = await response.json()
         setSale(data)
