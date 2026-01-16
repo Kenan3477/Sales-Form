@@ -244,6 +244,9 @@ export async function GET(request: NextRequest) {
       const singleAppPrice = sale.appliances.reduce((sum: number, app: any) => sum + Number(app.cost), 0)
       const boilerPrice = sale.boilerCoverSelected && sale.boilerPriceSelected ? Number(sale.boilerPriceSelected) : 0
       
+      // Debug specific fields
+      console.log(`Sale ${sale.id}: title="${sale.title}", mailingCity="${sale.mailingCity}"`)
+      
       const row = [
         '', // Record Id - blank as requested
         '', // Customers Owner.id - blank
@@ -253,7 +256,7 @@ export async function GET(request: NextRequest) {
         sale.customerLastName, // Last Name
         `${sale.customerFirstName} ${sale.customerLastName}`, // Customers Name (First - Last)
         sale.email, // Email
-        sale.title || '', // Title
+        sale.title ? sale.title : '', // Title - ensure it's not null
         sale.phoneNumber, // Phone
         '', // Mobile - blank
         '', // Date of Birth - blank
@@ -262,10 +265,10 @@ export async function GET(request: NextRequest) {
         '', // Modified Time - blank
         '', // Salutation - blank
         '', // Last Activity Time - blank
-        sale.mailingStreet || '', // Mailing Street
-        sale.mailingCity || '', // Mailing City
-        sale.mailingProvince || '', // Mailing Province
-        sale.mailingPostalCode || '', // Mailing Postal Code
+        sale.mailingStreet ? sale.mailingStreet : '', // Mailing Street - ensure it's not null
+        sale.mailingCity ? sale.mailingCity : '', // Mailing City - ensure it's not null
+        sale.mailingProvince ? sale.mailingProvince : '', // Mailing Province - ensure it's not null
+        sale.mailingPostalCode ? sale.mailingPostalCode : '', // Mailing Postal Code - ensure it's not null
         '', // Description - blank
         '', // Tag - blank
         '', // Unsubscribed Mode - blank
