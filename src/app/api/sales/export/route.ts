@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
         '', // Locked - blank
         '', // Last Enriched Time - blank
         '', // Enrich Status - blank
-        '', // Payment Method - blank
+        'DD', // Payment Method - hardcoded to DD
         'Process DD', // Status - hardcoded
         createdAt.toLocaleDateString('en-GB'), // Created Date
         sale.sortCode, // SortCode
@@ -276,7 +276,7 @@ export async function GET(request: NextRequest) {
         '', // Card Number - blank
         '', // LeadIdCPY - blank
         sale.phoneNumber, // Plain Phone (same as Phone)
-        '', // Customer Premium - blank
+        `£${(singleAppPrice + boilerPrice).toFixed(2)}`, // Customer Premium - calculated total
         '', // Package Excess - blank
         '', // Last Service Date - blank
         '', // Boiler Make - blank
@@ -289,7 +289,10 @@ export async function GET(request: NextRequest) {
         sale.createdBy.email, // Lead Sales Agent
         createdAt.toLocaleDateString('en-GB'), // Date of Sale
         sale.mailingStreet || '', // First Line Add
-        '', // Customer Package - blank
+        // Customer Package - determine based on what coverage is selected
+        sale.boilerCoverSelected && sale.applianceCoverSelected ? 'both' : 
+        sale.boilerCoverSelected ? 'boiler' : 
+        sale.applianceCoverSelected ? 'appliances' : '', // Customer Package
         '', // Cancellation status - blank
         '', // Type of renewal notification - blank
         directDebitDate.toLocaleDateString('en-GB'), // First DD Date
@@ -297,21 +300,21 @@ export async function GET(request: NextRequest) {
         '', // Residential Status - blank
         '', // Plan Reference Number - blank
         '', // Brand - blank
-        '', // Processor - blank
+        'DD', // Processor - hardcoded to DD
         '', // Appliance 2 Age - blank
-        '', // Appliance 1 Brand - blank
-        '', // Appliance 5 Type - blank
-        '', // Appliance 4 Type - blank
-        '', // Appliance 3 Type - blank
+        sale.appliances[0]?.appliance || '', // Appliance 1 Brand - using appliance name as brand
+        sale.appliances[4]?.appliance || '', // Appliance 5 Type - using appliance name as type
+        sale.appliances[3]?.appliance || '', // Appliance 4 Type - using appliance name as type
+        sale.appliances[2]?.appliance || '', // Appliance 3 Type - using appliance name as type
         '', // Appliance 1 Age - blank
-        '', // Appliance 5 Brand - blank
-        '', // Appliance 4 Brand - blank
-        '', // Appliance 3 Brand - blank
+        sale.appliances[4]?.appliance || '', // Appliance 5 Brand - using appliance name as brand
+        sale.appliances[3]?.appliance || '', // Appliance 4 Brand - using appliance name as brand
+        sale.appliances[2]?.appliance || '', // Appliance 3 Brand - using appliance name as brand
         '', // Appliance 5 Age - blank
         '', // Appliance 4 Age - blank
-        '', // Appliance 2 Type - blank
-        '', // Appliance 1 Type - blank
-        '', // Appliance 2 Brand - blank
+        sale.appliances[1]?.appliance || '', // Appliance 2 Type - using appliance name as type
+        sale.appliances[0]?.appliance || '', // Appliance 1 Type - using appliance name as type
+        sale.appliances[1]?.appliance || '', // Appliance 2 Brand - using appliance name as brand
         '', // Appliance 3 Age - blank
         '', // TV Value - blank
         '', // TV Brand - blank
