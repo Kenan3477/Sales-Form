@@ -61,7 +61,7 @@ export function isUkMobile(e164: string): boolean {
  * Build the exact SMS message content
  */
 export function buildSmsMessage(): string {
-  return "Thank you for choosing Flash, If you have any questions, Querys or need to make a Repair. Please call us on 03308227695 and well be with you in a Flash. Our Opening hours are 9-5 Monday-Friday."
+  return "Thank you for choosing Flash, If you have any questions, Queries or need to make a Repair. Please call us on 03308227695 and We'll be with you in a Flash. Our Opening hours are 9-5 Monday-Friday."
 }
 
 /**
