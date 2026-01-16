@@ -290,9 +290,9 @@ export async function GET(request: NextRequest) {
         createdAt.toLocaleDateString('en-GB'), // Date of Sale
         sale.mailingStreet || '', // First Line Add
         // Customer Package - determine based on what coverage is selected
-        sale.boilerCoverSelected && sale.applianceCoverSelected ? 'both' : 
+        sale.boilerCoverSelected && sale.applianceCoverSelected ? 'appliance + boiler' : 
         sale.boilerCoverSelected ? 'boiler' : 
-        sale.applianceCoverSelected ? 'appliances' : '', // Customer Package
+        sale.applianceCoverSelected ? 'appliance' : '', // Customer Package
         '', // Cancellation status - blank
         '', // Type of renewal notification - blank
         directDebitDate.toLocaleDateString('en-GB'), // First DD Date
