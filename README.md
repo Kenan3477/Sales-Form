@@ -2,6 +2,8 @@
 
 A comprehensive web application for sales agents to submit customer sales and for admins to manage submissions with configurable mandatory fields and CSV export capabilities.
 
+*Last updated: January 16, 2026*
+
 ## Features
 
 ### Core Functionality
