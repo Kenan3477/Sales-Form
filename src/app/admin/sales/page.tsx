@@ -58,6 +58,7 @@ export default function AdminSalesPage() {
   const [duplicateCheckFile, setDuplicateCheckFile] = useState<File | null>(null)
   const [showDuplicateCheck, setShowDuplicateCheck] = useState(false)
   const [duplicateExclusions, setDuplicateExclusions] = useState<string[]>([])
+  const [duplicateCustomerCount, setDuplicateCustomerCount] = useState(0)
   const [duplicateCheckUploadError, setDuplicateCheckUploadError] = useState('')
 
   useEffect(() => {
@@ -99,6 +100,7 @@ export default function AdminSalesPage() {
     setDuplicateCheckFile(file)
     setDuplicateCheckUploadError('')
     setDuplicateExclusions([])
+    setDuplicateCustomerCount(0)
 
     if (!file) {
       return
@@ -108,30 +110,74 @@ export default function AdminSalesPage() {
       const text = await file.text()
       const lines = text.split('\n').filter(line => line.trim() !== '')
       
-      // Parse CSV or text file to extract customer identifiers
-      // Supports email, phone, or "firstname lastname" format
-      const exclusions = new Set<string>()
+      // Parse CSV properly - each row represents one customer
+      const customers = new Set<string>()
+      let isFirstLine = true
+      let customerCount = 0
       
-      lines.forEach(line => {
+      lines.forEach((line, index) => {
         const trimmed = line.trim()
-        if (trimmed) {
-          // If it's a CSV, split by comma and take relevant columns
-          const parts = trimmed.split(',').map(p => p.trim().replace(/"/g, ''))
-          
-          // Add various customer identifiers that could be used for matching
-          parts.forEach(part => {
-            if (part && part.length > 2) {
-              exclusions.add(part.toLowerCase())
-            }
-          })
-          
-          // Also add the whole line in case it's a simple text format
-          exclusions.add(trimmed.toLowerCase())
+        if (!trimmed) return
+        
+        // Skip header row if it looks like headers
+        if (isFirstLine) {
+          const lowerLine = trimmed.toLowerCase()
+          if (lowerLine.includes('name') || lowerLine.includes('email') || lowerLine.includes('phone') || lowerLine.includes('number') || lowerLine.includes('customer')) {
+            isFirstLine = false
+            return // Skip this header line
+          }
+          isFirstLine = false
         }
+        
+        // Parse CSV row
+        const columns = trimmed.split(',').map(col => col.trim().replace(/"/g, ''))
+        
+        // Create customer object with all identifiers for this row
+        const customerIdentifiers: string[] = []
+        
+        columns.forEach(col => {
+          if (col && col.length > 2) {
+            // Clean and validate the column data
+            const cleaned = col.trim()
+            
+            // Add different formats of the data for matching
+            customerIdentifiers.push(cleaned.toLowerCase())
+            
+            // If it looks like a phone number, also add without spaces/dashes
+            if (/[\d\s\-\+\(\)]+/.test(cleaned) && cleaned.length > 6) {
+              const phoneOnly = cleaned.replace(/[^\d]/g, '')
+              if (phoneOnly.length >= 7) {
+                customerIdentifiers.push(phoneOnly)
+              }
+            }
+            
+            // If it looks like an email, add it
+            if (cleaned.includes('@')) {
+              customerIdentifiers.push(cleaned.toLowerCase())
+            }
+            
+            // If it contains multiple words, might be a name
+            if (cleaned.includes(' ') && !cleaned.includes('@')) {
+              customerIdentifiers.push(cleaned.toLowerCase())
+              // Also add without spaces
+              customerIdentifiers.push(cleaned.replace(/\s+/g, '').toLowerCase())
+            }
+          }
+        })
+        
+        // Add all identifiers for this customer
+        customerIdentifiers.forEach(identifier => {
+          if (identifier) {
+            customers.add(identifier)
+          }
+        })
+        
+        customerCount++
       })
 
-      setDuplicateExclusions(Array.from(exclusions))
-      console.log(`Loaded ${exclusions.size} duplicate check entries from file`)
+      setDuplicateExclusions(Array.from(customers))
+      setDuplicateCustomerCount(customerCount)
+      console.log(`Loaded ${customerCount} customers with ${customers.size} total identifiers from file`)
       
     } catch (error) {
       console.error('Error processing duplicate check file:', error)
@@ -432,8 +478,8 @@ export default function AdminSalesPage() {
             <div className="mb-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
               <h3 className="text-lg font-medium text-purple-900 mb-3">Duplicate Check</h3>
               <p className="text-sm text-purple-700 mb-4">
-                Upload a file containing existing CRM customers to exclude them from exports. 
-                Supports CSV or text files with emails, phone numbers, or customer names.
+                Upload a CSV file containing existing CRM customers to exclude them from exports. 
+                Each row should represent one customer with columns for Name, Phone, Email, Account Number, etc.
               </p>
               
               <div className="space-y-4">
@@ -448,7 +494,7 @@ export default function AdminSalesPage() {
                     className="block w-full text-sm text-purple-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
                   />
                   <p className="mt-1 text-xs text-purple-600">
-                    CSV or TXT format. Should contain customer emails, phone numbers, or names.
+                    CSV format. Each row = one customer. Columns can include: Name, Phone, Email, Account Number, etc.
                   </p>
                 </div>
 
@@ -464,7 +510,7 @@ export default function AdminSalesPage() {
                       <div>
                         <p className="text-sm font-medium text-purple-900">{duplicateCheckFile.name}</p>
                         <p className="text-xs text-purple-600">
-                          {duplicateExclusions.length} customer identifiers loaded
+                          {duplicateCustomerCount} customers loaded ({duplicateExclusions.length} identifiers)
                         </p>
                       </div>
                       <button
@@ -479,7 +525,7 @@ export default function AdminSalesPage() {
 
                 {duplicateExclusions.length > 0 && (
                   <div className="text-sm text-green-600">
-                    ✅ Ready to export with duplicate exclusion ({duplicateExclusions.length} entries)
+                    ✅ Ready to export with duplicate exclusion ({duplicateCustomerCount} customers, {duplicateExclusions.length} identifiers)
                   </div>
                 )}
               </div>
