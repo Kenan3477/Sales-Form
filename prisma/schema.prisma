@@ -57,6 +57,9 @@ model Sale {
   // Total cost
   totalPlanCost          Float
 
+  // Agent information
+  agentName              String?
+
   // Relations
   createdById            String
   createdBy              User     @relation(fields: [createdById], references: [id])

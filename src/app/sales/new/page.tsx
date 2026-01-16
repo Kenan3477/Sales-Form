@@ -20,8 +20,22 @@ export default function NewSalePage() {
   const [error, setError] = useState('')
   const [fieldConfigs, setFieldConfigs] = useState<FieldConfiguration[]>([])
   const [totalCost, setTotalCost] = useState(0)
-  const [agents, setAgents] = useState<Array<{id: string, email: string}>>([])
   const [selectedAgent, setSelectedAgent] = useState('')
+
+  // Hardcoded list of agents
+  const agents = [
+    { name: 'Finlay', value: 'finlay' },
+    { name: 'DanHill', value: 'danhill' },
+    { name: 'Danyal', value: 'danyal' },
+    { name: 'Arvin', value: 'arvin' },
+    { name: 'Aaron', value: 'aaron' },
+    { name: 'Lucas', value: 'lucas' },
+    { name: 'ChloeM', value: 'chloem' },
+    { name: 'TJ', value: 'tj' },
+    { name: 'Solomon', value: 'solomon' },
+    { name: 'Francis', value: 'francis' },
+    { name: 'Curtis', value: 'curtis' }
+  ]
 
   const {
     register,
@@ -31,7 +45,7 @@ export default function NewSalePage() {
     formState: { errors },
     setValue,
   } = useForm<SaleFormData>({
-    resolver: undefined, // zodResolver(saleSchema), // Temporarily disabled for deployment
+    resolver: zodResolver(saleSchema),
     defaultValues: {
       applianceCoverSelected: false,
       boilerCoverSelected: false,
@@ -50,6 +64,27 @@ export default function NewSalePage() {
   const boilerCoverSelected = watch('boilerCoverSelected')
   const appliances = watch('appliances')
   const boilerPrice = watch('boilerPriceSelected')
+
+  // Postcode lookup function
+  const lookupPostcode = async (postcode: string) => {
+    if (!postcode || postcode.length < 5) return
+    
+    try {
+      const response = await fetch(`https://api.postcodes.io/postcodes/${postcode.replace(/\s+/g, '')}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.result && data.result.admin_district) {
+          // Auto-fill city if it's empty
+          const currentCity = watch('mailingCity')
+          if (!currentCity) {
+            setValue('mailingCity', data.result.admin_district)
+          }
+        }
+      }
+    } catch (error) {
+      console.log('Postcode lookup failed:', error)
+    }
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -71,24 +106,7 @@ export default function NewSalePage() {
       }
     }
 
-    const fetchAgents = async () => {
-      try {
-        const response = await fetch('/api/users?role=AGENT')
-        if (response.ok) {
-          const agentData = await response.json()
-          setAgents(agentData)
-          // Set current user as default if they're an agent
-          if (session?.user?.role === 'AGENT') {
-            setSelectedAgent(session.user.id)
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching agents:', error)
-      }
-    }
-
     fetchFieldConfigs()
-    fetchAgents()
   }, [session])
 
   useEffect(() => {
@@ -119,10 +137,14 @@ export default function NewSalePage() {
     setLoading(true)
     setError('') // Clear any previous errors
     try {
+      // Find the selected agent name
+      const selectedAgentName = agents.find(agent => agent.value === selectedAgent)?.name || selectedAgent
+      
       // Add the selected agent to the data
       const submitData = {
         ...data,
-        agentId: selectedAgent || session?.user?.id
+        agentId: selectedAgent || session?.user?.id,
+        agentName: selectedAgentName
       }
 
       const response = await fetch('/api/sales', {
@@ -200,8 +222,8 @@ export default function NewSalePage() {
                       >
                         <option value="">Select an agent...</option>
                         {agents.map(agent => (
-                          <option key={agent.id} value={agent.id}>
-                            {agent.email}
+                          <option key={agent.value} value={agent.value}>
+                            {agent.name}
                           </option>
                         ))}
                       </select>
@@ -301,12 +323,13 @@ export default function NewSalePage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      City {isFieldRequired('mailingCity') && <span className="text-red-500">*</span>}
+                      City <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       {...register('mailingCity')}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      required
                     />
                     {errors.mailingCity && (
                       <p className="mt-1 text-sm text-red-600">{errors.mailingCity.message}</p>
@@ -335,6 +358,8 @@ export default function NewSalePage() {
                       type="text"
                       {...register('mailingPostalCode')}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      onBlur={(e) => lookupPostcode(e.target.value)}
+                      placeholder="e.g. SW1A 1AA"
                     />
                     {errors.mailingPostalCode && (
                       <p className="mt-1 text-sm text-red-600">{errors.mailingPostalCode.message}</p>

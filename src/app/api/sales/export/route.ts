@@ -263,7 +263,7 @@ export async function GET(request: NextRequest) {
         '', // Salutation - blank
         '', // Last Activity Time - blank
         sale.mailingStreet ? sale.mailingStreet : '', // Mailing Street - ensure it's not null
-        sale.mailingCity ? sale.mailingCity : '', // Mailing City - ensure it's not null
+        sale.mailingCity ? sale.mailingCity : 'London', // Mailing City - default to London if missing
         sale.mailingProvince ? sale.mailingProvince : '', // Mailing Province - ensure it's not null
         sale.mailingPostalCode ? sale.mailingPostalCode : '', // Mailing Postal Code - ensure it's not null
         '', // Description - blank
@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
         '', // Renewal Date - blank
         '', // Cancellation Fee - blank
         '', // Date of renewal notification - blank
-        sale.createdBy.email, // Lead Sales Agent
+        sale.agentName || sale.createdBy.email, // Lead Sales Agent - prefer agentName, fall back to email
         createdAt.toLocaleDateString('en-GB'), // Date of Sale
         sale.mailingStreet || '', // First Line Add
         // Customer Package - determine based on what coverage is selected
