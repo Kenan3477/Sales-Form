@@ -486,3 +486,220 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { filters, selectedIds, excludeCustomers } = body
+
+    let whereClause: any = {}
+
+    // If specific IDs are provided (selected export), use those
+    if (selectedIds && selectedIds.length > 0) {
+      whereClause.id = {
+        in: selectedIds
+      }
+    } else {
+      // Apply filters for all export
+      if (filters?.agent) {
+        whereClause.createdById = filters.agent
+      }
+
+      // Date filters
+      if (filters?.dateFrom || filters?.dateTo) {
+        whereClause.createdAt = {}
+        if (filters.dateFrom) {
+          whereClause.createdAt.gte = new Date(filters.dateFrom)
+        }
+        if (filters.dateTo) {
+          whereClause.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z')
+        }
+      }
+    }
+
+    const sales = await prisma.sale.findMany({
+      where: whereClause,
+      include: {
+        appliances: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    // Filter out duplicates if exclusion list provided
+    let filteredSales = sales
+    if (excludeCustomers && excludeCustomers.length > 0) {
+      filteredSales = sales.filter(sale => {
+        // Check various customer identifiers against the exclusion list
+        const customerEmail = sale.email?.toLowerCase() || ''
+        const customerPhone = sale.phoneNumber?.toLowerCase() || ''
+        const customerName = `${sale.customerFirstName} ${sale.customerLastName}`.toLowerCase()
+        const customerFullName = `${sale.customerFirstName}${sale.customerLastName}`.toLowerCase()
+
+        // Check if any identifier matches the exclusion list
+        const isExcluded = excludeCustomers.some((exclude: string) => {
+          const excludeStr = exclude.toLowerCase()
+          return (
+            customerEmail.includes(excludeStr) ||
+            excludeStr.includes(customerEmail) ||
+            customerPhone.includes(excludeStr) ||
+            excludeStr.includes(customerPhone) ||
+            customerName.includes(excludeStr) ||
+            excludeStr.includes(customerName) ||
+            customerFullName.includes(excludeStr) ||
+            excludeStr.includes(customerFullName)
+          )
+        })
+
+        return !isExcluded
+      })
+    }
+
+    // Generate CSV with same format as GET handler
+    const csvHeader = [
+      'Customers Owner',
+      'Lead Source',
+      'First Name',
+      'Last Name',
+      'Customers Name',
+      'Email',
+      'Title',
+      'Phone',
+      'Mobile',
+      'Date of Birth',
+      'Modified By.id',
+      'Modified By',
+      'Modified Time',
+      'Salutation',
+      'Last Activity Time',
+      'Mailing Street',
+      'Mailing City',
+      'Mailing Province/State',
+      'Mailing Postal Code',
+      'Description',
+      'Tag',
+      'Unsubscribed Mode',
+      'Unsubscribed Time',
+      'Change Log Time',
+      'Locked',
+      'Last Enriched Time',
+      'Enrich Status',
+      'Payment Method',
+      'Status',
+      'Created Date',
+      'SortCode',
+      'Account Number',
+      'Account Name',
+      'DD Date',
+      'Lead Sales Agent',
+      'Date of Sale',
+      'First Line Add',
+      'Customer Package',
+      'Customer Package Cost',
+      'Appliance Cover Selected',
+      'Boiler Cover Selected',
+      'Total Cost'
+    ]
+
+    const csvRows = filteredSales.map(sale => {
+      const createdAt = new Date(sale.createdAt)
+      
+      // Customer Package logic (same as GET handler)
+      let customerPackage = ''
+      let packageCost = 0
+      
+      if (sale.applianceCoverSelected && sale.boilerCoverSelected) {
+        customerPackage = 'Both Appliance & Boiler Cover'
+        packageCost = sale.totalPlanCost
+      } else if (sale.applianceCoverSelected) {
+        customerPackage = 'Appliance Cover Only'
+        packageCost = sale.appliances.reduce((sum, appliance) => sum + appliance.cost, 0)
+      } else if (sale.boilerCoverSelected) {
+        customerPackage = 'Boiler Cover Only'
+        packageCost = sale.boilerPriceSelected || 0
+      } else {
+        customerPackage = 'No Cover Selected'
+        packageCost = 0
+      }
+
+      return [
+        'Kenan', // Customers Owner - hardcoded
+        'FE3', // Lead Source - hardcoded
+        sale.customerFirstName, // First Name
+        sale.customerLastName, // Last Name
+        `${sale.customerFirstName} ${sale.customerLastName}`, // Customers Name
+        sale.email, // Email
+        sale.title ? sale.title : '', // Title
+        sale.phoneNumber, // Phone
+        '', // Mobile - blank
+        '', // Date of Birth - blank
+        '', // Modified By.id - blank
+        '', // Modified By - blank
+        '', // Modified Time - blank
+        '', // Salutation - blank
+        '', // Last Activity Time - blank
+        sale.mailingStreet ? sale.mailingStreet : '', // Mailing Street
+        sale.mailingCity ? sale.mailingCity : 'London', // Mailing City - default to London
+        sale.mailingProvince ? sale.mailingProvince : '', // Mailing Province
+        sale.mailingPostalCode ? sale.mailingPostalCode : '', // Mailing Postal Code
+        '', // Description - blank
+        '', // Tag - blank
+        '', // Unsubscribed Mode - blank
+        '', // Unsubscribed Time - blank
+        '', // Change Log Time - blank
+        '', // Locked - blank
+        '', // Last Enriched Time - blank
+        '', // Enrich Status - blank
+        'DD', // Payment Method - hardcoded
+        'Process DD', // Status - hardcoded
+        createdAt.toLocaleDateString('en-GB'), // Created Date
+        sale.sortCode, // SortCode
+        sale.accountNumber, // Account Number
+        sale.accountName, // Account Name
+        new Date(sale.directDebitDate).toLocaleDateString('en-GB'), // DD Date
+        sale.createdBy.email, // Lead Sales Agent
+        createdAt.toLocaleDateString('en-GB'), // Date of Sale
+        sale.mailingStreet || '', // First Line Add
+        customerPackage, // Customer Package
+        packageCost.toString(), // Customer Package Cost
+        sale.applianceCoverSelected ? 'Yes' : 'No', // Appliance Cover Selected
+        sale.boilerCoverSelected ? 'Yes' : 'No', // Boiler Cover Selected
+        sale.totalPlanCost.toString() // Total Cost
+      ]
+    })
+
+    // Create CSV content
+    const csvContent = [csvHeader, ...csvRows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n')
+
+    const excludedCount = sales.length - filteredSales.length
+    const filename = selectedIds && selectedIds.length > 0
+      ? `selected_sales_export_deduplicated_${new Date().toISOString().split('T')[0]}.csv`
+      : `sales_export_deduplicated_${new Date().toISOString().split('T')[0]}.csv`
+
+    return new NextResponse(csvContent, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'X-Excluded-Count': excludedCount.toString(),
+      },
+    })
+  } catch (error) {
+    console.error('Error exporting CSV with duplicate check:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
