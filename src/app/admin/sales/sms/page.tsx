@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { buildSmsMessage } from '@/lib/sms'
 
 interface Sale {
   id: string
@@ -450,7 +451,7 @@ export default function AdminSMSPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm SMS Send</h3>
                 <div className="space-y-2 text-sm text-gray-600 mb-6">
                   <p>You are about to send SMS to <strong>{summary.willSend}</strong> recipients.</p>
-                  <p>Message: <em>"Thank you for choosing Flash, If you have any questions, Querys or need to make a Repair. Please call us on 03308227695 and well be with you in a Flash."</em></p>
+                  <p>Message: <em>"{buildSmsMessage()}"</em></p>
                   <div className="bg-gray-50 p-3 rounded">
                     <p>Will send: <span className="font-medium">{summary.willSend}</span></p>
                     <p>Already sent: <span className="font-medium">{summary.alreadySent}</span></p>
