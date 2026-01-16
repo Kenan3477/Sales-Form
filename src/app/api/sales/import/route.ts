@@ -103,9 +103,14 @@ export async function POST(request: NextRequest) {
       try {
         const jsonData = JSON.parse(fileContent)
         salesData = Array.isArray(jsonData) ? jsonData : [jsonData]
+        console.log('Parsed JSON data:', salesData.length, 'items')
+        console.log('First item keys:', Object.keys(salesData[0] || {}))
       } catch (error) {
         return NextResponse.json({ 
-          error: 'Invalid JSON format' 
+          success: false,
+          error: 'Invalid JSON format',
+          imported: 0,
+          total: 0
         }, { status: 400 })
       }
     } else {
@@ -128,8 +133,11 @@ export async function POST(request: NextRequest) {
           'accountName', 'sortCode', 'accountNumber', 'directDebitDate', 'totalPlanCost'
         ]
         
+        console.log(`Processing row ${i + 1}:`, Object.keys(saleData))
+        
         const missingFields = requiredFields.filter(field => !saleData[field as keyof ImportSaleData])
         if (missingFields.length > 0) {
+          console.log(`Row ${i + 1} missing fields:`, missingFields)
           errors.push({
             row: i + 1,
             error: `Missing required fields: ${missingFields.join(', ')}`
@@ -196,8 +204,11 @@ export async function POST(request: NextRequest) {
 
     if (errors.length > 0 && processedSales.length === 0) {
       return NextResponse.json({ 
+        success: false,
         error: 'No valid sales data found', 
-        errors 
+        errors,
+        imported: 0,
+        total: salesData.length
       }, { status: 400 })
     }
 

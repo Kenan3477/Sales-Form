@@ -1,0 +1,60 @@
+[
+  {
+    "customerFirstName": "Jane",
+    "customerLastName": "Smith",
+    "title": "Mrs",
+    "phoneNumber": "07123456789",
+    "email": "jane.smith@test.com",
+    "accountName": "Jane Smith",
+    "sortCode": "98-76-54",
+    "accountNumber": "87654321",
+    "directDebitDate": "2026-03-15",
+    "applianceCoverSelected": true,
+    "boilerCoverSelected": true,
+    "boilerPriceSelected": 29.99,
+    "totalPlanCost": 49.98,
+    "mailingStreet": "456 Test Avenue",
+    "mailingCity": "Manchester",
+    "mailingProvince": "Greater Manchester",
+    "mailingPostalCode": "M1 2AB",
+    "appliances": [
+      {
+        "appliance": "Washing Machine",
+        "cost": 19.99,
+        "coverLimit": 600
+      },
+      {
+        "appliance": "Refrigerator",
+        "cost": 10.00,
+        "coverLimit": 400
+      }
+    ],
+    "notes": "Test import customer"
+  },
+  {
+    "customerFirstName": "Bob",
+    "customerLastName": "Johnson",
+    "title": "Mr",
+    "phoneNumber": "08987654321",
+    "email": "bob.johnson@test.com",
+    "accountName": "Bob Johnson",
+    "sortCode": "11-22-33",
+    "accountNumber": "11223344",
+    "directDebitDate": "2026-04-01",
+    "applianceCoverSelected": true,
+    "boilerCoverSelected": false,
+    "totalPlanCost": 15.00,
+    "mailingStreet": "789 Sample Road",
+    "mailingCity": "Birmingham",
+    "mailingProvince": "West Midlands",
+    "mailingPostalCode": "B1 1AA",
+    "appliances": [
+      {
+        "appliance": "Dishwasher",
+        "cost": 15.00,
+        "coverLimit": 350
+      }
+    ],
+    "notes": "Another test customer"
+  }
+]
