@@ -132,36 +132,62 @@ export default function AdminSalesPage() {
         // Parse CSV row
         const columns = trimmed.split(',').map(col => col.trim().replace(/"/g, ''))
         
-        // Create customer object with all identifiers for this row
-        const customerIdentifiers: string[] = []
+        // Validate that this row contains meaningful customer data
+        // Look for name (multiple words) and postcode patterns
+        let hasName = false
+        let hasPostcode = false
+        let validColumns: string[] = []
         
         columns.forEach(col => {
           if (col && col.length > 2) {
-            // Clean and validate the column data
             const cleaned = col.trim()
+            validColumns.push(cleaned)
             
-            // Add different formats of the data for matching
+            // Check if this looks like a name (contains spaces and letters, not just numbers)
+            if (cleaned.includes(' ') && /[a-zA-Z]/.test(cleaned) && !cleaned.includes('@') && !/^\d+$/.test(cleaned)) {
+              hasName = true
+            }
+            
+            // Check if this looks like a UK postcode
+            if (/^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$/i.test(cleaned) || 
+                /^[A-Z]{1,2}[0-9]{1,2}\s?[0-9][A-Z]{2}$/i.test(cleaned)) {
+              hasPostcode = true
+            }
+          }
+        })
+        
+        // Only process this row if it has both name and postcode
+        if (!hasName || !hasPostcode || validColumns.length < 2) {
+          return // Skip this row
+        }
+        
+        // Create customer object with all identifiers for this row
+        const customerIdentifiers: string[] = []
+        
+        validColumns.forEach(col => {
+          const cleaned = col.trim()
+          
+          // Add different formats of the data for matching
+          customerIdentifiers.push(cleaned.toLowerCase())
+          
+          // If it looks like a phone number, also add without spaces/dashes
+          if (/[\d\s\-\+\(\)]+/.test(cleaned) && cleaned.length > 6) {
+            const phoneOnly = cleaned.replace(/[^\d]/g, '')
+            if (phoneOnly.length >= 7) {
+              customerIdentifiers.push(phoneOnly)
+            }
+          }
+          
+          // If it looks like an email, add it
+          if (cleaned.includes('@')) {
             customerIdentifiers.push(cleaned.toLowerCase())
-            
-            // If it looks like a phone number, also add without spaces/dashes
-            if (/[\d\s\-\+\(\)]+/.test(cleaned) && cleaned.length > 6) {
-              const phoneOnly = cleaned.replace(/[^\d]/g, '')
-              if (phoneOnly.length >= 7) {
-                customerIdentifiers.push(phoneOnly)
-              }
-            }
-            
-            // If it looks like an email, add it
-            if (cleaned.includes('@')) {
-              customerIdentifiers.push(cleaned.toLowerCase())
-            }
-            
-            // If it contains multiple words, might be a name
-            if (cleaned.includes(' ') && !cleaned.includes('@')) {
-              customerIdentifiers.push(cleaned.toLowerCase())
-              // Also add without spaces
-              customerIdentifiers.push(cleaned.replace(/\s+/g, '').toLowerCase())
-            }
+          }
+          
+          // If it contains multiple words, might be a name
+          if (cleaned.includes(' ') && !cleaned.includes('@')) {
+            customerIdentifiers.push(cleaned.toLowerCase())
+            // Also add without spaces
+            customerIdentifiers.push(cleaned.replace(/\s+/g, '').toLowerCase())
           }
         })
         
@@ -479,7 +505,7 @@ export default function AdminSalesPage() {
               <h3 className="text-lg font-medium text-purple-900 mb-3">Duplicate Check</h3>
               <p className="text-sm text-purple-700 mb-4">
                 Upload a CSV file containing existing CRM customers to exclude them from exports. 
-                Each row should represent one customer with columns for Name, Phone, Email, Account Number, etc.
+                Each row must contain both a customer name AND postcode to be counted as a valid customer.
               </p>
               
               <div className="space-y-4">
@@ -494,7 +520,7 @@ export default function AdminSalesPage() {
                     className="block w-full text-sm text-purple-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
                   />
                   <p className="mt-1 text-xs text-purple-600">
-                    CSV format. Each row = one customer. Columns can include: Name, Phone, Email, Account Number, etc.
+                    CSV format. Each valid row must have: Customer Name (e.g., "John Smith") AND Postcode (e.g., "SW1A 1AA")
                   </p>
                 </div>
 
