@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { saleSchema, type SaleFormData, APPLIANCE_OPTIONS, BOILER_OPTIONS, formatCurrency } from '@/lib/schemas'
+import { saleSchema, type SaleFormData, APPLIANCE_OPTIONS, BOILER_OPTIONS, TITLE_OPTIONS, formatCurrency } from '@/lib/schemas'
 import { PlusIcon, MinusIcon } from 'lucide-react'
 
 interface FieldConfiguration {
@@ -282,12 +282,17 @@ export default function NewSalePage() {
                     <label className="block text-sm font-medium text-gray-700">
                       Title {isFieldRequired('title') && <span className="text-red-500">*</span>}
                     </label>
-                    <input
-                      type="text"
+                    <select
                       {...register('title')}
-                      placeholder="e.g. Mr, Mrs, Dr, etc."
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                    />
+                    >
+                      <option value="">Select title</option>
+                      {TITLE_OPTIONS.map((title) => (
+                        <option key={title} value={title}>
+                          {title}
+                        </option>
+                      ))}
+                    </select>
                     {errors.title && (
                       <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
                     )}
