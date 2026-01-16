@@ -20,7 +20,7 @@ export default function NewSalePage() {
   const [error, setError] = useState('')
   const [fieldConfigs, setFieldConfigs] = useState<FieldConfiguration[]>([])
   const [totalCost, setTotalCost] = useState(0)
-  const [agents, setAgents] = useState<Array<{id: string, name: string, email: string}>>([])
+  const [agents, setAgents] = useState<Array<{id: string, email: string}>>([])
   const [selectedAgent, setSelectedAgent] = useState('')
 
   const {
@@ -201,7 +201,7 @@ export default function NewSalePage() {
                         <option value="">Select an agent...</option>
                         {agents.map(agent => (
                           <option key={agent.id} value={agent.id}>
-                            {agent.name} ({agent.email})
+                            {agent.email}
                           </option>
                         ))}
                       </select>

@@ -23,12 +23,11 @@ export async function GET(request: NextRequest) {
       where,
       select: {
         id: true,
-        name: true,
         email: true,
         role: true
       },
       orderBy: {
-        name: 'asc'
+        email: 'asc'
       }
     })
 
