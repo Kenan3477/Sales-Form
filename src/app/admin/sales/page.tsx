@@ -46,6 +46,9 @@ export default function AdminSalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedSales, setSelectedSales] = useState<string[]>([])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteAction, setDeleteAction] = useState<'all' | 'selected' | null>(null)
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -121,6 +124,73 @@ export default function AdminSalesPage() {
       console.error('Error exporting CSV:', error)
       alert('Failed to export CSV. Please try again.')
     }
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedSales(filteredSales.map(sale => sale.id))
+    } else {
+      setSelectedSales([])
+    }
+  }
+
+  const handleSelectSale = (saleId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSales(prev => [...prev, saleId])
+    } else {
+      setSelectedSales(prev => prev.filter(id => id !== saleId))
+    }
+  }
+
+  const handleDeleteAll = () => {
+    setDeleteAction('all')
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteSelected = () => {
+    if (selectedSales.length === 0) {
+      alert('Please select sales to delete')
+      return
+    }
+    setDeleteAction('selected')
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    try {
+      const params = new URLSearchParams()
+      params.append('action', deleteAction!)
+      
+      if (deleteAction === 'selected') {
+        params.append('ids', selectedSales.join(','))
+      }
+
+      const response = await fetch(`/api/sales/bulk-delete?${params.toString()}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Delete failed')
+      }
+
+      alert(data.message)
+      setSelectedSales([])
+      setShowDeleteConfirm(false)
+      setDeleteAction(null)
+      
+      // Refresh the sales list
+      fetchSales()
+    } catch (error) {
+      console.error('Error deleting sales:', error)
+      alert('Failed to delete sales. Please try again.')
+    }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false)
+    setDeleteAction(null)
   }
 
   const deleteSale = async (saleId: string) => {
@@ -221,6 +291,20 @@ export default function AdminSalesPage() {
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
               >
                 Export CSV
+              </button>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedSales.length === 0}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+              >
+                Delete Selected ({selectedSales.length})
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={sales.length === 0}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+              >
+                Delete All
               </button>
             </div>
           </div>
@@ -374,6 +458,14 @@ export default function AdminSalesPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-6 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={filteredSales.length > 0 && selectedSales.length === filteredSales.length}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Customer
                       </th>
@@ -397,6 +489,14 @@ export default function AdminSalesPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredSales.map((sale) => (
                       <tr key={sale.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedSales.includes(sale.id)}
+                            onChange={(e) => handleSelectSale(sale.id, e.target.checked)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col">
                             <div className="text-sm font-medium text-gray-900">
@@ -449,6 +549,58 @@ export default function AdminSalesPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg
+                  className="h-6 w-6 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
+                Confirm Delete
+              </h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  {deleteAction === 'all' 
+                    ? `Are you sure you want to delete ALL ${sales.length} sales? This action cannot be undone.`
+                    : `Are you sure you want to delete ${selectedSales.length} selected sales? This action cannot be undone.`
+                  }
+                </p>
+              </div>
+              <div className="items-center px-4 py-3">
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={cancelDelete}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
