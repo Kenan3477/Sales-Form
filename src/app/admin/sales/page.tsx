@@ -208,13 +208,21 @@ export default function AdminSalesPage() {
                 Manage all sales submissions from agents.
               </p>
             </div>
-            <button
-              onClick={exportToCSV}
-              disabled={sales.length === 0}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
-            >
-              Export CSV
-            </button>
+            <div className="flex space-x-3">
+              <Link
+                href="/admin/sales/import"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Import Sales
+              </Link>
+              <button
+                onClick={exportToCSV}
+                disabled={sales.length === 0}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+              >
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* Filters */}
