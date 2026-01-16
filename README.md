@@ -2,7 +2,7 @@
 
 A comprehensive web application for sales agents to submit customer sales and for admins to manage submissions with configurable mandatory fields and CSV export capabilities.
 
-*Last updated: January 16, 2026 - v0.1.1 with Firebase Import*
+*Last updated: January 16, 2026 - v0.1.4 with Complete Agent Management and Enhanced Features*
 
 ## Features
 
