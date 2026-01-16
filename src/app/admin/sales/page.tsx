@@ -126,6 +126,50 @@ export default function AdminSalesPage() {
     }
   }
 
+  const exportSelectedToCSV = async () => {
+    if (selectedSales.length === 0) {
+      alert('Please select sales to export.')
+      return
+    }
+
+    try {
+      const params = new URLSearchParams()
+      
+      // Add selected sale IDs
+      selectedSales.forEach(id => params.append('ids', id))
+      
+      // Add other filters if needed
+      if (filters.dateFrom) {
+        params.append('dateFrom', filters.dateFrom)
+      }
+      if (filters.dateTo) {
+        params.append('dateTo', filters.dateTo)
+      }
+      if (filters.agent) {
+        params.append('agent', filters.agent)
+      }
+
+      const response = await fetch(`/api/sales/export?${params.toString()}`)
+      
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `selected_sales_export_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error exporting selected CSV:', error)
+      alert('Failed to export selected CSV. Please try again.')
+    }
+  }
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedSales(filteredSales.map(sale => sale.id))
@@ -290,7 +334,14 @@ export default function AdminSalesPage() {
                 disabled={sales.length === 0}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
               >
-                Export CSV
+                Export All CSV
+              </button>
+              <button
+                onClick={exportSelectedToCSV}
+                disabled={selectedSales.length === 0}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+              >
+                Export Selected ({selectedSales.length})
               </button>
               <button
                 onClick={handleDeleteSelected}
@@ -533,12 +584,20 @@ export default function AdminSalesPage() {
                           {new Date(sale.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <button
-                            onClick={() => deleteSale(sale.id)}
-                            className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                          >
-                            🗑️ Delete
-                          </button>
+                          <div className="flex space-x-2">
+                            <Link
+                              href={`/admin/sales/${sale.id}`}
+                              className="inline-flex items-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                              👁️ View
+                            </Link>
+                            <button
+                              onClick={() => deleteSale(sale.id)}
+                              className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
