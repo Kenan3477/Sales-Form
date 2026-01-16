@@ -179,6 +179,9 @@ export async function POST(request: NextRequest) {
           boilerPriceSelected: hasBoiler ? boilerCost : null,
           totalPlanCost: saleData.plan?.totalCost || 0,
           createdById: session.user.id,
+          // Preserve original sale dates from Firebase
+          createdAt: new Date(saleData.createdAt || saleData.submittedAt),
+          updatedAt: new Date(saleData.updatedAt || saleData.createdAt || saleData.submittedAt),
           appliances: appliances
         }
 
