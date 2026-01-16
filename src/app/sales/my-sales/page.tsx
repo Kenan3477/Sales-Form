@@ -206,14 +206,22 @@ export default function MySalesPage() {
                       </div>
                     </div>
 
-                    {/* Sale ID */}
+                    {/* Sale ID and Actions */}
                     <div className="mt-3 flex justify-between items-center">
                       <p className="text-xs text-gray-400">
                         Sale ID: {sale.id}
                       </p>
-                      <p className="text-xs text-gray-400">
-                        Phone: {sale.phoneNumber}
-                      </p>
+                      <div className="flex items-center space-x-3">
+                        <p className="text-xs text-gray-400">
+                          Phone: {sale.phoneNumber}
+                        </p>
+                        <Link
+                          href={`/sales/${sale.id}`}
+                          className="inline-flex items-center px-2.5 py-1.5 border border-blue-300 shadow-sm text-xs leading-4 font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          👁️ View Details
+                        </Link>
+                      </div>
                     </div>
                   </li>
                 ))}

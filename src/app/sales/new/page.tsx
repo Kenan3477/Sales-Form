@@ -20,6 +20,8 @@ export default function NewSalePage() {
   const [error, setError] = useState('')
   const [fieldConfigs, setFieldConfigs] = useState<FieldConfiguration[]>([])
   const [totalCost, setTotalCost] = useState(0)
+  const [agents, setAgents] = useState<Array<{id: string, name: string, email: string}>>([])
+  const [selectedAgent, setSelectedAgent] = useState('')
 
   const {
     register,
@@ -56,7 +58,7 @@ export default function NewSalePage() {
   }, [status, router])
 
   useEffect(() => {
-    // Fetch field configurations
+    // Fetch field configurations and agents
     const fetchFieldConfigs = async () => {
       try {
         const response = await fetch('/api/field-configurations')
@@ -68,8 +70,26 @@ export default function NewSalePage() {
         console.error('Error fetching field configurations:', error)
       }
     }
+
+    const fetchAgents = async () => {
+      try {
+        const response = await fetch('/api/users?role=AGENT')
+        if (response.ok) {
+          const agentData = await response.json()
+          setAgents(agentData)
+          // Set current user as default if they're an agent
+          if (session?.user?.role === 'AGENT') {
+            setSelectedAgent(session.user.id)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching agents:', error)
+      }
+    }
+
     fetchFieldConfigs()
-  }, [])
+    fetchAgents()
+  }, [session])
 
   useEffect(() => {
     // Calculate total cost
@@ -99,12 +119,18 @@ export default function NewSalePage() {
     setLoading(true)
     setError('') // Clear any previous errors
     try {
+      // Add the selected agent to the data
+      const submitData = {
+        ...data,
+        agentId: selectedAgent || session?.user?.id
+      }
+
       const response = await fetch('/api/sales', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       })
 
       if (response.ok) {
@@ -157,6 +183,33 @@ export default function NewSalePage() {
             )}
             
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              {/* Agent Assignment */}
+              {session?.user?.role === 'ADMIN' && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Agent Assignment</h2>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Assign to Agent <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedAgent}
+                        onChange={(e) => setSelectedAgent(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        required
+                      >
+                        <option value="">Select an agent...</option>
+                        {agents.map(agent => (
+                          <option key={agent.id} value={agent.id}>
+                            {agent.name} ({agent.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Customer Information */}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h2>

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         boilerCoverSelected: validatedData.boilerCoverSelected,
         boilerPriceSelected: validatedData.boilerPriceSelected,
         totalPlanCost: totalCost,
-        createdById: session.user.id,
+        createdById: (validatedData as any).agentId || session.user.id,
         appliances: {
           create: validatedData.appliances.map((appliance: any) => ({
             appliance: appliance.appliance,

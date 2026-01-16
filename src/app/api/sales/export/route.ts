@@ -15,22 +15,30 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
     const agentFilter = searchParams.get('agent')
+    const ids = searchParams.getAll('ids') // Get array of selected IDs
 
     let whereClause: any = {}
 
-    // Admin filters
-    if (agentFilter) {
-      whereClause.createdById = agentFilter
-    }
-
-    // Date filters
-    if (dateFrom || dateTo) {
-      whereClause.createdAt = {}
-      if (dateFrom) {
-        whereClause.createdAt.gte = new Date(dateFrom)
+    // If specific IDs are provided, use those instead of other filters
+    if (ids && ids.length > 0) {
+      whereClause.id = {
+        in: ids
       }
-      if (dateTo) {
-        whereClause.createdAt.lte = new Date(dateTo + 'T23:59:59.999Z')
+    } else {
+      // Admin filters (only apply when not selecting specific IDs)
+      if (agentFilter) {
+        whereClause.createdById = agentFilter
+      }
+
+      // Date filters (only apply when not selecting specific IDs)
+      if (dateFrom || dateTo) {
+        whereClause.createdAt = {}
+        if (dateFrom) {
+          whereClause.createdAt.gte = new Date(dateFrom)
+        }
+        if (dateTo) {
+          whereClause.createdAt.lte = new Date(dateTo + 'T23:59:59.999Z')
+        }
       }
     }
 
@@ -421,27 +429,27 @@ export async function GET(request: NextRequest) {
         sale.appliances.forEach((app: any, index: number) => {
           if (index === 0) { // Appliance 1
             row[73] = app.appliance // Appliance 1 Type
-            row[62] = app.appliance // Appliance 1 Brand (use appliance type as brand for now)
+            // row[62] = '' // Appliance 1 Brand - leave blank
             row[66] = '' // Appliance 1 Age
             row[138] = `£${app.coverLimit.toFixed(2)}` // Appliance 1 Value (from cover limit)
           } else if (index === 1) { // Appliance 2
             row[72] = app.appliance // Appliance 2 Type
-            row[74] = app.appliance // Appliance 2 Brand
+            // row[74] = '' // Appliance 2 Brand - leave blank
             row[61] = '' // Appliance 2 Age
             row[136] = `£${app.coverLimit.toFixed(2)}` // Appliance 2 Value
           } else if (index === 2) { // Appliance 3
             row[65] = app.appliance // Appliance 3 Type
-            row[69] = app.appliance // Appliance 3 Brand
+            // row[69] = '' // Appliance 3 Brand - leave blank
             row[75] = '' // Appliance 3 Age
             row[137] = `£${app.coverLimit.toFixed(2)}` // Appliance 3 Value
           } else if (index === 3) { // Appliance 4
             row[64] = app.appliance // Appliance 4 Type
-            row[68] = app.appliance // Appliance 4 Brand
+            // row[68] = '' // Appliance 4 Brand - leave blank
             row[71] = '' // Appliance 4 Age
             row[135] = `£${app.coverLimit.toFixed(2)}` // Appliance 4 Value
           } else if (index === 4) { // Appliance 5
             row[63] = app.appliance // Appliance 5 Type
-            row[67] = app.appliance // Appliance 5 Brand
+            // row[67] = '' // Appliance 5 Brand - leave blank
             row[70] = '' // Appliance 5 Age
             row[133] = `£${app.coverLimit.toFixed(2)}` // Appliance 5 Value
           }
