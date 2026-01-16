@@ -37,7 +37,6 @@ interface Sale {
   createdBy: {
     id: string
     email: string
-    name?: string
   }
 }
 
