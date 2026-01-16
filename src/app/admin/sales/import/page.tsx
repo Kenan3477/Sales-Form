@@ -10,7 +10,7 @@ export default async function SalesImportPage() {
     redirect('/auth/login')
   }
 
-  if (session.user.role !== 'admin') {
+  if (session.user.role !== 'ADMIN') {
     redirect('/dashboard')
   }
 
