@@ -141,32 +141,44 @@ export default function AdminSalesPage() {
         let validColumns: string[] = []
         
         columns.forEach(col => {
-          if (col && col.length > 1) { // Reduced minimum length from 3 to 2
+          if (col && col.length > 1) {
             const cleaned = col.trim()
             validColumns.push(cleaned)
             
-            // Check if this looks like a name - more flexible validation
-            // Accept single names or multi-word names with letters
-            if (/[a-zA-Z]/.test(cleaned) && !cleaned.includes('@') && !/^\d+$/.test(cleaned) && 
-                cleaned.length > 1) { // Very flexible - just needs letters and length > 1
+            // Very flexible name validation - anything with letters that's not clearly non-name data
+            if (/[a-zA-Z]/.test(cleaned) && 
+                !cleaned.includes('@') && 
+                !/^[\d\s\-\+\(\)]+$/.test(cleaned) && // Not just numbers/phone chars
+                cleaned.length > 1 &&
+                !/(ltd|limited|company|corp|inc|plc)$/i.test(cleaned)) { // Not company names
               hasName = true
             }
             
-            // More comprehensive UK postcode validation
-            const postcodePattern = /^([A-Z][A-HJ-Y]?\d[A-Z\d]?\s?\d[A-Z]{2}|GIR\s?0A{2})$/i
-            if (postcodePattern.test(cleaned.replace(/\s+/g, ' '))) {
+            // Much more flexible postcode validation - any alphanumeric that could be a postcode
+            if (/^[A-Z0-9]{2,8}\s*[A-Z0-9]{0,3}$/i.test(cleaned.replace(/\s+/g, ' ')) ||
+                /^[A-Z][0-9][A-Z0-9]?\s*[0-9][A-Z]{2}$/i.test(cleaned) ||
+                /^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s*[0-9][A-Z]{2}$/i.test(cleaned)) {
               hasPostcode = true
             }
           }
         })
         
-        // Only process this row if it has both name and postcode
-        if (!hasName || !hasPostcode || validColumns.length < 1) {
+        // More flexible validation - accept rows with good data even if not perfect
+        // Accept if we have either a very clear name OR postcode, plus some other data
+        const hasGoodData = (hasName || hasPostcode) && validColumns.length >= 2
+        
+        // Fallback: if we have enough columns with data, probably a customer row
+        const hasSufficientData = validColumns.length >= 3 && 
+          validColumns.some(col => col.length > 2) // At least one substantial field
+        
+        if (!hasGoodData && !hasSufficientData) {
           skippedRows++
           console.log('Skipping row:', { 
             row: trimmed.substring(0, 100), 
             hasName, 
             hasPostcode, 
+            hasGoodData,
+            hasSufficientData,
             validColumnsCount: validColumns.length,
             validColumns: validColumns.slice(0, 4) // Show first 4 columns
           })
