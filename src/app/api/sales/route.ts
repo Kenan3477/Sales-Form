@@ -171,13 +171,27 @@ export async function POST(request: NextRequest) {
   let session: any = null
   
   try {
+    // Add early database connectivity check
+    console.log('Starting sale creation process...')
+    
     session = await getServerSession(authOptions)
+    console.log('Session obtained:', !!session)
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Test database connectivity early
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      console.log('Database connection test successful')
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError)
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
+    }
+
     const body = await request.json()
+    console.log('Request body parsed successfully')
     
     logSecurityEvent('SALE_CREATION_ATTEMPT', securityContext, {
       userId: session.user.id,
@@ -288,10 +302,25 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logSecurityEvent('SALE_CREATION_ERROR', securityContext, {
       error: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
       userId: session?.user?.id
     })
     console.error('Error creating sale:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    
+    // More detailed error logging for production debugging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause
+      })
+    }
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'production' ? undefined : (error instanceof Error ? error.message : 'Unknown error')
+    }, { status: 500 })
   }
 }
 
