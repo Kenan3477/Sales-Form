@@ -1,0 +1,4 @@
+customerFirstName,customerLastName,title,phoneNumber,email,accountName,sortCode,accountNumber,directDebitDate,applianceCoverSelected,boilerCoverSelected,boilerPriceSelected,totalPlanCost,mailingStreet,mailingCity,mailingProvince,mailingPostalCode,appliance1,appliance1Cost,appliance1CoverLimit,notes
+John,Doe,Mr,01234567890,john.doe@example.com,John Doe,12-34-56,12345678,2026-02-01,true,true,25.99,45.98,123 Main St,London,London,SW1A 1AA,Washing Machine,15.99,500,Test import with potential duplicate
+Jane,Wilson,Mrs,05555555555,jane.wilson@example.com,Jane Wilson,12-34-56,12345679,2026-02-01,true,false,,19.99,456 Oak Ave,Manchester,Manchester,M1 1AA,Dishwasher,4.00,600,New customer
+John,Doe,Mr,01234567890,john.doe@example.com,John Doe Account,12-34-56,12345690,2026-02-01,true,true,29.99,49.98,123 Main Street,London,London,SW1A 1AA,Washing Machine,19.99,700,Duplicate customer - same email and phone

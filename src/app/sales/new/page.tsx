@@ -518,13 +518,16 @@ export default function NewSalePage() {
                           <label className="block text-sm font-medium text-gray-700">
                             Cover Limit (£)
                           </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
+                          <select
                             {...register(`appliances.${index}.coverLimit`, { valueAsNumber: true })}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                          />
+                          >
+                            <option value="">Select cover limit</option>
+                            <option value={500}>£500</option>
+                            <option value={600}>£600</option>
+                            <option value={700}>£700</option>
+                            <option value={800}>£800</option>
+                          </select>
                         </div>
 
                         <div>
@@ -554,11 +557,12 @@ export default function NewSalePage() {
                   
                   <button
                     type="button"
-                    onClick={() => append({ appliance: '', otherText: '', coverLimit: 0, cost: 0 })}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    onClick={() => append({ appliance: '', otherText: '', coverLimit: 500, cost: 0 })}
+                    disabled={fields.length >= 10}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     <PlusIcon className="h-4 w-4 mr-2" />
-                    Add Appliance
+                    Add Appliance {fields.length >= 10 && '(Maximum 10 reached)'}
                   </button>
                 </div>
               )}

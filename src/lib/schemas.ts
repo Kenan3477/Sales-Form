@@ -3,7 +3,10 @@ import * as z from 'zod'
 export const applianceSchema = z.object({
   appliance: z.string().min(1, 'Appliance type is required'),
   otherText: z.string().optional(),
-  coverLimit: z.number().min(0, 'Cover limit must be positive'),
+  coverLimit: z.number()
+    .refine(val => [500, 600, 700, 800].includes(val), {
+      message: 'Cover limit must be 500, 600, 700, or 800'
+    }),
   cost: z.number().min(0, 'Cost must be positive'),
 })
 
@@ -29,7 +32,7 @@ export const saleSchema = z.object({
     const num = Number(val)
     return isNaN(num) ? null : num
   }),
-  appliances: z.array(applianceSchema),
+  appliances: z.array(applianceSchema).max(10, 'Maximum of 10 appliances allowed'),
 })
 
 export type ApplianceFormData = z.infer<typeof applianceSchema>

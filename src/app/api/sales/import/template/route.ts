@@ -49,7 +49,22 @@ export async function GET(request: NextRequest) {
       'appliance4CoverLimit',
       'appliance5',
       'appliance5Cost',
-      'appliance5CoverLimit'
+      'appliance5CoverLimit',
+      'appliance6',
+      'appliance6Cost',
+      'appliance6CoverLimit',
+      'appliance7',
+      'appliance7Cost',
+      'appliance7CoverLimit',
+      'appliance8',
+      'appliance8Cost',
+      'appliance8CoverLimit',
+      'appliance9',
+      'appliance9Cost',
+      'appliance9CoverLimit',
+      'appliance10',
+      'appliance10Cost',
+      'appliance10CoverLimit'
     ]
 
     // Sample data row
@@ -77,16 +92,31 @@ export async function GET(request: NextRequest) {
       '500',
       'Dishwasher',
       '4.00',
-      '300',
+      '600',
       'Boiler',
       '25.99',
-      '1000',
+      '700',
       '', // appliance4
       '', // appliance4Cost
       '', // appliance4CoverLimit
       '', // appliance5
       '', // appliance5Cost
-      ''  // appliance5CoverLimit
+      '', // appliance5CoverLimit
+      '', // appliance6
+      '', // appliance6Cost
+      '', // appliance6CoverLimit
+      '', // appliance7
+      '', // appliance7Cost
+      '', // appliance7CoverLimit
+      '', // appliance8
+      '', // appliance8Cost
+      '', // appliance8CoverLimit
+      '', // appliance9
+      '', // appliance9Cost
+      '', // appliance9CoverLimit
+      '', // appliance10
+      '', // appliance10Cost
+      ''  // appliance10CoverLimit
     ]
 
     // Create CSV content
