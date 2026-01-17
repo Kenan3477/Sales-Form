@@ -238,13 +238,11 @@ export class PaperworkService {
       include: {
         template: true,
         sale: {
-          include: {
-            customer: {
-              select: {
-                fullName: true,
-                email: true,
-              }
-            }
+          select: {
+            id: true,
+            customerFirstName: true,
+            customerLastName: true,
+            email: true,
           }
         },
       },
@@ -266,8 +264,8 @@ export class PaperworkService {
       sale: {
         id: doc.sale.id,
         customer: {
-          fullName: doc.sale.customer.fullName,
-          email: doc.sale.customer.email,
+          fullName: `${doc.sale.customerFirstName} ${doc.sale.customerLastName}`,
+          email: doc.sale.email,
         }
       }
     }));
