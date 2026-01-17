@@ -10,9 +10,7 @@ import * as z from 'zod'
 const userUpdateSchema = z.object({
   email: z.string().email('Valid email is required').optional(),
   password: z.string().min(8, 'Password must be at least 8 characters').optional(),
-  role: z.enum(['ADMIN', 'AGENT'], {
-    errorMap: () => ({ message: 'Role must be ADMIN or AGENT' })
-  }).optional(),
+  role: z.enum(['ADMIN', 'AGENT']).optional(),
   confirmPassword: z.string().optional()
 }).refine((data) => {
   if (data.password && !data.confirmPassword) return false
@@ -143,6 +141,12 @@ async function handleUpdateUser(request: NextRequest, context: any, { params }: 
     }
 
     if (role) {
+      // Additional role validation
+      if (!['ADMIN', 'AGENT'].includes(role)) {
+        return NextResponse.json({
+          error: 'Role must be ADMIN or AGENT'
+        }, { status: 400 })
+      }
       updateData.role = role
     }
 
