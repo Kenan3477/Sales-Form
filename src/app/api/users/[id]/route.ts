@@ -22,10 +22,14 @@ const userUpdateSchema = z.object({
 })
 
 // GET - Get single user details
-async function handleGetUser(request: NextRequest, context: any, { params }: { params: { id: string } }) {
+async function handleGetUser(request: NextRequest, context: any) {
   const securityContext = createSecurityContext(request)
   const { user } = context
-  const { id } = params
+  
+  // Extract ID from URL pathname
+  const url = new URL(request.url)
+  const pathParts = url.pathname.split('/')
+  const id = pathParts[pathParts.length - 1]
 
   try {
     logSecurityEvent('USER_GET_DETAILS', securityContext, {
@@ -79,10 +83,14 @@ async function handleGetUser(request: NextRequest, context: any, { params }: { p
 }
 
 // PUT - Update user
-async function handleUpdateUser(request: NextRequest, context: any, { params }: { params: { id: string } }) {
+async function handleUpdateUser(request: NextRequest, context: any) {
   const securityContext = createSecurityContext(request)
   const { user } = context
-  const { id } = params
+  
+  // Extract ID from URL pathname
+  const url = new URL(request.url)
+  const pathParts = url.pathname.split('/')
+  const id = pathParts[pathParts.length - 1]
 
   try {
     const body = await request.json()
@@ -188,10 +196,14 @@ async function handleUpdateUser(request: NextRequest, context: any, { params }: 
 }
 
 // DELETE - Delete user
-async function handleDeleteUser(request: NextRequest, context: any, { params }: { params: { id: string } }) {
+async function handleDeleteUser(request: NextRequest, context: any) {
   const securityContext = createSecurityContext(request)
   const { user } = context
-  const { id } = params
+  
+  // Extract ID from URL pathname
+  const url = new URL(request.url)
+  const pathParts = url.pathname.split('/')
+  const id = pathParts[pathParts.length - 1]
 
   try {
     logSecurityEvent('USER_DELETE_ATTEMPT', securityContext, {
