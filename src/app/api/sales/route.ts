@@ -168,9 +168,10 @@ async function checkForSaleDuplicate(customerData: {
 
 export async function POST(request: NextRequest) {
   const securityContext = createSecurityContext(request)
+  let session: any = null
   
   try {
-    const session = await getServerSession(authOptions)
+    session = await getServerSession(authOptions)
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
