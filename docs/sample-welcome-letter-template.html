@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{agreement.type}} - {{customer.fullName}}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.5;
+            color: #374151;
+            background-color: #f8fafc;
+            padding: 20px;
+        }
+        
+        .document {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 297mm;
+        }
+        
+        /* Header Section */
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: #ff6b35;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .company-name {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .header-right {
+            text-align: right;
+        }
+        
+        .agreement-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .contact-info {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .website {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        /* Main Content */
+        .content {
+            padding: 32px;
+            display: flex;
+            gap: 32px;
+        }
+        
+        .main-content {
+            flex: 1;
+        }
+        
+        .sidebar {
+            width: 280px;
+            flex-shrink: 0;
+        }
+        
+        /* Customer Address Block */
+        .customer-address {
+            margin-bottom: 32px;
+            padding-left: 4px;
+            border-left: 4px solid #4f46e5;
+            padding: 16px 0 16px 20px;
+        }
+        
+        .customer-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .address-lines {
+            color: #6b7280;
+            line-height: 1.6;
+        }
+        
+        /* Letter Body */
+        .letter-body {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #374151;
+        }
+        
+        .greeting {
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        
+        .paragraph {
+            margin-bottom: 18px;
+        }
+        
+        .highlight {
+            color: #ff6b35;
+            font-weight: 600;
+        }
+        
+        .company-highlight {
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        
+        .contact-section {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 24px 0;
+            border-left: 4px solid #10b981;
+        }
+        
+        .contact-text {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        
+        .contact-phone {
+            font-size: 16px;
+            font-weight: 600;
+            color: #059669;
+        }
+        
+        /* Agreement Panel */
+        .agreement-panel {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: #4b5563;
+            color: white;
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        
+        .panel-content {
+            padding: 20px;
+        }
+        
+        .agreement-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .agreement-row:last-child {
+            border-bottom: none;
+        }
+        
+        .agreement-label {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .agreement-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .payment-highlight {
+            color: #ff6b35;
+            font-size: 18px;
+        }
+        
+        /* Appliances Table */
+        .appliances-section {
+            margin-top: 40px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .appliances-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .appliances-table th {
+            background: #f9fafb;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .appliances-table td {
+            padding: 14px 12px;
+            font-size: 14px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .appliances-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .appliances-table tr:nth-child(even) {
+            background: #fafbfc;
+        }
+        
+        .appliance-name {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        .cover-limit {
+            font-weight: 600;
+            color: #059669;
+        }
+        
+        .cost {
+            font-weight: 600;
+            color: #4f46e5;
+        }
+        
+        .table-total {
+            background: #f3f4f6 !important;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .signature-section {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .signature-line {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .company-signature {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .document {
+                box-shadow: none;
+                border-radius: 0;
+                max-width: none;
+                margin: 0;
+            }
+            
+            .header {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                gap: 24px;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="document">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo">⚡</div>
+                <div class="company-name">{{company.tradingName}}</div>
+            </div>
+            <div class="header-right">
+                <div class="agreement-title">{{agreement.type}}</div>
+                <div class="contact-info">{{company.phone}}</div>
+                <div class="website">{{company.website}}</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="main-content">
+                <!-- Customer Address Block -->
+                <section class="customer-address">
+                    <div class="customer-name">{{customer.fullName}}</div>
+                    <div class="address-lines">
+                        {{#if address.street}}{{address.street}}<br>{{/if}}
+                        {{address.city}}{{#if address.province}}, {{address.province}}{{/if}}<br>
+                        {{#if address.postalCode}}{{address.postalCode}}{{/if}}
+                    </div>
+                </section>
+
+                <!-- Letter Body -->
+                <section class="letter-body">
+                    <div class="greeting">Dear {{customer.firstName}},</div>
+                    
+                    <div class="paragraph">
+                        <span class="highlight">Thank you for being part of the {{agreement.type}}, proudly serviced by {{company.tradingName}}</span> — we're delighted to have you with us.
+                    </div>
+                    
+                    <div class="paragraph">
+                        As always, you'll find all the details of your service agreement on the right-hand side of this letter, including your payment amount and frequency. Please note that our Direct Debit will appear on your bank statement as <span class="company-highlight">{{directDebit.reference}}</span>.
+                    </div>
+                    
+                    <div class="paragraph">
+                        You can view a copy of your full service agreement anytime on our website at <span class="company-highlight">{{company.website}}</span>.
+                    </div>
+                    
+                    <div class="paragraph">
+                        As a valued customer, if you ever need a repair, please don't worry — we'll do everything we can to make things as quick and straightforward as possible for you. And if you need help or have any questions at all, we're always happy to hear from you.
+                    </div>
+                    
+                    <div class="contact-section">
+                        <div class="contact-text">Just give us a call on</div>
+                        <div class="contact-phone">{{company.phone}}</div>
+                        <div class="contact-text">and one of our team will be glad to help.</div>
+                    </div>
+                    
+                    <div class="signature-section">
+                        <div class="signature-line">Kind regards,</div>
+                        <div class="company-signature">The {{company.tradingName}} Team</div>
+                        <div class="signature-line">Head of Customer Relations</div>
+                    </div>
+                </section>
+
+                <!-- Appliances Covered Section -->
+                {{#if appliances}}
+                <section class="appliances-section">
+                    <h2 class="section-title">Appliances Covered</h2>
+                    <table class="appliances-table">
+                        <thead>
+                            <tr>
+                                <th>Appliance</th>
+                                <th>Cover Limit</th>
+                                <th>Price per Appliance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#each appliances}}
+                            <tr>
+                                <td class="appliance-name">
+                                    {{name}}{{#if isOther}} ({{otherText}}){{/if}}
+                                </td>
+                                <td class="cover-limit">{{formattedCoverLimit}}</td>
+                                <td class="cost">{{formattedCost}}</td>
+                            </tr>
+                            {{/each}}
+                            {{#if agreement.hasBoilerCover}}
+                            <tr>
+                                <td class="appliance-name">Boiler Cover</td>
+                                <td class="cover-limit">Full Service</td>
+                                <td class="cost">{{agreement.formattedBoilerCost}}</td>
+                            </tr>
+                            {{/if}}
+                            <tr class="table-total">
+                                <td><strong>Total Monthly Payment</strong></td>
+                                <td></td>
+                                <td><strong>{{computed.formattedTotalMonthlyPayment}}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+                {{/if}}
+            </div>
+
+            <!-- Sidebar Agreement Panel -->
+            <aside class="sidebar">
+                <div class="agreement-panel">
+                    <div class="panel-header">YOUR AGREEMENT</div>
+                    <div class="panel-content">
+                        <div class="agreement-row">
+                            <span class="agreement-label">Type</span>
+                            <span class="agreement-value">{{agreement.type}}</span>
+                        </div>
+                        <div class="agreement-row">
+                            <span class="agreement-label">Appliances</span>
+                            <span class="agreement-value">{{agreement.applianceCount}} Appliance{{#if (gt agreement.applianceCount 1)}}s{{/if}}</span>
+                        </div>
+                        <div class="agreement-row">
+                            <span class="agreement-label">Payment</span>
+                            <span class="agreement-value payment-highlight">{{agreement.formattedCost}}</span>
+                        </div>
+                        <div class="agreement-row">
+                            <span class="agreement-label">Frequency</span>
+                            <span class="agreement-value">{{agreement.frequency}}</span>
+                        </div>
+                        {{#if agreement.agentName}}
+                        <div class="agreement-row">
+                            <span class="agreement-label">Agent</span>
+                            <span class="agreement-value">{{agreement.agentName}}</span>
+                        </div>
+                        {{/if}}
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+</body>
+</html>

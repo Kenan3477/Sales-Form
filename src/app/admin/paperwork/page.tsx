@@ -1,0 +1,464 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+import TemplateEditor from '../../../components/paperwork/TemplateEditor';
+import { EnhancedTemplateService } from '../../../lib/paperwork/enhanced-template-service';
+
+interface DocumentTemplate {
+  id: string;
+  name: string;
+  type: string;
+  htmlContent: string;
+  version: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface GeneratedDocument {
+  id: string;
+  saleId: string;
+  templateId: string;
+  templateName: string;
+  fileName: string;
+  downloadCount: number;
+  createdAt: string;
+  sale: {
+    id: string;
+    customer: {
+      fullName: string;
+      email: string;
+    };
+  };
+}
+
+export default function AdminPaperworkPage() {
+  const { data: session, status } = useSession();
+  const [activeTab, setActiveTab] = useState<'templates' | 'documents'>('templates');
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
+  const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<DocumentTemplate | null>(null);
+  const [newTemplateType, setNewTemplateType] = useState<string>('');
+
+  // Redirect if not admin
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
+
+  if (!session || session.user.role !== 'ADMIN') {
+    redirect('/dashboard');
+  }
+
+  useEffect(() => {
+    fetchData();
+  }, [activeTab]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      if (activeTab === 'templates') {
+        const response = await fetch('/api/paperwork/templates');
+        if (!response.ok) throw new Error('Failed to fetch templates');
+        const data = await response.json();
+        setTemplates(data.templates || []);
+      } else {
+        const response = await fetch('/api/paperwork/documents');
+        if (!response.ok) throw new Error('Failed to fetch documents');
+        const data = await response.json();
+        setDocuments(data.documents || []);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleTemplateStatus = async (templateId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/paperwork/templates/${templateId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentStatus })
+      });
+
+      if (!response.ok) throw new Error('Failed to update template');
+      
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update template');
+    }
+  };
+
+  const handleCreateTemplate = (templateType: string) => {
+    const enhancedService = new EnhancedTemplateService();
+    const defaultContent = enhancedService.getDefaultTemplate(templateType);
+    
+    setEditingTemplate({
+      id: '',
+      name: `New ${templateType.replace('_', ' ')} Template`,
+      type: templateType,
+      htmlContent: defaultContent,
+      version: 1,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    setShowEditor(true);
+    setNewTemplateType('');
+  };
+
+  const handleEditTemplate = (template: DocumentTemplate) => {
+    setEditingTemplate(template);
+    setShowEditor(true);
+  };
+
+  const handleSaveTemplate = async (name: string, content: string) => {
+    if (!editingTemplate) return;
+
+    try {
+      const url = editingTemplate.id 
+        ? `/api/paperwork/templates/${editingTemplate.id}`
+        : '/api/paperwork/templates';
+      
+      const method = editingTemplate.id ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          type: editingTemplate.type,
+          htmlContent: content,
+          isActive: true
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save template');
+      }
+
+      setShowEditor(false);
+      setEditingTemplate(null);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save template');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditor(false);
+    setEditingTemplate(null);
+    setNewTemplateType('');
+  };
+
+  const generateDocumentPreview = async (templateId: string) => {
+    try {
+      // This would ideally use a sample sale for preview
+      const response = await fetch('/api/paperwork/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId, sampleData: true })
+      });
+
+      if (!response.ok) throw new Error('Failed to generate preview');
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate preview');
+    }
+  };
+
+  if (showEditor && editingTemplate) {
+    return (
+      <TemplateEditor
+        templateId={editingTemplate.id}
+        templateName={editingTemplate.name}
+        templateType={editingTemplate.type}
+        currentContent={editingTemplate.htmlContent}
+        onSave={handleSaveTemplate}
+        onCancel={handleCancelEdit}
+      />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow p-8">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-3">Loading paperwork data...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const templateTypes = [
+    { value: 'welcome_letter', label: 'Welcome Letter' },
+    { value: 'service_agreement', label: 'Service Agreement' },
+    { value: 'direct_debit_form', label: 'Direct Debit Form' },
+    { value: 'coverage_summary', label: 'Coverage Summary' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Paperwork Management</h1>
+          <p className="text-gray-600 mt-2">Manage document templates and generated paperwork</p>
+        </div>
+
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <button 
+                  onClick={() => setError(null)}
+                  className="text-red-600 hover:text-red-500 text-sm underline mt-2"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('templates')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'templates'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Document Templates ({templates.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('documents')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'documents'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Generated Documents ({documents.length})
+              </button>
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'templates' ? (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Document Templates</h2>
+                  <div className="flex items-center space-x-4">
+                    <select
+                      value={newTemplateType}
+                      onChange={(e) => setNewTemplateType(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">Select template type...</option>
+                      {templateTypes.map(type => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button 
+                      onClick={() => newTemplateType && handleCreateTemplate(newTemplateType)}
+                      disabled={!newTemplateType}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      Create New Template
+                    </button>
+                  </div>
+                </div>
+
+                {templates.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <div className="text-gray-400 text-6xl mb-4">📄</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Templates Found</h3>
+                    <p className="text-gray-500 mb-4">Get started by creating your first document template</p>
+                    <div className="flex justify-center space-x-2">
+                      {templateTypes.slice(0, 2).map(type => (
+                        <button
+                          key={type.value}
+                          onClick={() => handleCreateTemplate(type.value)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+                        >
+                          Create {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {templates.map((template) => (
+                      <div key={template.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                              {template.name}
+                            </h3>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {template.type.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            template.isActive 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {template.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+
+                        <div className="text-sm text-gray-500 mb-4">
+                          <p>Version: {template.version}</p>
+                          <p>Updated: {new Date(template.updatedAt).toLocaleDateString()}</p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button 
+                            onClick={() => handleEditTemplate(template)}
+                            className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-md hover:bg-blue-100 text-sm font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => generateDocumentPreview(template.id)}
+                            className="flex-1 bg-gray-50 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-100 text-sm font-medium"
+                          >
+                            Preview
+                          </button>
+                          <button 
+                            onClick={() => toggleTemplateStatus(template.id, template.isActive)}
+                            className={`flex-1 px-3 py-2 rounded-md text-sm font-medium ${
+                              template.isActive 
+                                ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+                                : 'bg-green-50 text-green-600 hover:bg-green-100'
+                            }`}
+                          >
+                            {template.isActive ? 'Disable' : 'Enable'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Generated Documents</h2>
+                  <div className="flex space-x-2">
+                    <button className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
+                      Export List
+                    </button>
+                  </div>
+                </div>
+
+                {documents.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <div className="text-gray-400 text-6xl mb-4">📋</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Documents Generated</h3>
+                    <p className="text-gray-500">Documents will appear here when agents generate paperwork for sales</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Customer
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Template
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            File Name
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Downloads
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Generated
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {documents.map((document) => (
+                          <tr key={document.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                {document.sale.customer.fullName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {document.sale.customer.email}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{document.templateName}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900 font-mono">{document.fileName}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {document.downloadCount} downloads
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(document.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <a
+                                href={`/api/paperwork/download/${document.id}`}
+                                className="text-blue-600 hover:text-blue-900 mr-4"
+                              >
+                                Download
+                              </a>
+                              <a
+                                href={`/admin/sales/${document.saleId}`}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                View Sale
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
