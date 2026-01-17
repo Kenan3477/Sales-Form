@@ -17,7 +17,7 @@ interface DuplicateCustomer {
   id: string
   customerFirstName: string
   customerLastName: string
-  email: string
+  email: string | null
   phoneNumber: string
   totalPlanCost: number
   createdAt: string
@@ -118,16 +118,22 @@ export default function NewSalePage() {
 
   // Customer duplicate checking function
   const checkCustomerDuplicate = useCallback(async () => {
-    if (!customerFirstName || !customerLastName || !customerEmail || !customerPhone) {
+    // Only require name and phone - email is optional
+    if (!customerFirstName || !customerLastName || !customerPhone) {
       setDuplicateCheck(null)
       return
     }
 
-    // Skip check if any field is too short
+    // Skip check if required fields are too short
     if (customerFirstName.trim().length < 2 || 
         customerLastName.trim().length < 2 || 
-        customerEmail.trim().length < 5 || 
         customerPhone.trim().length < 8) {
+      setDuplicateCheck(null)
+      return
+    }
+
+    // Skip email validation if email is provided but too short
+    if (customerEmail && customerEmail.trim().length > 0 && customerEmail.trim().length < 5) {
       setDuplicateCheck(null)
       return
     }
@@ -135,17 +141,23 @@ export default function NewSalePage() {
     setIsCheckingDuplicate(true)
 
     try {
+      const requestData: any = {
+        customerFirstName: customerFirstName.trim(),
+        customerLastName: customerLastName.trim(),
+        phoneNumber: customerPhone.trim(),
+      }
+
+      // Only include email if it's provided and not empty
+      if (customerEmail && customerEmail.trim().length > 0) {
+        requestData.email = customerEmail.trim()
+      }
+
       const response = await fetch('/api/customers/check-duplicate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          customerFirstName: customerFirstName.trim(),
-          customerLastName: customerLastName.trim(),
-          email: customerEmail.trim(),
-          phoneNumber: customerPhone.trim(),
-        }),
+        body: JSON.stringify(requestData),
       })
 
       if (response.ok) {
