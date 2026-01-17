@@ -4,7 +4,7 @@ interface BulkOperationsProps {
   selectedSales: string[];
   onBulkGenerate: (templateIds: string[], salesIds: string[]) => Promise<void>;
   onClearSelection: () => void;
-  availableTemplates: { id: string; name: string; type: string }[];
+  availableTemplates: { id: string; name: string; templateType: string }[];
 }
 
 export default function BulkOperations({
@@ -77,15 +77,15 @@ export default function BulkOperations({
               />
               <div className="template-card">
                 <div className="template-icon">
-                  {template.type === 'welcome_letter' && '📄'}
-                  {template.type === 'service_agreement' && '📋'}
-                  {template.type === 'direct_debit_form' && '🏦'}
-                  {template.type === 'coverage_summary' && '📊'}
+                  {template.templateType === 'welcome_letter' && '📄'}
+                  {template.templateType === 'service_agreement' && '📋'}
+                  {template.templateType === 'direct_debit_form' && '🏦'}
+                  {template.templateType === 'coverage_summary' && '📊'}
                 </div>
                 <div className="template-info">
                   <h5 className="template-name">{template.name}</h5>
                   <p className="template-type">
-                    {template.type.replace('_', ' ').toUpperCase()}
+                    {template.templateType?.replace('_', ' ').toUpperCase() || 'UNKNOWN TYPE'}
                   </p>
                 </div>
               </div>

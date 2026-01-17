@@ -89,6 +89,27 @@ export class PaperworkService {
   }
 
   /**
+   * Generate document by IDs (convenience method for bulk operations)
+   */
+  async generateDocumentById(saleId: string, templateId: string): Promise<GeneratedDocumentResult> {
+    // First get the template to determine its type
+    const template = await prisma.documentTemplate.findUnique({
+      where: { id: templateId },
+      select: { templateType: true }
+    });
+
+    if (!template) {
+      throw new Error(`Template not found: ${templateId}`);
+    }
+
+    return this.generateDocument({
+      saleId,
+      templateType: template.templateType,
+      templateId
+    });
+  }
+
+  /**
    * Generate document preview (return HTML or PDF buffer)
    */
   async generatePreview(
@@ -185,6 +206,71 @@ export class PaperworkService {
 
     // Optionally delete physical file (for now, keep it for audit purposes)
     // await fs.unlink(document.filePath).catch(() => {});
+  }
+
+  /**
+   * Get generated documents with optional filters
+   */
+  async getGeneratedDocuments(options: {
+    saleId?: string;
+    userId?: string; // For filtering by agent's sales
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<any[]> {
+    const { saleId, userId, limit = 100, offset = 0 } = options;
+
+    const whereClause: any = {
+      isDeleted: false,
+    };
+
+    if (saleId) {
+      whereClause.saleId = saleId;
+    }
+
+    if (userId) {
+      whereClause.sale = {
+        createdById: userId,
+      };
+    }
+
+    const documents = await prisma.generatedDocument.findMany({
+      where: whereClause,
+      include: {
+        template: true,
+        sale: {
+          include: {
+            customer: {
+              select: {
+                fullName: true,
+                email: true,
+              }
+            }
+          }
+        },
+      },
+      orderBy: {
+        generatedAt: 'desc',
+      },
+      take: limit,
+      skip: offset,
+    });
+
+    return documents.map(doc => ({
+      id: doc.id,
+      saleId: doc.saleId,
+      templateId: doc.templateId,
+      templateName: doc.template.name,
+      fileName: doc.filename,
+      downloadCount: 0, // You might want to track this
+      createdAt: doc.generatedAt,
+      sale: {
+        id: doc.sale.id,
+        customer: {
+          fullName: doc.sale.customer.fullName,
+          email: doc.sale.customer.email,
+        }
+      }
+    }));
   }
 
   /**
