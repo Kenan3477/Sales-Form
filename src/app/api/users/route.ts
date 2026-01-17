@@ -11,9 +11,7 @@ import * as z from 'zod'
 const userCreateSchema = z.object({
   email: z.string().email('Valid email is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['ADMIN', 'AGENT'], {
-    errorMap: () => ({ message: 'Role must be ADMIN or AGENT' })
-  }),
+  role: z.enum(['ADMIN', 'AGENT']),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -111,6 +109,13 @@ async function handleCreateUser(request: NextRequest, context: any) {
     }
 
     const { email, password, role } = validation.data
+
+    // Additional role validation
+    if (!['ADMIN', 'AGENT'].includes(role)) {
+      return NextResponse.json({
+        error: 'Role must be ADMIN or AGENT'
+      }, { status: 400 })
+    }
 
     // Sanitize email
     const sanitizedEmail = sanitizeInput(email).toLowerCase()
