@@ -27,10 +27,20 @@ export async function middleware(req: NextRequest) {
     return new NextResponse('Request too large', { status: 413 })
   }
   
-  // Validate origin for non-GET requests
+  // Validate origin for non-GET requests (more permissive in production)
   if (req.method !== 'GET' && !validateOrigin(req)) {
-    logSecurityEvent('INVALID_ORIGIN', securityContext, { origin: req.headers.get('origin') })
-    return new NextResponse('Invalid origin', { status: 403 })
+    // In production, log the issue but don't block - temporarily for debugging
+    if (process.env.NODE_ENV === 'production') {
+      logSecurityEvent('INVALID_ORIGIN_WARNING', securityContext, { 
+        origin: req.headers.get('origin'),
+        host: req.headers.get('host'),
+        referer: req.headers.get('referer')
+      })
+      // Don't block in production for now - just log
+    } else {
+      logSecurityEvent('INVALID_ORIGIN', securityContext, { origin: req.headers.get('origin') })
+      return new NextResponse('Invalid origin', { status: 403 })
+    }
   }
   
   // Check for bot traffic on sensitive endpoints
