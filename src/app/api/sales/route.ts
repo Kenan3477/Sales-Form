@@ -8,11 +8,12 @@ import { logSecurityEvent, createSecurityContext, sanitizeInput } from '@/lib/se
 
 /**
  * Enhanced duplicate checking function for sales creation
+ * Prioritizes phone number and name matching, with email as additional verification
  */
 async function checkForSaleDuplicate(customerData: {
   customerFirstName: string
   customerLastName: string
-  email: string
+  email?: string
   phoneNumber: string
   accountNumber?: string
   totalPlanCost?: number
@@ -27,16 +28,13 @@ async function checkForSaleDuplicate(customerData: {
   // Normalize inputs for comparison
   const normalizedFirstName = sanitizeInput(customerFirstName.trim().toLowerCase())
   const normalizedLastName = sanitizeInput(customerLastName.trim().toLowerCase())
-  const normalizedEmail = sanitizeInput(email.trim().toLowerCase())
+  const normalizedEmail = email ? sanitizeInput(email.trim().toLowerCase()) : null
   const normalizedPhone = phoneNumber.replace(/[\s\-\(\)\+]/g, '')
   
-  // Check for exact email match (highest confidence)
-  const emailMatch = await prisma.sale.findFirst({
+  // 1. Check for exact phone number match (highest confidence for identification)
+  const phoneMatch = await prisma.sale.findFirst({
     where: {
-      email: {
-        equals: normalizedEmail,
-        mode: 'insensitive'
-      }
+      phoneNumber: normalizedPhone
     },
     select: {
       id: true,
@@ -55,29 +53,147 @@ async function checkForSaleDuplicate(customerData: {
     }
   })
 
-  if (emailMatch) {
-    // Check if it's exactly the same sale (including account and price)
-    if (accountNumber && emailMatch.accountNumber === accountNumber && 
-        totalPlanCost && Math.abs(emailMatch.totalPlanCost - totalPlanCost) < 0.01) {
+  if (phoneMatch) {
+    // Check if names also match for higher confidence
+    const phoneFirstMatch = phoneMatch.customerFirstName.toLowerCase() === normalizedFirstName
+    const phoneLastMatch = phoneMatch.customerLastName.toLowerCase() === normalizedLastName
+    
+    if (phoneFirstMatch && phoneLastMatch) {
+      // Check if it's exactly the same sale (including account and price)
+      if (accountNumber && phoneMatch.accountNumber === accountNumber && 
+          totalPlanCost && Math.abs(phoneMatch.totalPlanCost - totalPlanCost) < 0.01) {
+        return {
+          isDuplicate: true,
+          existingCustomer: phoneMatch,
+          duplicateReason: 'Identical sale already exists (same customer, phone, account, and price)',
+          confidence: 'HIGH'
+        }
+      }
+
       return {
         isDuplicate: true,
-        existingCustomer: emailMatch,
-        duplicateReason: 'Identical sale already exists (same customer, account, and price)',
+        existingCustomer: phoneMatch,
+        duplicateReason: `Exact match found: same phone number (${phoneNumber}) and name (${customerFirstName} ${customerLastName})`,
         confidence: 'HIGH'
       }
-    }
-
-    return {
-      isDuplicate: true,
-      existingCustomer: emailMatch,
-      duplicateReason: 'Email address already exists in the system',
-      confidence: 'HIGH'
+    } else {
+      return {
+        isDuplicate: true,
+        existingCustomer: phoneMatch,
+        duplicateReason: `Phone number match found (${phoneNumber}) but different name. Existing: ${phoneMatch.customerFirstName} ${phoneMatch.customerLastName}`,
+        confidence: 'MEDIUM'
+      }
     }
   }
 
-  // Check for phone number match (high confidence)
-  const phoneQueries = [
-    { phoneNumber: normalizedPhone },
+  // 2. Check for exact email match if email is provided
+  if (normalizedEmail) {
+    const emailMatch = await prisma.sale.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive'
+        }
+      },
+      select: {
+        id: true,
+        customerFirstName: true,
+        customerLastName: true,
+        email: true,
+        phoneNumber: true,
+        totalPlanCost: true,
+        accountNumber: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            email: true
+          }
+        }
+      }
+    })
+
+    if (emailMatch) {
+      // Check if names also match
+      const emailFirstMatch = emailMatch.customerFirstName.toLowerCase() === normalizedFirstName
+      const emailLastMatch = emailMatch.customerLastName.toLowerCase() === normalizedLastName
+      
+      if (emailFirstMatch && emailLastMatch) {
+        // Check if it's exactly the same sale
+        if (accountNumber && emailMatch.accountNumber === accountNumber && 
+            totalPlanCost && Math.abs(emailMatch.totalPlanCost - totalPlanCost) < 0.01) {
+          return {
+            isDuplicate: true,
+            existingCustomer: emailMatch,
+            duplicateReason: 'Identical sale already exists (same customer, email, account, and price)',
+            confidence: 'HIGH'
+          }
+        }
+
+        return {
+          isDuplicate: true,
+          existingCustomer: emailMatch,
+          duplicateReason: `Exact match found: same email (${email}) and name (${customerFirstName} ${customerLastName})`,
+          confidence: 'HIGH'
+        }
+      } else {
+        return {
+          isDuplicate: true,
+          existingCustomer: emailMatch,
+          duplicateReason: `Email match found (${email}) but different name. Existing: ${emailMatch.customerFirstName} ${emailMatch.customerLastName}`,
+          confidence: 'MEDIUM'
+        }
+      }
+    }
+  }
+
+  // 3. Check for exact name match (lower confidence without phone/email match)
+  const nameMatch = await prisma.sale.findFirst({
+    where: {
+      AND: [
+        {
+          customerFirstName: {
+            equals: normalizedFirstName,
+            mode: 'insensitive'
+          }
+        },
+        {
+          customerLastName: {
+            equals: normalizedLastName,
+            mode: 'insensitive'
+          }
+        }
+      ]
+    },
+    select: {
+      id: true,
+      customerFirstName: true,
+      customerLastName: true,
+      email: true,
+      phoneNumber: true,
+      totalPlanCost: true,
+      accountNumber: true,
+      createdAt: true,
+      createdBy: {
+        select: {
+          email: true
+        }
+      }
+    }
+  })
+
+  if (nameMatch) {
+    return {
+      isDuplicate: true,
+      existingCustomer: nameMatch,
+      duplicateReason: `Name match found: ${customerFirstName} ${customerLastName}. Please verify phone number and email to confirm if this is the same customer.`,
+      confidence: 'LOW'
+    }
+  }
+
+  // No duplicates found
+  return {
+    isDuplicate: false
+  }
     { phoneNumber: phoneNumber },
     // For UK numbers, check last 10 digits
     ...(normalizedPhone.length >= 10 ? [{ 
