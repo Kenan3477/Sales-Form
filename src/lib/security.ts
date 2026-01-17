@@ -4,7 +4,27 @@ import { NextRequest, NextResponse } from 'next/server'
 // Security configuration
 const ENCRYPTION_KEY = process.env.ENCRYPTION_SECRET || 'fallback-key-change-in-production'
 const MAX_REQUEST_SIZE = 10 * 1024 * 1024 // 10MB
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000']
+
+// Default origins with flexible production support
+const getDefaultOrigins = () => {
+  const origins = ['http://localhost:3000']
+  
+  // Add Vercel deployment URLs if in production
+  if (process.env.NODE_ENV === 'production') {
+    // Add common Vercel patterns
+    if (process.env.VERCEL_URL) {
+      origins.push(`https://${process.env.VERCEL_URL}`)
+    }
+    // Add the NEXTAUTH_URL if it's a Vercel deployment
+    if (process.env.NEXTAUTH_URL) {
+      origins.push(process.env.NEXTAUTH_URL)
+    }
+  }
+  
+  return origins
+}
+
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || getDefaultOrigins()
 
 export interface SecurityContext {
   ip: string
@@ -87,6 +107,15 @@ export function validateOrigin(request: NextRequest): boolean {
     return true
   }
   
+  // Debug logging for production issues
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Origin validation:', {
+      receivedOrigin: origin,
+      allowedOrigins: ALLOWED_ORIGINS,
+      isValid: ALLOWED_ORIGINS.includes(origin)
+    })
+  }
+  
   return ALLOWED_ORIGINS.includes(origin)
 }
 
@@ -106,10 +135,10 @@ export function sanitizeInput(input: string): string {
 }
 
 export function addSecurityHeaders(response: NextResponse): NextResponse {
-  // Content Security Policy
+  // Content Security Policy - Allow postcodes.io for postcode lookup
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.postcodes.io; frame-ancestors 'none';"
   )
   
   // Security headers
