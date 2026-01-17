@@ -9,7 +9,7 @@ import { EnhancedTemplateService } from '../../../lib/paperwork/enhanced-templat
 interface DocumentTemplate {
   id: string;
   name: string;
-  type: string;
+  templateType: string;
   htmlContent: string;
   version: number;
   isActive: boolean;
@@ -36,14 +36,17 @@ interface GeneratedDocument {
 
 export default function AdminPaperworkPage() {
   const { data: session, status } = useSession();
-  const [activeTab, setActiveTab] = useState<'templates' | 'documents'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'documents' | 'generate'>('templates');
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<DocumentTemplate | null>(null);
   const [newTemplateType, setNewTemplateType] = useState<string>('');
+  const [selectedSales, setSelectedSales] = useState<string[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   // Redirect if not admin
   if (status === 'loading') {
@@ -68,11 +71,26 @@ export default function AdminPaperworkPage() {
         if (!response.ok) throw new Error('Failed to fetch templates');
         const data = await response.json();
         setTemplates(data.templates || []);
-      } else {
+      } else if (activeTab === 'documents') {
         const response = await fetch('/api/paperwork/documents');
         if (!response.ok) throw new Error('Failed to fetch documents');
         const data = await response.json();
         setDocuments(data.documents || []);
+      } else if (activeTab === 'generate') {
+        // Fetch both templates and sales data
+        const [templatesResponse, salesResponse] = await Promise.all([
+          fetch('/api/paperwork/templates?activeOnly=true'),
+          fetch('/api/admin/sales')
+        ]);
+        
+        if (!templatesResponse.ok) throw new Error('Failed to fetch templates');
+        if (!salesResponse.ok) throw new Error('Failed to fetch sales');
+        
+        const templatesData = await templatesResponse.json();
+        const salesData = await salesResponse.json();
+        
+        setTemplates(templatesData.templates || []);
+        setSales(salesData.sales || []);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -104,7 +122,7 @@ export default function AdminPaperworkPage() {
     setEditingTemplate({
       id: '',
       name: `New ${templateType.replace('_', ' ')} Template`,
-      type: templateType,
+      templateType: templateType,
       htmlContent: defaultContent,
       version: 1,
       isActive: true,
@@ -135,7 +153,7 @@ export default function AdminPaperworkPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          type: editingTemplate.type,
+          templateType: editingTemplate.templateType,
           htmlContent: content,
           isActive: true
         })
@@ -160,22 +178,55 @@ export default function AdminPaperworkPage() {
     setNewTemplateType('');
   };
 
-  const generateDocumentPreview = async (templateId: string) => {
+  const handleSaleSelection = (saleId: string) => {
+    setSelectedSales(prev => 
+      prev.includes(saleId) 
+        ? prev.filter(id => id !== saleId)
+        : [...prev, saleId]
+    );
+  };
+
+  const handleSelectAllSales = () => {
+    if (selectedSales.length === sales.length) {
+      setSelectedSales([]);
+    } else {
+      setSelectedSales(sales.map(sale => sale.id));
+    }
+  };
+
+  const handleBulkGenerate = async (templateIds: string[]) => {
+    if (selectedSales.length === 0 || templateIds.length === 0) {
+      setError('Please select at least one sale and one template');
+      return;
+    }
+
+    setGenerating(true);
     try {
-      // This would ideally use a sample sale for preview
-      const response = await fetch('/api/paperwork/preview', {
+      const response = await fetch('/api/paperwork/generate/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templateId, sampleData: true })
+        body: JSON.stringify({
+          saleIds: selectedSales,
+          templateIds: templateIds
+        })
       });
 
-      if (!response.ok) throw new Error('Failed to generate preview');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to generate documents');
+      }
+
+      const result = await response.json();
       
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      // Show success message and refresh data
+      setError(null);
+      alert(`Successfully generated ${result.generated} documents!`);
+      setSelectedSales([]);
+      await fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate preview');
+      setError(err instanceof Error ? err.message : 'Failed to generate documents');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -184,7 +235,7 @@ export default function AdminPaperworkPage() {
       <TemplateEditor
         templateId={editingTemplate.id}
         templateName={editingTemplate.name}
-        templateType={editingTemplate.type}
+        templateType={editingTemplate.templateType}
         currentContent={editingTemplate.htmlContent}
         onSave={handleSaveTemplate}
         onCancel={handleCancelEdit}
@@ -254,6 +305,16 @@ export default function AdminPaperworkPage() {
                 Document Templates ({templates.length})
               </button>
               <button
+                onClick={() => setActiveTab('generate')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'generate'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Generate Documents
+              </button>
+              <button
                 onClick={() => setActiveTab('documents')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'documents'
@@ -321,7 +382,7 @@ export default function AdminPaperworkPage() {
                               {template.name}
                             </h3>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {template.type.replace('_', ' ')}
+                              {template.templateType?.replace('_', ' ') || 'Unknown Type'}
                             </span>
                           </div>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -346,7 +407,7 @@ export default function AdminPaperworkPage() {
                             Edit
                           </button>
                           <button 
-                            onClick={() => generateDocumentPreview(template.id)}
+                            onClick={() => window.open(`/api/paperwork/preview/${template.id}`, '_blank')}
                             className="flex-1 bg-gray-50 text-gray-600 px-3 py-2 rounded-md hover:bg-gray-100 text-sm font-medium"
                           >
                             Preview
@@ -455,7 +516,124 @@ export default function AdminPaperworkPage() {
                   </div>
                 )}
               </div>
-            )}
+            ) : activeTab === 'generate' ? (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Generate Documents</h2>
+                  <p className="text-gray-600">Select customers and templates to generate paperwork documents.</p>
+                </div>
+
+                {/* Import BulkOperations here or create inline interface */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Sales Selection */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Select Customers</h3>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm text-gray-600">
+                          {selectedSales.length} of {sales.length} selected
+                        </span>
+                        <button
+                          onClick={handleSelectAllSales}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          {selectedSales.length === sales.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="max-h-96 overflow-y-auto space-y-2">
+                      {sales.map((sale) => (
+                        <label key={sale.id} className="flex items-center p-3 bg-white rounded-lg border hover:shadow-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedSales.includes(sale.id)}
+                            onChange={() => handleSaleSelection(sale.id)}
+                            className="mr-3 h-4 w-4 text-blue-600 rounded"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">
+                              {sale.customer.fullName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {sale.customer.email} • Sale #{sale.id.slice(-6)}
+                            </div>
+                            <div className="text-sm text-gray-400">
+                              {new Date(sale.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-sm font-medium text-green-600">
+                            £{sale.totalPrice}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+
+                    {sales.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <div className="text-4xl mb-2">🏪</div>
+                        <p>No sales found</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Template Selection & Generation */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Templates</h3>
+                    
+                    <div className="space-y-3 mb-6">
+                      {templates.filter(t => t.isActive).map((template) => (
+                        <div key={template.id} className="bg-white rounded-lg p-4 border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium text-gray-900">{template.name}</h4>
+                              <p className="text-sm text-gray-500">
+                                {template.templateType?.replace('_', ' ') || 'Unknown Type'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm text-gray-500">v{template.version}</div>
+                              <button
+                                onClick={() => window.open(`/api/paperwork/preview/${template.id}`, '_blank')}
+                                className="text-blue-600 hover:text-blue-800 text-sm"
+                              >
+                                Preview
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {templates.filter(t => t.isActive).length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <div className="text-4xl mb-2">📄</div>
+                        <p>No active templates</p>
+                      </div>
+                    )}
+
+                    {selectedSales.length > 0 && templates.filter(t => t.isActive).length > 0 && (
+                      <div className="mt-6 pt-4 border-t">
+                        <button
+                          onClick={() => handleBulkGenerate(templates.filter(t => t.isActive).map(t => t.id))}
+                          disabled={generating}
+                          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                        >
+                          {generating 
+                            ? 'Generating Documents...' 
+                            : `Generate Documents for ${selectedSales.length} Customer${selectedSales.length === 1 ? '' : 's'}`
+                          }
+                        </button>
+                        <p className="text-sm text-gray-500 text-center mt-2">
+                          This will generate {selectedSales.length} × {templates.filter(t => t.isActive).length} = {selectedSales.length * templates.filter(t => t.isActive).length} documents
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
           </div>
         </div>
       </div>
