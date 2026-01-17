@@ -3,8 +3,172 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { saleSchema } from '@/lib/schemas'
+import { withSecurity } from '@/lib/apiSecurity'
+import { logSecurityEvent, createSecurityContext, sanitizeInput } from '@/lib/security'
+
+/**
+ * Enhanced duplicate checking function for sales creation
+ */
+async function checkForSaleDuplicate(customerData: {
+  customerFirstName: string
+  customerLastName: string
+  email: string
+  phoneNumber: string
+  accountNumber?: string
+  totalPlanCost?: number
+}): Promise<{
+  isDuplicate: boolean
+  existingCustomer?: any
+  duplicateReason?: string
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW'
+}> {
+  const { customerFirstName, customerLastName, email, phoneNumber, accountNumber, totalPlanCost } = customerData
+
+  // Normalize inputs for comparison
+  const normalizedFirstName = sanitizeInput(customerFirstName.trim().toLowerCase())
+  const normalizedLastName = sanitizeInput(customerLastName.trim().toLowerCase())
+  const normalizedEmail = sanitizeInput(email.trim().toLowerCase())
+  const normalizedPhone = phoneNumber.replace(/[\s\-\(\)\+]/g, '')
+  
+  // Check for exact email match (highest confidence)
+  const emailMatch = await prisma.sale.findFirst({
+    where: {
+      email: {
+        equals: normalizedEmail,
+        mode: 'insensitive'
+      }
+    },
+    select: {
+      id: true,
+      customerFirstName: true,
+      customerLastName: true,
+      email: true,
+      phoneNumber: true,
+      totalPlanCost: true,
+      accountNumber: true,
+      createdAt: true,
+      createdBy: {
+        select: {
+          email: true
+        }
+      }
+    }
+  })
+
+  if (emailMatch) {
+    // Check if it's exactly the same sale (including account and price)
+    if (accountNumber && emailMatch.accountNumber === accountNumber && 
+        totalPlanCost && Math.abs(emailMatch.totalPlanCost - totalPlanCost) < 0.01) {
+      return {
+        isDuplicate: true,
+        existingCustomer: emailMatch,
+        duplicateReason: 'Identical sale already exists (same customer, account, and price)',
+        confidence: 'HIGH'
+      }
+    }
+
+    return {
+      isDuplicate: true,
+      existingCustomer: emailMatch,
+      duplicateReason: 'Email address already exists in the system',
+      confidence: 'HIGH'
+    }
+  }
+
+  // Check for phone number match (high confidence)
+  const phoneQueries = [
+    { phoneNumber: normalizedPhone },
+    { phoneNumber: phoneNumber },
+    // For UK numbers, check last 10 digits
+    ...(normalizedPhone.length >= 10 ? [{ 
+      phoneNumber: { 
+        endsWith: normalizedPhone.slice(-10) 
+      } 
+    }] : [])
+  ]
+
+  const phoneMatch = await prisma.sale.findFirst({
+    where: {
+      OR: phoneQueries
+    },
+    select: {
+      id: true,
+      customerFirstName: true,
+      customerLastName: true,
+      email: true,
+      phoneNumber: true,
+      totalPlanCost: true,
+      accountNumber: true,
+      createdAt: true,
+      createdBy: {
+        select: {
+          email: true
+        }
+      }
+    }
+  })
+
+  if (phoneMatch) {
+    return {
+      isDuplicate: true,
+      existingCustomer: phoneMatch,
+      duplicateReason: 'Phone number already exists in the system',
+      confidence: 'HIGH'
+    }
+  }
+
+  // Check for full name match (medium confidence)
+  const nameMatch = await prisma.sale.findFirst({
+    where: {
+      AND: [
+        {
+          customerFirstName: {
+            equals: normalizedFirstName,
+            mode: 'insensitive'
+          }
+        },
+        {
+          customerLastName: {
+            equals: normalizedLastName,
+            mode: 'insensitive'
+          }
+        }
+      ]
+    },
+    select: {
+      id: true,
+      customerFirstName: true,
+      customerLastName: true,
+      email: true,
+      phoneNumber: true,
+      totalPlanCost: true,
+      accountNumber: true,
+      createdAt: true,
+      createdBy: {
+        select: {
+          email: true
+        }
+      }
+    }
+  })
+
+  if (nameMatch) {
+    return {
+      isDuplicate: true,
+      existingCustomer: nameMatch,
+      duplicateReason: 'Customer with same name already exists',
+      confidence: 'MEDIUM'
+    }
+  }
+
+  return {
+    isDuplicate: false
+  }
+}
 
 export async function POST(request: NextRequest) {
+  const securityContext = createSecurityContext(request)
+  
   try {
     const session = await getServerSession(authOptions)
     
@@ -13,6 +177,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    
+    logSecurityEvent('SALE_CREATION_ATTEMPT', securityContext, {
+      userId: session.user.id,
+      customerName: `${body.customerFirstName} ${body.customerLastName}`,
+      hasIgnoreDuplicateFlag: !!body.ignoreDuplicateWarning
+    })
+
     const validatedData = saleSchema.parse(body)
 
     // Calculate total cost
@@ -26,22 +197,41 @@ export async function POST(request: NextRequest) {
       totalCost += Number(validatedData.boilerPriceSelected)
     }
 
-    // Check for duplicate sale
-    const duplicateSale = await prisma.sale.findFirst({
-      where: {
-        AND: [
-          { customerFirstName: validatedData.customerFirstName },
-          { customerLastName: validatedData.customerLastName },
-          { email: validatedData.email },
-          { phoneNumber: validatedData.phoneNumber },
-          { accountNumber: validatedData.accountNumber },
-          { totalPlanCost: totalCost }
-        ]
-      }
-    })
+    // Enhanced duplicate checking unless explicitly overridden
+    if (!body.ignoreDuplicateWarning) {
+      const duplicateCheck = await checkForSaleDuplicate({
+        customerFirstName: validatedData.customerFirstName,
+        customerLastName: validatedData.customerLastName,
+        email: validatedData.email,
+        phoneNumber: validatedData.phoneNumber,
+        accountNumber: validatedData.accountNumber,
+        totalPlanCost: totalCost
+      })
 
-    if (duplicateSale) {
-      return NextResponse.json({ error: 'Already A Sale - A sale with the same customer details, account number, phone number, and price already exists.' }, { status: 400 })
+      if (duplicateCheck.isDuplicate) {
+        logSecurityEvent('SALE_DUPLICATE_BLOCKED', securityContext, {
+          userId: session.user.id,
+          duplicateReason: duplicateCheck.duplicateReason,
+          confidence: duplicateCheck.confidence,
+          existingCustomerId: duplicateCheck.existingCustomer?.id
+        })
+
+        const errorMessage = duplicateCheck.confidence === 'HIGH' 
+          ? `Duplicate customer detected: ${duplicateCheck.duplicateReason}`
+          : `Potential duplicate: ${duplicateCheck.duplicateReason}`
+
+        return NextResponse.json({ 
+          error: errorMessage,
+          isDuplicate: true,
+          duplicateDetails: duplicateCheck.existingCustomer,
+          confidence: duplicateCheck.confidence
+        }, { status: 409 })
+      }
+    } else {
+      logSecurityEvent('SALE_DUPLICATE_OVERRIDE', securityContext, {
+        userId: session.user.id,
+        customerName: `${validatedData.customerFirstName} ${validatedData.customerLastName}`
+      })
     }
 
     // Create sale with appliances
@@ -86,8 +276,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    logSecurityEvent('SALE_CREATION_SUCCESS', securityContext, {
+      userId: session.user.id,
+      saleId: sale.id,
+      totalCost,
+      customerName: `${validatedData.customerFirstName} ${validatedData.customerLastName}`
+    })
+
     return NextResponse.json(sale)
   } catch (error) {
+    logSecurityEvent('SALE_CREATION_ERROR', securityContext, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id
+    })
     console.error('Error creating sale:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
