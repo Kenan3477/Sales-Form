@@ -21,9 +21,7 @@ const userCreateSchema = z.object({
 const userUpdateSchema = z.object({
   email: z.string().email('Valid email is required').optional(),
   password: z.string().min(8, 'Password must be at least 8 characters').optional(),
-  role: z.enum(['ADMIN', 'AGENT'], {
-    errorMap: () => ({ message: 'Role must be ADMIN or AGENT' })
-  }).optional(),
+  role: z.enum(['ADMIN', 'AGENT']).optional(),
   confirmPassword: z.string().optional()
 }).refine((data) => {
   if (data.password && !data.confirmPassword) return false
