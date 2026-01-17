@@ -9,7 +9,7 @@ import * as z from 'zod'
 const customerLookupSchema = z.object({
   customerFirstName: z.string().min(1, 'First name is required'),
   customerLastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Valid email is required'),
+  email: z.string().email('Valid email is required').optional().or(z.literal('')),
   phoneNumber: z.string().min(1, 'Phone number is required')
 })
 
@@ -19,7 +19,7 @@ interface DuplicateCheckResult {
     id: string
     customerFirstName: string
     customerLastName: string
-    email: string
+    email: string | null
     phoneNumber: string
     totalPlanCost: number
     createdAt: Date
@@ -33,11 +33,12 @@ interface DuplicateCheckResult {
 
 /**
  * Advanced customer duplicate detection with confidence scoring
+ * Prioritizes phone number and name matching, with email as additional verification
  */
 async function checkForDuplicate(customerData: {
   customerFirstName: string
   customerLastName: string
-  email: string
+  email?: string
   phoneNumber: string
 }): Promise<DuplicateCheckResult> {
   const { customerFirstName, customerLastName, email, phoneNumber } = customerData
@@ -45,57 +46,13 @@ async function checkForDuplicate(customerData: {
   // Normalize inputs for comparison
   const normalizedFirstName = sanitizeInput(customerFirstName.trim().toLowerCase())
   const normalizedLastName = sanitizeInput(customerLastName.trim().toLowerCase())
-  const normalizedEmail = sanitizeInput(email.trim().toLowerCase())
+  const normalizedEmail = email ? sanitizeInput(email.trim().toLowerCase()) : null
   const normalizedPhone = phoneNumber.replace(/[\s\-\(\)\+]/g, '')
   
-  // Check for exact email match (highest confidence)
-  const emailMatch = await prisma.sale.findFirst({
-    where: {
-      email: {
-        equals: normalizedEmail,
-        mode: 'insensitive'
-      }
-    },
-    select: {
-      id: true,
-      customerFirstName: true,
-      customerLastName: true,
-      email: true,
-      phoneNumber: true,
-      totalPlanCost: true,
-      createdAt: true,
-      createdBy: {
-        select: {
-          email: true
-        }
-      }
-    }
-  })
-
-  if (emailMatch) {
-    return {
-      isDuplicate: true,
-      existingCustomer: emailMatch,
-      duplicateReason: 'Email address already exists in the system',
-      confidence: 'HIGH'
-    }
-  }
-
-  // Check for phone number match (high confidence)
-  const phoneQueries = [
-    { phoneNumber: normalizedPhone },
-    { phoneNumber: phoneNumber },
-    // For UK numbers, check last 10 digits
-    ...(normalizedPhone.length >= 10 ? [{ 
-      phoneNumber: { 
-        endsWith: normalizedPhone.slice(-10) 
-      } 
-    }] : [])
-  ]
-
+  // 1. Check for exact phone number match (highest confidence for identification)
   const phoneMatch = await prisma.sale.findFirst({
     where: {
-      OR: phoneQueries
+      phoneNumber: normalizedPhone
     },
     select: {
       id: true,
@@ -114,15 +71,76 @@ async function checkForDuplicate(customerData: {
   })
 
   if (phoneMatch) {
-    return {
-      isDuplicate: true,
-      existingCustomer: phoneMatch,
-      duplicateReason: 'Phone number already exists in the system',
-      confidence: 'HIGH'
+    // Check if names also match for higher confidence
+    const phoneFirstMatch = phoneMatch.customerFirstName.toLowerCase() === normalizedFirstName
+    const phoneLastMatch = phoneMatch.customerLastName.toLowerCase() === normalizedLastName
+    
+    if (phoneFirstMatch && phoneLastMatch) {
+      return {
+        isDuplicate: true,
+        existingCustomer: phoneMatch,
+        duplicateReason: `Exact match found: same phone number (${phoneNumber}) and name (${customerFirstName} ${customerLastName})`,
+        confidence: 'HIGH'
+      }
+    } else {
+      return {
+        isDuplicate: true,
+        existingCustomer: phoneMatch,
+        duplicateReason: `Phone number match found (${phoneNumber}) but different name. Existing: ${phoneMatch.customerFirstName} ${phoneMatch.customerLastName}`,
+        confidence: 'MEDIUM'
+      }
     }
   }
 
-  // Check for full name match (medium confidence)
+  // 2. Check for exact email match if email is provided
+  if (normalizedEmail) {
+    const emailMatch = await prisma.sale.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive'
+        }
+      },
+      select: {
+        id: true,
+        customerFirstName: true,
+        customerLastName: true,
+        email: true,
+        phoneNumber: true,
+        totalPlanCost: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            email: true
+          }
+        }
+      }
+    })
+
+    if (emailMatch) {
+      // Check if names also match
+      const emailFirstMatch = emailMatch.customerFirstName.toLowerCase() === normalizedFirstName
+      const emailLastMatch = emailMatch.customerLastName.toLowerCase() === normalizedLastName
+      
+      if (emailFirstMatch && emailLastMatch) {
+        return {
+          isDuplicate: true,
+          existingCustomer: emailMatch,
+          duplicateReason: `Exact match found: same email (${email}) and name (${customerFirstName} ${customerLastName})`,
+          confidence: 'HIGH'
+        }
+      } else {
+        return {
+          isDuplicate: true,
+          existingCustomer: emailMatch,
+          duplicateReason: `Email match found (${email}) but different name. Existing: ${emailMatch.customerFirstName} ${emailMatch.customerLastName}`,
+          confidence: 'MEDIUM'
+        }
+      }
+    }
+  }
+
+  // 3. Check for exact name match (lower confidence without phone/email match)
   const nameMatch = await prisma.sale.findFirst({
     where: {
       AND: [
@@ -157,163 +175,112 @@ async function checkForDuplicate(customerData: {
   })
 
   if (nameMatch) {
-    // Check if emails have similar usernames or domains
-    const currentEmailUser = normalizedEmail.split('@')[0]
-    const currentEmailDomain = normalizedEmail.split('@')[1]
-    const existingEmailUser = nameMatch.email.toLowerCase().split('@')[0]
-    const existingEmailDomain = nameMatch.email.toLowerCase().split('@')[1]
-    
-    // High confidence if same domain and similar username
-    if (currentEmailDomain === existingEmailDomain && 
-        (currentEmailUser.includes(existingEmailUser) || existingEmailUser.includes(currentEmailUser))) {
-      return {
-        isDuplicate: true,
-        existingCustomer: nameMatch,
-        duplicateReason: 'Same name with similar email address',
-        confidence: 'HIGH'
-      }
-    }
-
-    // Medium confidence for same name with different email
     return {
       isDuplicate: true,
       existingCustomer: nameMatch,
-      duplicateReason: 'Customer with same name already exists',
-      confidence: 'MEDIUM'
-    }
-  }
-
-  // Check for similar names (low confidence)
-  const similarNameMatch = await prisma.sale.findFirst({
-    where: {
-      OR: [
-        {
-          AND: [
-            { customerFirstName: { contains: normalizedFirstName, mode: 'insensitive' } },
-            { customerLastName: { equals: normalizedLastName, mode: 'insensitive' } }
-          ]
-        },
-        {
-          AND: [
-            { customerFirstName: { equals: normalizedFirstName, mode: 'insensitive' } },
-            { customerLastName: { contains: normalizedLastName, mode: 'insensitive' } }
-          ]
-        }
-      ]
-    },
-    select: {
-      id: true,
-      customerFirstName: true,
-      customerLastName: true,
-      email: true,
-      phoneNumber: true,
-      totalPlanCost: true,
-      createdAt: true,
-      createdBy: {
-        select: {
-          email: true
-        }
-      }
-    }
-  })
-
-  if (similarNameMatch) {
-    return {
-      isDuplicate: true,
-      existingCustomer: similarNameMatch,
-      duplicateReason: 'Similar customer name found',
+      duplicateReason: `Name match found: ${customerFirstName} ${customerLastName}. Please verify phone number and email to confirm if this is the same customer.`,
       confidence: 'LOW'
     }
   }
 
+  // No duplicates found
   return {
     isDuplicate: false
   }
 }
 
-// POST - Check for customer duplicates
-async function handleCustomerLookup(request: NextRequest, context: any) {
+/**
+ * Main handler for customer duplicate checking
+ */
+async function handleCustomerLookup(request: NextRequest): Promise<NextResponse> {
   const securityContext = createSecurityContext(request)
-  const { user } = context
 
   try {
-    const body = await request.json()
+    const session = await getServerSession(authOptions)
     
-    logSecurityEvent('CUSTOMER_DUPLICATE_CHECK', securityContext, {
-      userId: user.id,
-      customerData: {
-        firstName: body.customerFirstName,
-        lastName: body.customerLastName,
-        email: body.email?.substring(0, 5) + '***' // Partial email for privacy
-      }
-    })
-
-    // Validate input
-    const validation = customerLookupSchema.safeParse(body)
-    if (!validation.success) {
-      return NextResponse.json({
-        error: 'Validation failed',
-        details: validation.error.format()
-      }, { status: 400 })
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const duplicateCheck = await checkForDuplicate(validation.data)
+    const body = await request.json()
+    
+    // Validate the input data
+    const validatedData = customerLookupSchema.parse(body)
+    
+    logSecurityEvent('DUPLICATE_CHECK_ATTEMPT', securityContext, {
+      userId: session.user.id,
+      customerName: `${validatedData.customerFirstName} ${validatedData.customerLastName}`,
+      hasEmail: !!validatedData.email
+    })
 
-    if (duplicateCheck.isDuplicate && duplicateCheck.existingCustomer) {
-      logSecurityEvent('CUSTOMER_DUPLICATE_FOUND', securityContext, {
-        userId: user.id,
-        duplicateReason: duplicateCheck.duplicateReason,
-        confidence: duplicateCheck.confidence,
-        existingCustomerId: duplicateCheck.existingCustomer.id
-      })
+    // Perform duplicate check
+    const duplicateResult = await checkForDuplicate({
+      customerFirstName: validatedData.customerFirstName,
+      customerLastName: validatedData.customerLastName,
+      email: validatedData.email,
+      phoneNumber: validatedData.phoneNumber
+    })
 
-      return NextResponse.json({
-        isDuplicate: true,
-        customer: duplicateCheck.existingCustomer,
-        reason: duplicateCheck.duplicateReason,
-        confidence: duplicateCheck.confidence,
-        message: getDuplicateMessage(duplicateCheck.duplicateReason, duplicateCheck.confidence)
+    if (duplicateResult.isDuplicate) {
+      logSecurityEvent('DUPLICATE_CUSTOMER_DETECTED', securityContext, {
+        userId: session.user.id,
+        duplicateConfidence: duplicateResult.confidence,
+        duplicateReason: duplicateResult.duplicateReason,
+        existingCustomerId: duplicateResult.existingCustomer?.id
       })
     }
 
     return NextResponse.json({
-      isDuplicate: false,
-      message: 'No duplicate customer found'
+      isDuplicate: duplicateResult.isDuplicate,
+      customer: duplicateResult.existingCustomer,
+      reason: duplicateResult.duplicateReason,
+      confidence: duplicateResult.confidence,
+      message: duplicateResult.isDuplicate 
+        ? formatDuplicateMessage(duplicateResult.duplicateReason || '', duplicateResult.confidence || 'LOW')
+        : 'No duplicates found'
+    })
+  } catch (error) {
+    logSecurityEvent('DUPLICATE_CHECK_ERROR', securityContext, {
+      error: error instanceof Error ? error.message : 'Unknown error'
     })
 
-  } catch (error) {
-    logSecurityEvent('CUSTOMER_DUPLICATE_CHECK_ERROR', securityContext, {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      userId: user.id
-    })
-    
-    console.error('Customer duplicate check error:', error)
-    return NextResponse.json(
-      { error: 'Failed to check for duplicates' },
-      { status: 500 }
-    )
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      )
+    }
+
+    console.error('Error checking for duplicates:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-function getDuplicateMessage(reason?: string, confidence?: string): string {
-  const confidenceText = confidence === 'HIGH' ? 'Strong match' : 
-                        confidence === 'MEDIUM' ? 'Possible match' : 
-                        'Potential match'
-  
-  switch (reason) {
-    case 'Email address already exists in the system':
-      return `${confidenceText}: This email address is already registered`
-    case 'Phone number already exists in the system':
-      return `${confidenceText}: This phone number is already registered`
-    case 'Same name with similar email address':
-      return `${confidenceText}: Customer with same name and similar email found`
-    case 'Customer with same name already exists':
-      return `${confidenceText}: Customer with same name found`
-    case 'Similar customer name found':
-      return `${confidenceText}: Similar customer name found`
-    default:
-      return `${confidenceText}: Potential duplicate customer found`
+function formatDuplicateMessage(reason: string, confidence: 'HIGH' | 'MEDIUM' | 'LOW'): string {
+  const confidenceText = confidence === 'HIGH' 
+    ? 'High confidence'
+    : confidence === 'MEDIUM' 
+    ? 'Medium confidence'
+    : 'Low confidence'
+
+  // Return a user-friendly message based on the reason
+  if (reason.includes('same phone number') && reason.includes('same') && reason.includes('name')) {
+    return `${confidenceText}: This customer already exists with matching phone and name`
   }
+  if (reason.includes('Phone number match') && reason.includes('different name')) {
+    return `${confidenceText}: This phone number is registered to a different customer`
+  }
+  if (reason.includes('same email') && reason.includes('same') && reason.includes('name')) {
+    return `${confidenceText}: This customer already exists with matching email and name`
+  }
+  if (reason.includes('Email match') && reason.includes('different name')) {
+    return `${confidenceText}: This email is registered to a different customer`
+  }
+  if (reason.includes('Name match found')) {
+    return `${confidenceText}: Customer with same name found - please verify contact details`
+  }
+  
+  return `${confidenceText}: Potential duplicate customer found`
 }
 
 export const POST = withSecurity(handleCustomerLookup, {
