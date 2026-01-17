@@ -1,16 +1,37 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { saleSchema, type SaleFormData, APPLIANCE_OPTIONS, BOILER_OPTIONS, TITLE_OPTIONS, formatCurrency } from '@/lib/schemas'
-import { PlusIcon, MinusIcon } from 'lucide-react'
+import { PlusIcon, MinusIcon, AlertTriangle, CheckCircle } from 'lucide-react'
 
 interface FieldConfiguration {
   fieldName: string
   isRequired: boolean
+}
+
+interface DuplicateCustomer {
+  id: string
+  customerFirstName: string
+  customerLastName: string
+  email: string
+  phoneNumber: string
+  totalPlanCost: number
+  createdAt: string
+  createdBy: {
+    email: string
+  }
+}
+
+interface DuplicateCheckResult {
+  isDuplicate: boolean
+  customer?: DuplicateCustomer
+  reason?: string
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW'
+  message?: string
 }
 
 export default function NewSalePage() {
@@ -21,6 +42,9 @@ export default function NewSalePage() {
   const [fieldConfigs, setFieldConfigs] = useState<FieldConfiguration[]>([])
   const [totalCost, setTotalCost] = useState(0)
   const [selectedAgent, setSelectedAgent] = useState('')
+  const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckResult | null>(null)
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
+  const [showDuplicateForm, setShowDuplicateForm] = useState(false)
 
   // Hardcoded list of agents
   const agents = [
@@ -64,6 +88,12 @@ export default function NewSalePage() {
   const boilerCoverSelected = watch('boilerCoverSelected')
   const appliances = watch('appliances')
   const boilerPrice = watch('boilerPriceSelected')
+  
+  // Watch customer fields for duplicate checking
+  const customerFirstName = watch('customerFirstName')
+  const customerLastName = watch('customerLastName')
+  const customerEmail = watch('email')
+  const customerPhone = watch('phoneNumber')
 
   // Postcode lookup function
   const lookupPostcode = async (postcode: string) => {
@@ -85,6 +115,53 @@ export default function NewSalePage() {
       console.log('Postcode lookup failed:', error)
     }
   }
+
+  // Customer duplicate checking function
+  const checkCustomerDuplicate = useCallback(async () => {
+    if (!customerFirstName || !customerLastName || !customerEmail || !customerPhone) {
+      setDuplicateCheck(null)
+      return
+    }
+
+    // Skip check if any field is too short
+    if (customerFirstName.trim().length < 2 || 
+        customerLastName.trim().length < 2 || 
+        customerEmail.trim().length < 5 || 
+        customerPhone.trim().length < 8) {
+      setDuplicateCheck(null)
+      return
+    }
+
+    setIsCheckingDuplicate(true)
+
+    try {
+      const response = await fetch('/api/customers/check-duplicate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerFirstName: customerFirstName.trim(),
+          customerLastName: customerLastName.trim(),
+          email: customerEmail.trim(),
+          phoneNumber: customerPhone.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setDuplicateCheck(result)
+      } else {
+        console.error('Duplicate check failed')
+        setDuplicateCheck(null)
+      }
+    } catch (error) {
+      console.error('Error checking for duplicates:', error)
+      setDuplicateCheck(null)
+    }
+
+    setIsCheckingDuplicate(false)
+  }, [customerFirstName, customerLastName, customerEmail, customerPhone])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -128,6 +205,15 @@ export default function NewSalePage() {
     setTotalCost(total)
   }, [applianceCoverSelected, boilerCoverSelected, appliances, boilerPrice])
 
+  // Debounced duplicate checking
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      checkCustomerDuplicate()
+    }, 1000) // Check after 1 second of no typing
+
+    return () => clearTimeout(timeoutId)
+  }, [checkCustomerDuplicate])
+
   const isFieldRequired = (fieldName: string): boolean => {
     const config = fieldConfigs.find(c => c.fieldName === fieldName)
     return config?.isRequired || false
@@ -136,6 +222,13 @@ export default function NewSalePage() {
   const onSubmit = async (data: SaleFormData) => {
     setLoading(true)
     setError('') // Clear any previous errors
+    
+    // Check for high confidence duplicates before submission
+    if (duplicateCheck?.isDuplicate && duplicateCheck.confidence === 'HIGH' && !showDuplicateForm) {
+      setError(`Cannot create sale: ${duplicateCheck.message}. Please review the existing customer or use different contact details.`)
+      setLoading(false)
+      return
+    }
     
     // Manual validation for required fields since schema resolver is disabled
     if (!data.mailingCity || data.mailingCity.trim() === '') {
@@ -158,7 +251,9 @@ export default function NewSalePage() {
       const submitData = {
         ...data,
         agentId: selectedAgent || session?.user?.id,
-        agentName: selectedAgentName
+        agentName: selectedAgentName,
+        // Flag to override duplicate check if user explicitly chose to proceed
+        ignoreDuplicateWarning: showDuplicateForm
       }
 
       const response = await fetch('/api/sales', {
@@ -386,6 +481,115 @@ export default function NewSalePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Customer Duplicate Warning */}
+              {(isCheckingDuplicate || duplicateCheck?.isDuplicate) && (
+                <div className={`rounded-md p-4 ${
+                  duplicateCheck?.confidence === 'HIGH' 
+                    ? 'bg-red-50 border border-red-200' 
+                    : duplicateCheck?.confidence === 'MEDIUM'
+                    ? 'bg-yellow-50 border border-yellow-200'
+                    : 'bg-blue-50 border border-blue-200'
+                }`}>
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      {isCheckingDuplicate ? (
+                        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : duplicateCheck?.confidence === 'HIGH' ? (
+                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                      ) : duplicateCheck?.confidence === 'MEDIUM' ? (
+                        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                      ) : (
+                        <CheckCircle className="h-5 w-5 text-blue-600" />
+                      )}
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <h3 className={`text-sm font-medium ${
+                        duplicateCheck?.confidence === 'HIGH' 
+                          ? 'text-red-800' 
+                          : duplicateCheck?.confidence === 'MEDIUM'
+                          ? 'text-yellow-800'
+                          : 'text-blue-800'
+                      }`}>
+                        {isCheckingDuplicate 
+                          ? 'Checking for existing customers...' 
+                          : duplicateCheck?.confidence === 'HIGH'
+                          ? 'Duplicate Customer Found!'
+                          : duplicateCheck?.confidence === 'MEDIUM'
+                          ? 'Possible Duplicate Customer'
+                          : 'Potential Similar Customer'
+                        }
+                      </h3>
+                      {duplicateCheck?.isDuplicate && (
+                        <>
+                          <div className={`mt-2 text-sm ${
+                            duplicateCheck.confidence === 'HIGH' 
+                              ? 'text-red-700' 
+                              : duplicateCheck.confidence === 'MEDIUM'
+                              ? 'text-yellow-700'
+                              : 'text-blue-700'
+                          }`}>
+                            <p>{duplicateCheck.message}</p>
+                            {duplicateCheck.customer && (
+                              <div className="mt-3 p-3 bg-white rounded border border-gray-200">
+                                <h4 className="font-medium text-gray-900">Existing Customer Details:</h4>
+                                <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <span className="font-medium">Name:</span> {duplicateCheck.customer.customerFirstName} {duplicateCheck.customer.customerLastName}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Email:</span> {duplicateCheck.customer.email}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Phone:</span> {duplicateCheck.customer.phoneNumber}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Previous Sale:</span> £{duplicateCheck.customer.totalPlanCost.toFixed(2)}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Sale Date:</span> {new Date(duplicateCheck.customer.createdAt).toLocaleDateString()}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Created by:</span> {duplicateCheck.customer.createdBy.email}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-4">
+                            {duplicateCheck.confidence === 'HIGH' ? (
+                              <div className="flex space-x-3">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowDuplicateForm(true)}
+                                  className="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md font-medium"
+                                >
+                                  Continue Anyway
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => window.location.reload()}
+                                  className="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md"
+                                >
+                                  Start Over
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setDuplicateCheck(null)}
+                                className="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md"
+                              >
+                                Acknowledge
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Direct Debit Information */}
               <div>
