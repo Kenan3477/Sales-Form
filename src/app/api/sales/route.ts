@@ -312,8 +312,7 @@ export async function POST(request: NextRequest) {
       console.error('Error details:', {
         name: error.name,
         message: error.message,
-        stack: error.stack,
-        cause: error.cause
+        stack: error.stack
       })
     }
     
