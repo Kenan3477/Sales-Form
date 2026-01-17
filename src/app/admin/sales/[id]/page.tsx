@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/schemas'
+import PaperworkManager from '@/components/paperwork/PaperworkManager'
 
 interface Sale {
   id: string
@@ -364,6 +365,9 @@ export default function SaleDetailPage() {
                 </dl>
               </div>
             </div>
+
+            {/* Paperwork Section */}
+            <PaperworkManager saleId={sale.id} />
 
             {/* Agent Information */}
             <div className="bg-white shadow sm:rounded-lg">

@@ -1,0 +1,112 @@
+// Paperwork Module - Prisma Schema Additions
+// Add these models to your existing schema.prisma file
+
+enum DocumentType {
+  WELCOME_LETTER
+  SERVICE_AGREEMENT  
+  DIRECT_DEBIT_CONFIRMATION
+  RENEWAL_LETTER
+}
+
+enum DocumentStatus {
+  DRAFT
+  FINAL
+}
+
+enum DeliveryMethod {
+  DOWNLOAD
+  EMAIL
+  POST
+}
+
+enum DocumentAction {
+  GENERATED
+  DOWNLOADED
+  EMAILED
+  REGENERATED
+  DELETED
+}
+
+model DocumentTemplate {
+  id            String       @id @default(cuid())
+  name          String
+  category      DocumentType
+  version       Int          @default(1)
+  isActive      Boolean      @default(true)
+  htmlTemplate  String       @db.Text
+  cssTemplate   String?      @db.Text
+  variables     Json?        // Available template variables
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  createdById   String
+  createdBy     User         @relation(fields: [createdById], references: [id])
+  
+  // Relations
+  documents     GeneratedDocument[]
+  
+  @@unique([name, version])
+  @@map("document_templates")
+}
+
+model GeneratedDocument {
+  id               String         @id @default(cuid())
+  saleId           String
+  templateId       String
+  templateVersion  Int
+  documentType     DocumentType
+  status           DocumentStatus @default(DRAFT)
+  deliveryMethod   DeliveryMethod?
+  
+  // Document content
+  renderedHtml     String         @db.Text
+  pdfFilePath      String?        // Path to stored PDF file
+  
+  // Metadata
+  generatedBy      String
+  generatedAt      DateTime       @default(now())
+  fileSize         Int?
+  pageCount        Int?
+  
+  // Audit fields - snapshots at generation time
+  variablesUsed    Json?          // Variables used in generation
+  customerData     Json?          // Customer data snapshot
+  
+  // Relations
+  sale             Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  template         DocumentTemplate @relation(fields: [templateId], references: [id])
+  generatedByUser  User           @relation(fields: [generatedBy], references: [id])
+  auditLogs        DocumentGenerationLog[]
+  
+  @@unique([saleId, templateId, templateVersion, generatedAt])
+  @@map("generated_documents")
+}
+
+model DocumentGenerationLog {
+  id         String        @id @default(cuid())
+  documentId String?
+  saleId     String
+  action     DocumentAction
+  userId     String
+  userIp     String?
+  userAgent  String?
+  metadata   Json?         // Additional context
+  createdAt  DateTime      @default(now())
+  
+  // Relations
+  document   GeneratedDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sale       Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id])
+  
+  @@map("document_generation_log")
+}
+
+// Add these relations to existing models:
+
+// In User model, add:
+//   documentTemplates    DocumentTemplate[]
+//   generatedDocuments   GeneratedDocument[]
+//   documentAuditLogs    DocumentGenerationLog[]
+
+// In Sale model, add:
+//   documents            GeneratedDocument[]
+//   documentAuditLogs    DocumentGenerationLog[]
