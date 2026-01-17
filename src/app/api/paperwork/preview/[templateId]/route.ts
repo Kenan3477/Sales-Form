@@ -6,7 +6,7 @@ import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-servi
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     // Rate limiting
@@ -22,10 +22,13 @@ export async function GET(
       return new Response('Unauthorized', { status: 401 });
     }
 
+    // Await params since they're now a Promise in Next.js 16
+    const { templateId } = await params;
+
     // Get template
     const { prisma } = await import('@/lib/prisma');
     const template = await prisma.documentTemplate.findUnique({
-      where: { id: params.templateId },
+      where: { id: templateId },
     });
 
     if (!template) {
