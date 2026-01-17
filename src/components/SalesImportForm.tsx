@@ -6,12 +6,33 @@ interface ImportResult {
   success: boolean
   imported: number
   total: number
+  skipped?: number
   errors?: Array<{
     row?: number
     sale?: string
     error: string
   }>
+  duplicates?: Array<{
+    customer: string
+    email: string
+    phone: string
+    reason: string
+    existingCustomer?: {
+      id: string
+      customerFirstName: string
+      customerLastName: string
+      email: string
+      phoneNumber: string
+      createdAt: Date
+    }
+  }>
   data?: any[]
+  summary?: {
+    totalProcessed: number
+    imported: number
+    duplicatesSkipped: number
+    errors: number
+  }
 }
 
 export default function SalesImportForm() {
@@ -81,9 +102,9 @@ export default function SalesImportForm() {
     window.open('/api/sales/import/template', '_blank')
   }
 
-  const sampleCSVHeaders = `customerFirstName,customerLastName,title,phoneNumber,email,accountName,sortCode,accountNumber,directDebitDate,applianceCoverSelected,boilerCoverSelected,boilerPriceSelected,totalPlanCost,mailingStreet,mailingCity,mailingProvince,mailingPostalCode,appliance1,appliance1Cost,appliance1CoverLimit,appliance2,appliance2Cost,appliance2CoverLimit,notes`
+  const sampleCSVHeaders = `customerFirstName,customerLastName,title,phoneNumber,email,accountName,sortCode,accountNumber,directDebitDate,applianceCoverSelected,boilerCoverSelected,boilerPriceSelected,totalPlanCost,mailingStreet,mailingCity,mailingProvince,mailingPostalCode,appliance1,appliance1Cost,appliance1CoverLimit,appliance2,appliance2Cost,appliance2CoverLimit,appliance3,appliance3Cost,appliance3CoverLimit,appliance4,appliance4Cost,appliance4CoverLimit,appliance5,appliance5Cost,appliance5CoverLimit,appliance6,appliance6Cost,appliance6CoverLimit,appliance7,appliance7Cost,appliance7CoverLimit,appliance8,appliance8Cost,appliance8CoverLimit,appliance9,appliance9Cost,appliance9CoverLimit,appliance10,appliance10Cost,appliance10CoverLimit,notes`
 
-  const sampleCSVData = `John,Doe,Mr,01234567890,john.doe@email.com,John Doe,12-34-56,12345678,2026-02-01,true,true,25.99,45.98,123 Main St,London,London,SW1A 1AA,Washing Machine,15.99,500,Dishwasher,4.00,300,Customer requested early installation`
+  const sampleCSVData = `John,Doe,Mr,01234567890,john.doe@email.com,John Doe,12-34-56,12345678,2026-02-01,true,true,25.99,45.98,123 Main St,London,London,SW1A 1AA,Washing Machine,15.99,500,Dishwasher,4.00,600,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Customer requested early installation`
 
   const sampleJSON = `[
   {
@@ -113,7 +134,7 @@ export default function SalesImportForm() {
       {
         "appliance": "Dishwasher",
         "cost": 4.00,
-        "coverLimit": 300
+        "coverLimit": 600
       }
     ],
     "notes": "Customer requested early installation"
@@ -276,6 +297,48 @@ export default function SalesImportForm() {
           {result.success && (
             <div className="text-green-700">
               <p>✅ Successfully imported {result.imported} out of {result.total} sales</p>
+              {result.summary && (
+                <div className="mt-2 text-sm space-y-1">
+                  <p>📊 Summary:</p>
+                  <ul className="ml-4 space-y-1">
+                    <li>• Total processed: {result.summary.totalProcessed}</li>
+                    <li>• Successfully imported: {result.summary.imported}</li>
+                    {result.summary.duplicatesSkipped > 0 && (
+                      <li>• Duplicates skipped: {result.summary.duplicatesSkipped}</li>
+                    )}
+                    {result.summary.errors > 0 && (
+                      <li>• Errors: {result.summary.errors}</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Duplicate Information */}
+          {result.duplicates && result.duplicates.length > 0 && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="font-medium text-yellow-800 mb-2">
+                🔄 Duplicates Skipped ({result.duplicates.length}):
+              </p>
+              <div className="space-y-2">
+                {result.duplicates.map((duplicate, index) => (
+                  <div key={index} className="text-sm text-yellow-700 bg-yellow-100 p-2 rounded">
+                    <div className="font-medium">{duplicate.customer}</div>
+                    <div className="text-xs space-y-1 mt-1">
+                      <p>📧 Email: {duplicate.email}</p>
+                      <p>📞 Phone: {duplicate.phone}</p>
+                      <p>❓ Reason: {duplicate.reason}</p>
+                      {duplicate.existingCustomer && (
+                        <p className="text-yellow-600">
+                          Matches existing customer: {duplicate.existingCustomer.customerFirstName} {duplicate.existingCustomer.customerLastName} 
+                          (Created: {new Date(duplicate.existingCustomer.createdAt).toLocaleDateString()})
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -298,21 +361,46 @@ export default function SalesImportForm() {
 
       {/* Field Requirements */}
       <div className="mt-6 bg-blue-50 p-4 rounded-md">
-        <h3 className="font-medium text-blue-900 mb-2">Required Fields:</h3>
-        <ul className="text-sm text-blue-800 grid grid-cols-2 gap-1">
-          <li>• customerFirstName</li>
-          <li>• customerLastName</li>
-          <li>• phoneNumber</li>
-          <li>• email</li>
-          <li>• accountName</li>
-          <li>• sortCode</li>
-          <li>• accountNumber</li>
-          <li>• directDebitDate</li>
-          <li>• totalPlanCost</li>
-        </ul>
-        <p className="text-xs text-blue-700 mt-2">
-          Note: Appliances can be provided either as an array in JSON format or as separate fields (appliance1, appliance1Cost, etc.) in CSV format.
-        </p>
+        <h3 className="font-medium text-blue-900 mb-2">Import Information:</h3>
+        
+        <div className="mb-3">
+          <h4 className="font-medium text-blue-800 mb-1">Required Fields:</h4>
+          <ul className="text-sm text-blue-800 grid grid-cols-2 gap-1">
+            <li>• customerFirstName</li>
+            <li>• customerLastName</li>
+            <li>• phoneNumber</li>
+            <li>• email</li>
+            <li>• accountName</li>
+            <li>• sortCode</li>
+            <li>• accountNumber</li>
+            <li>• directDebitDate</li>
+            <li>• totalPlanCost</li>
+          </ul>
+        </div>
+
+        <div className="mb-3">
+          <h4 className="font-medium text-blue-800 mb-1">Appliance Specifications:</h4>
+          <ul className="text-xs text-blue-600 ml-4 mt-1 space-y-1">
+            <li>• Maximum 10 appliances per sale</li>
+            <li>• Cover limit must be 500, 600, 700, or 800</li>
+            <li>• Available in JSON array format or separate CSV fields (appliance1-10)</li>
+          </ul>
+        </div>
+
+        <div className="mb-3">
+          <h4 className="font-medium text-blue-800 mb-1">Duplicate Detection:</h4>
+          <p className="text-sm text-blue-700">
+            The system automatically checks for existing customers during import using:
+          </p>
+          <ul className="text-xs text-blue-600 ml-4 mt-1 space-y-1">
+            <li>• Email address (exact match)</li>
+            <li>• Phone number (normalized comparison)</li>
+            <li>• Name combination with similar contact info</li>
+          </ul>
+          <p className="text-xs text-blue-600 mt-1">
+            Duplicate customers will be skipped automatically and reported in the results.
+          </p>
+        </div>
       </div>
     </div>
   )

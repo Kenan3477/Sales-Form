@@ -1,0 +1,28 @@
+Contact: mailto:security@salesportal.com
+Expires: 2027-01-16T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://salesportal.com/security-policy
+Acknowledgments: https://salesportal.com/security-acknowledgments
+
+# Security Policy for Sales Form Portal
+# 
+# This application handles sensitive customer sales data.
+# If you discover a security vulnerability, please report it responsibly:
+# 
+# 1. Email: security@salesportal.com
+# 2. Include detailed steps to reproduce the issue
+# 3. Allow 48 hours for initial response
+# 4. Do not publicly disclose until we've had a chance to address
+# 
+# We appreciate responsible security research and will acknowledge
+# researchers who help improve our security.
+#
+# Security measures implemented:
+# - Rate limiting and DDoS protection
+# - Input validation and sanitization  
+# - Authentication and authorization
+# - Encryption of sensitive data
+# - Comprehensive security logging
+# - Regular security audits
+#
+# Last updated: 2026-01-16

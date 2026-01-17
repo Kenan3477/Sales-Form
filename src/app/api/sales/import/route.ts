@@ -3,6 +3,135 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Papa from 'papaparse'
+import { withSecurity, handleSecureUpload } from '@/lib/apiSecurity'
+import { logSecurityEvent, createSecurityContext } from '@/lib/security'
+
+interface DuplicateCheckResult {
+  isDuplicate: boolean
+  existingCustomer?: {
+    id: string
+    customerFirstName: string
+    customerLastName: string
+    email: string
+    phoneNumber: string
+    createdAt: Date
+  }
+  duplicateReason?: string
+}
+
+/**
+ * Check if a customer already exists in the system
+ */
+async function checkForDuplicate(customerData: {
+  customerFirstName: string
+  customerLastName: string
+  email: string
+  phoneNumber: string
+}): Promise<DuplicateCheckResult> {
+  const { customerFirstName, customerLastName, email, phoneNumber } = customerData
+
+  // Normalize phone number for comparison (remove spaces, dashes, etc.)
+  const normalizedPhone = phoneNumber.replace(/[\s\-\(\)]/g, '')
+  
+  // Check for exact email match (most reliable)
+  const emailMatch = await prisma.sale.findFirst({
+    where: {
+      email: {
+        equals: email,
+        mode: 'insensitive'
+      }
+    },
+    select: {
+      id: true,
+      customerFirstName: true,
+      customerLastName: true,
+      email: true,
+      phoneNumber: true,
+      createdAt: true
+    }
+  })
+
+  if (emailMatch) {
+    return {
+      isDuplicate: true,
+      existingCustomer: emailMatch,
+      duplicateReason: 'Email address already exists'
+    }
+  }
+
+  // Check for phone number match
+  const phoneMatch = await prisma.sale.findFirst({
+    where: {
+      OR: [
+        { phoneNumber: phoneNumber },
+        { phoneNumber: normalizedPhone },
+        { phoneNumber: { contains: normalizedPhone.slice(-10) } }, // Last 10 digits for UK numbers
+      ]
+    },
+    select: {
+      id: true,
+      customerFirstName: true,
+      customerLastName: true,
+      email: true,
+      phoneNumber: true,
+      createdAt: true
+    }
+  })
+
+  if (phoneMatch) {
+    return {
+      isDuplicate: true,
+      existingCustomer: phoneMatch,
+      duplicateReason: 'Phone number already exists'
+    }
+  }
+
+  // Check for name + similar contact info combination
+  const nameMatch = await prisma.sale.findFirst({
+    where: {
+      AND: [
+        {
+          customerFirstName: {
+            equals: customerFirstName,
+            mode: 'insensitive'
+          }
+        },
+        {
+          customerLastName: {
+            equals: customerLastName,
+            mode: 'insensitive'
+          }
+        }
+      ]
+    },
+    select: {
+      id: true,
+      customerFirstName: true,
+      customerLastName: true,
+      email: true,
+      phoneNumber: true,
+      createdAt: true
+    }
+  })
+
+  if (nameMatch) {
+    // Additional check: if names match and emails/phones are similar
+    const emailSimilar = nameMatch.email.toLowerCase().includes(email.split('@')[0].toLowerCase()) ||
+                        email.toLowerCase().includes(nameMatch.email.split('@')[0].toLowerCase())
+    
+    if (emailSimilar) {
+      return {
+        isDuplicate: true,
+        existingCustomer: nameMatch,
+        duplicateReason: 'Same name with similar email address'
+      }
+    }
+  }
+
+  return {
+    isDuplicate: false
+  }
+}
 
 interface ImportSaleData {
   // Customer information
@@ -57,28 +186,63 @@ interface ImportSaleData {
   appliance5?: string
   appliance5Cost?: number
   appliance5CoverLimit?: number
+  appliance6?: string
+  appliance6Cost?: number
+  appliance6CoverLimit?: number
+  appliance7?: string
+  appliance7Cost?: number
+  appliance7CoverLimit?: number
+  appliance8?: string
+  appliance8Cost?: number
+  appliance8CoverLimit?: number
+  appliance9?: string
+  appliance9Cost?: number
+  appliance9CoverLimit?: number
+  appliance10?: string
+  appliance10Cost?: number
+  appliance10CoverLimit?: number
 }
 
-export async function POST(request: NextRequest) {
+async function handleImport(request: NextRequest, context: any) {
+  const securityContext = createSecurityContext(request)
+  
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Check authentication (already handled by withSecurity)
+    const { user } = context
+    
+    logSecurityEvent('IMPORT_ATTEMPT', securityContext, { 
+      userId: user.id,
+      userRole: user.role 
+    })
+
+    // Secure file upload handling
+    const uploadResult = await handleSecureUpload(
+      request, 
+      10 * 1024 * 1024, // 10MB max
+      ['text/csv', 'application/json']
+    )
+    
+    if (!uploadResult.isValid) {
+      logSecurityEvent('IMPORT_INVALID_FILE', securityContext, { 
+        error: uploadResult.error,
+        userId: user.id
+      })
+      return NextResponse.json({ 
+        success: false,
+        error: uploadResult.error 
+      }, { status: 400 })
     }
 
-    // Check if user is admin
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
+    const file = uploadResult.file
     const formData = await request.formData()
-    const file = formData.get('file') as File
-    const format = formData.get('format') as string // 'csv' or 'json'
+    const format = formData.get('format') as string
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
-    }
+    logSecurityEvent('IMPORT_FILE_ACCEPTED', securityContext, {
+      fileName: file.name,
+      fileSize: file.size,
+      format: format,
+      userId: user.id
+    })
 
     const fileContent = await file.text()
     let salesData: ImportSaleData[] = []
@@ -92,6 +256,10 @@ export async function POST(request: NextRequest) {
       })
 
       if (parseResult.errors.length > 0) {
+        logSecurityEvent('IMPORT_CSV_ERROR', securityContext, { 
+          errors: parseResult.errors,
+          userId: user.id
+        })
         return NextResponse.json({ 
           error: 'CSV parsing error', 
           details: parseResult.errors 
@@ -106,6 +274,10 @@ export async function POST(request: NextRequest) {
         console.log('Parsed JSON data:', salesData.length, 'items')
         console.log('First item keys:', Object.keys(salesData[0] || {}))
       } catch (error) {
+        logSecurityEvent('IMPORT_JSON_ERROR', securityContext, { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          userId: user.id
+        })
         return NextResponse.json({ 
           success: false,
           error: 'Invalid JSON format',
@@ -153,7 +325,7 @@ export async function POST(request: NextRequest) {
           appliances.push(...saleData.appliances)
         } else {
           // Check individual appliance fields (for CSV compatibility)
-          for (let j = 1; j <= 5; j++) {
+          for (let j = 1; j <= 10; j++) {
             const applianceField = saleData[`appliance${j}` as keyof ImportSaleData] as string
             const costField = saleData[`appliance${j}Cost` as keyof ImportSaleData] as number
             const coverLimitField = saleData[`appliance${j}CoverLimit` as keyof ImportSaleData] as number
@@ -189,7 +361,7 @@ export async function POST(request: NextRequest) {
           boilerCoverSelected: Boolean(saleData.boilerCoverSelected) || Boolean(saleData.boilerPriceSelected),
           boilerPriceSelected: saleData.boilerPriceSelected ? Number(saleData.boilerPriceSelected) : null,
           totalPlanCost: Number(saleData.totalPlanCost),
-          createdById: session.user.id,
+          createdById: user.id,
           appliances: appliances
         }
 
@@ -212,11 +384,33 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Save to database
+    // Save to database with duplicate checking
     const results = []
+    const duplicates = []
     
     for (const saleData of processedSales) {
       try {
+        // Check for duplicates before creating
+        const duplicateCheck = await checkForDuplicate({
+          customerFirstName: saleData.customerFirstName,
+          customerLastName: saleData.customerLastName,
+          email: saleData.email,
+          phoneNumber: saleData.phoneNumber
+        })
+
+        if (duplicateCheck.isDuplicate) {
+          duplicates.push({
+            customer: `${saleData.customerFirstName} ${saleData.customerLastName}`,
+            email: saleData.email,
+            phone: saleData.phoneNumber,
+            reason: duplicateCheck.duplicateReason,
+            existingCustomer: duplicateCheck.existingCustomer
+          })
+          console.log(`Skipping duplicate customer: ${saleData.customerFirstName} ${saleData.customerLastName} - ${duplicateCheck.duplicateReason}`)
+          continue
+        }
+
+        // Create sale if not duplicate
         const sale = await prisma.sale.create({
           data: {
             ...saleData,
@@ -238,15 +432,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    logSecurityEvent('IMPORT_SUCCESS', securityContext, {
+      imported: results.length,
+      total: salesData.length,
+      duplicatesSkipped: duplicates.length,
+      userId: user.id
+    })
+
     return NextResponse.json({
       success: true,
       imported: results.length,
       total: salesData.length,
+      skipped: duplicates.length,
+      duplicates: duplicates.length > 0 ? duplicates : undefined,
       errors: errors.length > 0 ? errors : undefined,
-      data: results
+      data: results,
+      summary: {
+        totalProcessed: salesData.length,
+        imported: results.length,
+        duplicatesSkipped: duplicates.length,
+        errors: errors.length
+      }
     })
 
   } catch (error) {
+    logSecurityEvent('IMPORT_ERROR', securityContext, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: context?.user?.id
+    })
     console.error('Import error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -254,3 +467,15 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Secure API endpoint with authentication and rate limiting
+export const POST = withSecurity(handleImport, {
+  requireAuth: true,
+  requireAdmin: true,
+  rateLimit: {
+    requests: 10,
+    windowMs: 60 * 60 * 1000 // 10 imports per hour
+  },
+  validateInput: true,
+  logAccess: true
+})

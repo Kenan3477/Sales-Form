@@ -26,7 +26,7 @@
       {
         "appliance": "Refrigerator",
         "cost": 10.00,
-        "coverLimit": 400
+        "coverLimit": 700
       }
     ],
     "notes": "Test import customer"
@@ -52,7 +52,7 @@
       {
         "appliance": "Dishwasher",
         "cost": 15.00,
-        "coverLimit": 350
+        "coverLimit": 500
       }
     ],
     "notes": "Another test customer"
