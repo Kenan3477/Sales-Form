@@ -2,7 +2,31 @@
 
 A comprehensive web application for sales agents to submit customer sales and for admins to manage submissions with configurable mandatory fields and CSV export capabilities.
 
-*Last updated: January 16, 2026 - v0.1.4 with Complete Agent Management and Enhanced Features*
+*Last updated: January 17, 2026 - v1.1.3 with User Management and Customer Deduplication Systems*
+
+## 🚀 Latest Version Features
+
+### **User Management System** ✨
+- **Admin User Creation**: Create new admin and agent accounts
+- **Role Management**: Edit user roles and permissions
+- **User Editing**: Update email, passwords, and user details
+- **Security Protection**: Cannot delete users with sales or self-delete
+- **Comprehensive UI**: Full admin interface for user management
+
+### **Customer Deduplication System** 🛡️
+- **Real-time Duplicate Detection**: Live checking as users type customer info
+- **Confidence-based Warnings**: HIGH/MEDIUM/LOW confidence duplicate alerts
+- **Visual Feedback**: Color-coded warnings with existing customer details
+- **Import Protection**: Automatic duplicate checking during CSV/JSON imports
+- **Smart Matching**: Email, phone, and name-based duplicate detection
+- **Override System**: Allow proceeding with duplicates when necessary
+
+### **Enhanced Security Infrastructure** 🔒
+- **Enterprise Rate Limiting**: Redis-based production rate limiting
+- **Comprehensive Logging**: Security event tracking for audit trails
+- **Input Validation**: Advanced Zod schema validation throughout
+- **Attack Prevention**: Protection against common security threats
+- **API Security**: Secure endpoints with authentication and validation
 
 ## Features
 
