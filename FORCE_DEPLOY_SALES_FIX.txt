@@ -1,0 +1,17 @@
+VERCEL FORCE DEPLOYMENT - SALES EDITING 500 ERROR FIX
+=======================================================
+
+Deployment Date: January 18, 2026
+Deployment Time: 19:45 UTC
+Commit Hash: 01f3fd4
+
+CRITICAL FIX DEPLOYED:
+- Sales editing 500 error resolved
+- Enhanced data validation and error handling
+- Improved appliance data structure for Prisma
+- Payment field fallbacks implemented
+- Better error messages and logging
+
+This deployment fixes the critical issue where agents couldn't save their edited sales due to a 500 server error.
+
+Force deployment trigger: 2026-01-18T19:45:00Z
