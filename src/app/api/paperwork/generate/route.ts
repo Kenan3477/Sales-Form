@@ -149,12 +149,26 @@ export async function POST(request: NextRequest) {
       type: template.templateType
     });
 
-    // Generate the document using enhanced service
+    // Generate the document using database template or enhanced service as fallback
     console.log('📝 Generating document with template data...');
     console.log('🧪 Template data being used:', JSON.stringify(templateData, null, 2));
     
-    // For now, use the hardcoded template while we ensure the database template matches
-    const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+    let result;
+    
+    if (template.htmlContent && template.htmlContent.length > 100) {
+      console.log('📄 Using database template content');
+      // Use database template with simple variable replacement
+      result = template.htmlContent.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+        const cleanKey = key.trim();
+        const value = (templateData as any)[cleanKey];
+        return value !== undefined ? String(value) : match;
+      });
+    } else {
+      console.log('📄 Falling back to Enhanced Template Service');
+      // Fallback to Enhanced Template Service
+      result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+    }
+    
     console.log('✅ Document generated, length:', result.length);
     console.log('📄 Document preview (first 500 chars):', result.substring(0, 500));
     console.log('📄 Document contains Flash Team:', result.includes('Flash Team'));
