@@ -3,21 +3,24 @@ import React, { useState } from 'react';
 interface TemplateEditorProps {
   templateId?: string;
   templateName: string;
+  templateDescription?: string;
   templateType: string;
   currentContent: string;
-  onSave: (name: string, content: string) => Promise<void>;
+  onSave: (name: string, content: string, description?: string) => Promise<void>;
   onCancel: () => void;
 }
 
 export default function TemplateEditor({
   templateId,
   templateName,
+  templateDescription = '',
   templateType,
   currentContent,
   onSave,
   onCancel
 }: TemplateEditorProps) {
   const [name, setName] = useState(templateName);
+  const [description, setDescription] = useState(templateDescription);
   const [content, setContent] = useState(currentContent);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -63,7 +66,7 @@ export default function TemplateEditor({
 
     setSaving(true);
     try {
-      await onSave(name, content);
+      await onSave(name, content, description);
     } finally {
       setSaving(false);
     }
@@ -169,6 +172,17 @@ export default function TemplateEditor({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter template name"
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="template-description">Description (Optional)</label>
+              <input
+                id="template-description"
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of the template"
                 className="form-input"
               />
             </div>
