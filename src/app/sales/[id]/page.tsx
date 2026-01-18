@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { formatCurrency } from '@/lib/schemas'
+import { formatCurrency, APPLIANCE_OPTIONS, BOILER_OPTIONS, TITLE_OPTIONS } from '@/lib/schemas'
 
 interface Sale {
   id: string
@@ -138,6 +138,60 @@ export default function AgentSaleDetailPage() {
       [field]: value
     }))
   }
+
+  const handleApplianceChange = (index: number, field: string, value: any) => {
+    setEditForm(prev => ({
+      ...prev,
+      appliances: prev.appliances?.map((appliance, i) => 
+        i === index ? { ...appliance, [field]: value } : appliance
+      ) || []
+    }))
+  }
+
+  const addAppliance = () => {
+    setEditForm(prev => ({
+      ...prev,
+      appliances: [
+        ...(prev.appliances || []),
+        {
+          id: `new-${Date.now()}`,
+          appliance: '',
+          otherText: '',
+          coverLimit: 500,
+          cost: 0
+        }
+      ]
+    }))
+  }
+
+  const removeAppliance = (index: number) => {
+    setEditForm(prev => ({
+      ...prev,
+      appliances: prev.appliances?.filter((_, i) => i !== index) || []
+    }))
+  }
+
+  const calculateTotalCost = () => {
+    let total = 0
+    if (editForm.appliances) {
+      total += editForm.appliances.reduce((sum, appliance) => sum + (appliance.cost || 0), 0)
+    }
+    if (editForm.boilerCoverSelected && editForm.boilerPriceSelected) {
+      total += editForm.boilerPriceSelected
+    }
+    return total
+  }
+
+  // Update total cost when appliances or boiler selection changes
+  useEffect(() => {
+    if (isEditing) {
+      const newTotal = calculateTotalCost()
+      setEditForm(prev => ({
+        ...prev,
+        totalPlanCost: newTotal
+      }))
+    }
+  }, [editForm.appliances, editForm.boilerCoverSelected, editForm.boilerPriceSelected, isEditing])
 
   if (status === 'loading' || loading) {
     return (
@@ -381,6 +435,58 @@ export default function AgentSaleDetailPage() {
                       )}
                     </dd>
                   </div>
+                  <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Mailing Address</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={editForm.mailingStreet || ''}
+                            onChange={(e) => handleInputChange('mailingStreet', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Street address"
+                          />
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <input
+                              type="text"
+                              value={editForm.mailingCity || ''}
+                              onChange={(e) => handleInputChange('mailingCity', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="City"
+                            />
+                            <input
+                              type="text"
+                              value={editForm.mailingProvince || ''}
+                              onChange={(e) => handleInputChange('mailingProvince', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Province"
+                            />
+                            <input
+                              type="text"
+                              value={editForm.mailingPostalCode || ''}
+                              onChange={(e) => handleInputChange('mailingPostalCode', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Postal Code"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          {(sale.mailingStreet || sale.mailingCity || sale.mailingProvince || sale.mailingPostalCode) ? (
+                            <div className="space-y-1">
+                              {sale.mailingStreet && <div>{sale.mailingStreet}</div>}
+                              <div>
+                                {[sale.mailingCity, sale.mailingProvince, sale.mailingPostalCode].filter(Boolean).join(', ')}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">No address provided</span>
+                          )}
+                        </div>
+                      )}
+                    </dd>
+                  </div>
                 </dl>
               </div>
             </div>
@@ -427,21 +533,137 @@ export default function AgentSaleDetailPage() {
               </div>
               <div className="border-t border-gray-200">
                 <dl className="sm:divide-y sm:divide-gray-200">
+                  {/* Appliance Cover Section */}
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Appliance Cover</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                      {sale.applianceCoverSelected ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✓ Selected
-                        </span>
+                      {isEditing ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center">
+                            <input
+                              id="applianceCover"
+                              type="checkbox"
+                              checked={editForm.applianceCoverSelected || false}
+                              onChange={(e) => handleInputChange('applianceCoverSelected', e.target.checked)}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="applianceCover" className="ml-2 block text-sm text-gray-900">
+                              Include Appliance Cover
+                            </label>
+                          </div>
+                          
+                          {editForm.applianceCoverSelected && (
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-sm font-medium text-gray-900">Appliances</h4>
+                                <button
+                                  type="button"
+                                  onClick={addAppliance}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-xs font-medium"
+                                >
+                                  + Add Appliance
+                                </button>
+                              </div>
+                              
+                              {editForm.appliances && editForm.appliances.map((appliance, index) => (
+                                <div key={index} className="border rounded-lg p-3 bg-gray-50 space-y-3">
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                          Appliance Type
+                                        </label>
+                                        <select
+                                          value={appliance.appliance}
+                                          onChange={(e) => handleApplianceChange(index, 'appliance', e.target.value)}
+                                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                          <option value="">Select appliance...</option>
+                                          {APPLIANCE_OPTIONS.map(option => (
+                                            <option key={option} value={option}>{option}</option>
+                                          ))}
+                                          <option value="Other">Other</option>
+                                        </select>
+                                      </div>
+                                      
+                                      {appliance.appliance === 'Other' && (
+                                        <div>
+                                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            Other Description
+                                          </label>
+                                          <input
+                                            type="text"
+                                            value={appliance.otherText || ''}
+                                            onChange={(e) => handleApplianceChange(index, 'otherText', e.target.value)}
+                                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Describe the appliance"
+                                          />
+                                        </div>
+                                      )}
+                                      
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                          Cover Limit
+                                        </label>
+                                        <select
+                                          value={appliance.coverLimit}
+                                          onChange={(e) => handleApplianceChange(index, 'coverLimit', parseInt(e.target.value))}
+                                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                          <option value={500}>£500</option>
+                                          <option value={600}>£600</option>
+                                          <option value={700}>£700</option>
+                                          <option value={800}>£800</option>
+                                        </select>
+                                      </div>
+                                      
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                          Cost (monthly)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={appliance.cost}
+                                          onChange={(e) => handleApplianceChange(index, 'cost', parseFloat(e.target.value) || 0)}
+                                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                      </div>
+                                    </div>
+                                    
+                                    <button
+                                      type="button"
+                                      onClick={() => removeAppliance(index)}
+                                      className="ml-2 text-red-600 hover:text-red-700"
+                                      title="Remove appliance"
+                                    >
+                                      ✖
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          Not Selected
-                        </span>
+                        <div>
+                          {sale.applianceCoverSelected ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              ✓ Selected
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Not Selected
+                            </span>
+                          )}
+                        </div>
                       )}
                     </dd>
                   </div>
-                  {sale.applianceCoverSelected && sale.appliances.length > 0 && (
+
+                  {/* Show appliances in view mode */}
+                  {!isEditing && sale.applianceCoverSelected && sale.appliances.length > 0 && (
                     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                       <dt className="text-sm font-medium text-gray-500">Appliances</dt>
                       <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
@@ -470,24 +692,76 @@ export default function AgentSaleDetailPage() {
                       </dd>
                     </div>
                   )}
+
+                  {/* Boiler Cover Section */}
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Boiler Cover</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                      {sale.boilerCoverSelected ? (
-                        <div className="space-y-1">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            ✓ Selected
-                          </span>
-                          {sale.boilerPriceSelected && (
-                            <div className="text-sm font-medium">
-                              {formatCurrency(sale.boilerPriceSelected)}/month
+                      {isEditing ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center">
+                            <input
+                              id="boilerCover"
+                              type="checkbox"
+                              checked={editForm.boilerCoverSelected || false}
+                              onChange={(e) => {
+                                handleInputChange('boilerCoverSelected', e.target.checked)
+                                if (!e.target.checked) {
+                                  handleInputChange('boilerPriceSelected', null)
+                                }
+                              }}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="boilerCover" className="ml-2 block text-sm text-gray-900">
+                              Include Boiler Cover
+                            </label>
+                          </div>
+                          
+                          {editForm.boilerCoverSelected && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Boiler Cover Price
+                              </label>
+                              <div className="space-y-2">
+                                {BOILER_OPTIONS.map(option => (
+                                  <div key={option.value} className="flex items-center">
+                                    <input
+                                      id={`boiler-${option.value}`}
+                                      type="radio"
+                                      name="boilerPrice"
+                                      value={option.value}
+                                      checked={editForm.boilerPriceSelected === option.value}
+                                      onChange={(e) => handleInputChange('boilerPriceSelected', parseFloat(e.target.value))}
+                                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                    />
+                                    <label htmlFor={`boiler-${option.value}`} className="ml-2 block text-sm text-gray-900">
+                                      {option.label}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          Not Selected
-                        </span>
+                        <div>
+                          {sale.boilerCoverSelected ? (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ✓ Selected
+                              </span>
+                              {sale.boilerPriceSelected && (
+                                <div className="text-sm font-medium">
+                                  {formatCurrency(sale.boilerPriceSelected)}/month
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Not Selected
+                            </span>
+                          )}
+                        </div>
                       )}
                     </dd>
                   </div>
