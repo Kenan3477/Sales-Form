@@ -151,9 +151,14 @@ export async function POST(request: NextRequest) {
 
     // Generate the document using enhanced service
     console.log('📝 Generating document with template data...');
+    console.log('🧪 Template data being used:', JSON.stringify(templateData, null, 2));
+    
     // For now, use the hardcoded template while we ensure the database template matches
     const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
     console.log('✅ Document generated, length:', result.length);
+    console.log('📄 Document preview (first 500 chars):', result.substring(0, 500));
+    console.log('📄 Document contains Flash Team:', result.includes('Flash Team'));
+    console.log('📄 Document contains CSS:', result.includes('linear-gradient'));
 
     // Generate filename 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
