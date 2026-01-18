@@ -190,6 +190,7 @@ export async function POST(request: NextRequest) {
             hasBoilerCover: templateData.hasBoilerCover
           });        // Generate document using enhanced service
         console.log(`📄 Generating document using Enhanced Template Service...`);
+        console.log('🧪 Template data for ${sale.customerFirstName} ${sale.customerLastName}:', JSON.stringify(templateData, null, 2));
         let documentContent;
         
         try {
@@ -197,6 +198,9 @@ export async function POST(request: NextRequest) {
           const templateIdForGeneration = isEnhancedServiceTemplate ? templateId : 'welcome-letter';
           documentContent = await enhancedTemplateService.generateDocument(templateIdForGeneration, templateData);
           console.log(`✅ Generated document content length: ${documentContent.length}`);
+          console.log('📄 Document preview (first 300 chars):', documentContent.substring(0, 300));
+          console.log('📄 Document contains Flash Team:', documentContent.includes('Flash Team'));
+          console.log('📄 Document contains CSS:', documentContent.includes('linear-gradient'));
           
           if (!documentContent || documentContent.length < 100) {
             throw new Error(`Generated content is too short (${documentContent?.length || 0} chars) - likely generation failed`);
