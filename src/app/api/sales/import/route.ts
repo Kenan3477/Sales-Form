@@ -219,7 +219,8 @@ async function handleImport(request: NextRequest, context: any) {
     const uploadResult = await handleSecureUpload(
       request, 
       10 * 1024 * 1024, // 10MB max
-      ['text/csv', 'application/json']
+      ['text/csv', 'application/json'],
+      true // Skip content scanning for data files
     )
     
     if (!uploadResult.isValid) {
