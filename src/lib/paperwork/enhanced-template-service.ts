@@ -337,12 +337,12 @@ export class EnhancedTemplateService {
       <div class="card">
         <div class="card-header">What Your Plan Provides</div>
         <div class="body-pad">
-          <p><strong>Annual Cost:</strong> £{{totalCost}}</p>
-          {{#if monthlyCost}}<p><strong>Monthly Payment:</strong> £{{monthlyCost}}</p>{{/if}}
+          <p><strong>Monthly Payment:</strong> £{{monthlyCost}}</p>
+          {{#if appliancesCount}}<p><strong>Appliances Covered:</strong> {{appliancesCount}}</p>{{/if}}
 
           <ul>
-            {{#if hasApplianceCover}}<li>Access to qualified engineers for covered appliance breakdowns</li>{{/if}}
-            {{#if hasBoilerCover}}<li>Access to qualified engineers for covered boiler and central heating breakdowns</li>{{/if}}
+            <li>Access to qualified engineers for covered appliance breakdowns</li>
+            <li>Access to qualified engineers for covered boiler and central heating breakdowns</li>
             <li>Repairs to covered appliances or systems, where repair is possible</li>
             <li>
               If a repair is not economically viable, we may, at our discretion,

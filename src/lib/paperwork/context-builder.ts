@@ -4,9 +4,8 @@ import { SaleWithRelations, TemplateContext, CustomerContext, AddressContext, Ag
  * Builds template context from sale data for document generation
  */
 export class ContextBuilder {
-  
   /**
-   * Build complete template context from sale data
+   * Build template context for a sale
    */
   static buildTemplateContext(
     sale: SaleWithRelations, 
@@ -16,6 +15,7 @@ export class ContextBuilder {
       customer: this.buildCustomerContext(sale),
       agreement: this.buildAgreementContext(sale),
       appliances: this.buildApplianceContexts(sale),
+      appliancesCount: sale.appliances.length,
       metadata: this.buildMetadataContext(sale, documentId),
     };
   }
