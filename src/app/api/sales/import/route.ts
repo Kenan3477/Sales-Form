@@ -260,8 +260,10 @@ async function handleImport(request: NextRequest, context: any) {
       'Last Name': 'customerLastName', 
       'Title': 'title',
       'Phone': 'phoneNumber',
+      'Plain Phone': 'phoneNumber',
       'Email': 'email',
       'Mailing Street': 'mailingStreet',
+      'First Line Add': 'mailingStreet',
       'Mailing City': 'mailingCity',
       'Mailing Province': 'mailingProvince',
       'Mailing Postal Code': 'mailingPostalCode',
@@ -280,7 +282,24 @@ async function handleImport(request: NextRequest, context: any) {
       'Appliance 4 Value': 'appliance4Cost',
       'Appliance 5 Type': 'appliance5',
       'Appliance 5 Value': 'appliance5Cost',
-      'Call Notes': 'notes'
+      'Appliance 6 Type': 'appliance6',
+      'Appliance 6 Value': 'appliance6Cost',
+      'Appliance 7 Type': 'appliance7',
+      'Appliance 7 Value': 'appliance7Cost',
+      'Appliance 8 Type': 'appliance8',
+      'Appliance 8 Value': 'appliance8Cost',
+      'Appliance 9 Type': 'appliance9',
+      'Appliance 9 Value': 'appliance9Cost',
+      'Appliance 10 Type': 'appliance10',
+      'Appliance 10 Value': 'appliance10Cost',
+      'Call Notes': 'notes',
+      'Description': 'notes',
+      'Customers Name': '_ignore', // Calculated field
+      'Lead Source': '_ignore',
+      'Payment Method': '_ignore',
+      'Status': '_ignore',
+      'Brand': '_ignore',
+      'Processor': '_ignore'
     }
 
     // Function to normalize data from CRM export format to import format
@@ -289,25 +308,30 @@ async function handleImport(request: NextRequest, context: any) {
       
       for (const [key, value] of Object.entries(row)) {
         const mappedKey = fieldMapping[key as string] || key
+        
+        // Skip fields marked to ignore
+        if (mappedKey === '_ignore') {
+          continue
+        }
+        
+        // Skip empty values
+        if (value === '' || value === null || value === undefined) {
+          continue
+        }
+        
         normalized[mappedKey] = value
       }
       
-      // Handle special cases
-      if (normalized['Customer Premium']) {
-        // Remove currency symbol and convert to number
-        const premium = normalized['Customer Premium']
-        if (typeof premium === 'string') {
-          normalized.totalPlanCost = parseFloat(premium.replace(/[£$,]/g, '')) || 0
+      // Handle special cases for currency fields
+      const currencyFields = ['Customer Premium', 'DD Amount', 'Single App Price (Internal)', 'Boiler Package Price (Internal)']
+      for (const currencyField of currencyFields) {
+        if (normalized[currencyField]) {
+          const premium = normalized[currencyField]
+          if (typeof premium === 'string') {
+            normalized.totalPlanCost = parseFloat(premium.replace(/[£$,]/g, '')) || 0
+          }
+          delete normalized[currencyField]
         }
-        delete normalized['Customer Premium']
-      }
-      
-      if (normalized['DD Amount']) {
-        const ddAmount = normalized['DD Amount']
-        if (typeof ddAmount === 'string') {
-          normalized.totalPlanCost = parseFloat(ddAmount.replace(/[£$,]/g, '')) || 0
-        }
-        delete normalized['DD Amount']
       }
       
       // Set account name from customer name if missing
@@ -322,6 +346,27 @@ async function handleImport(request: NextRequest, context: any) {
       
       if (!normalized.boilerCoverSelected && normalized.boilerPriceSelected) {
         normalized.boilerCoverSelected = true
+      }
+      
+      // Add cover limits for appliances (default to common values if missing)
+      for (let i = 1; i <= 10; i++) {
+        const applianceField = `appliance${i}`
+        const costField = `appliance${i}Cost`
+        const coverLimitField = `appliance${i}CoverLimit`
+        
+        if (normalized[applianceField] && normalized[costField] && !normalized[coverLimitField]) {
+          // Set default cover limits based on appliance type
+          const applianceType = normalized[applianceField].toLowerCase()
+          if (applianceType.includes('washing machine') || applianceType.includes('dishwasher')) {
+            normalized[coverLimitField] = 600
+          } else if (applianceType.includes('refrigerator') || applianceType.includes('fridge')) {
+            normalized[coverLimitField] = 400
+          } else if (applianceType.includes('oven') || applianceType.includes('cooker')) {
+            normalized[coverLimitField] = 800
+          } else {
+            normalized[coverLimitField] = 500 // Default
+          }
+        }
       }
       
       return normalized
@@ -580,6 +625,6 @@ export const POST = withSecurity(handleImport, {
     requests: 10,
     windowMs: 60 * 60 * 1000 // 10 imports per hour
   },
-  validateInput: true,
+  validateInput: false, // Disable for file uploads - we handle validation internally
   logAccess: true
 })
