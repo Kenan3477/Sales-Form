@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
     const agent = searchParams.get('agent')
+    const smsStatus = searchParams.get('smsStatus')
 
     const whereClause: any = {}
 
@@ -92,27 +93,43 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Apply SMS status filtering if specified
+    let filteredSales = processedSales
+    if (smsStatus) {
+      if (smsStatus === 'SENT') {
+        filteredSales = processedSales.filter(sale => sale.smsStatus === 'SENT')
+      } else if (smsStatus === 'NOT_SENT') {
+        filteredSales = processedSales.filter(sale => sale.smsStatus === 'NOT_SENT')
+      } else if (smsStatus === 'FAILED') {
+        filteredSales = processedSales.filter(sale => sale.smsStatus === 'FAILED')
+      } else if (smsStatus === 'SKIPPED') {
+        filteredSales = processedSales.filter(sale => sale.smsStatus === 'SKIPPED')
+      } else if (smsStatus === 'SENDING') {
+        filteredSales = processedSales.filter(sale => sale.smsStatus === 'SENDING')
+      }
+    }
+
     // Generate comprehensive phone number statistics
     const phoneStats = {
-      total: processedSales.length,
-      withPhoneNumbers: processedSales.filter(s => s.phoneNumber && s.phoneNumber.trim() !== '').length,
-      validNumbers: processedSales.filter(s => s.phoneAnalysis.type !== 'invalid').length,
-      mobileNumbers: processedSales.filter(s => s.phoneAnalysis.type === 'mobile').length,
-      landlineNumbers: processedSales.filter(s => s.phoneAnalysis.type === 'landline').length,
-      specialNumbers: processedSales.filter(s => s.phoneAnalysis.type === 'special').length,
-      invalidNumbers: processedSales.filter(s => s.phoneAnalysis.type === 'invalid').length,
-      smsCapable: processedSales.filter(s => s.canSendSms).length,
-      nonSmsCapable: processedSales.filter(s => !s.canSendSms).length,
+      total: filteredSales.length,
+      withPhoneNumbers: filteredSales.filter(s => s.phoneNumber && s.phoneNumber.trim() !== '').length,
+      validNumbers: filteredSales.filter(s => s.phoneAnalysis.type !== 'invalid').length,
+      mobileNumbers: filteredSales.filter(s => s.phoneAnalysis.type === 'mobile').length,
+      landlineNumbers: filteredSales.filter(s => s.phoneAnalysis.type === 'landline').length,
+      specialNumbers: filteredSales.filter(s => s.phoneAnalysis.type === 'special').length,
+      invalidNumbers: filteredSales.filter(s => s.phoneAnalysis.type === 'invalid').length,
+      smsCapable: filteredSales.filter(s => s.canSendSms).length,
+      nonSmsCapable: filteredSales.filter(s => !s.canSendSms).length,
     }
 
     return NextResponse.json({
-      sales: processedSales,
+      sales: filteredSales,
       agents: agents.map(a => ({
         id: a.agentName || 'Unknown',
         email: a.agentName || 'Unknown',
       })),
       phoneStats,
-      smsCapableCustomers: processedSales.filter(sale => sale.canSendSms),
+      smsCapableCustomers: filteredSales.filter(sale => sale.canSendSms),
       summary: {
         totalCustomers: phoneStats.total,
         phoneNumberBreakdown: {
