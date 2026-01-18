@@ -90,7 +90,7 @@ export default function AdminPaperworkPage() {
         const salesData = await salesResponse.json();
         
         setTemplates(templatesData.templates || []);
-        setSales(salesData.sales || []);
+        setSales(Array.isArray(salesData) ? salesData : salesData.sales || []);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
