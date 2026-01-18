@@ -206,22 +206,13 @@ export async function POST(request: NextRequest) {
           throw new Error(`Template generation failed: ${enhancedServiceError instanceof Error ? enhancedServiceError.message : 'Unknown template error'}`);
         }
         
-        // Generate filename and file path
+        // Generate filename and metadata
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const fileName = `${template.templateType}-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.html`;
-        const filePath = `storage/documents/${fileName}`;
-
-        // Save the document content to file
-        const fs = await import('fs/promises');
-        const path = await import('path');
         
-        // Ensure storage directory exists
-        const fullStoragePath = path.join(process.cwd(), 'storage/documents');
-        await fs.mkdir(fullStoragePath, { recursive: true });
-        
-        // Write the document content to file
-        const fullFilePath = path.join(process.cwd(), filePath);
-        await fs.writeFile(fullFilePath, documentContent, 'utf8');
+        // Note: On Vercel/serverless platforms, we can't write to the local file system
+        // So we store the document content directly in the database instead
+        console.log(`📄 Storing document in database (serverless environment)`);
 
         // Create GeneratedDocument record in database
         // For EnhancedTemplateService templates, we need to find or create a database template
@@ -259,14 +250,16 @@ export async function POST(request: NextRequest) {
             saleId: sale.id,
             templateId: dbTemplate.id,
             filename: fileName,
-            filePath: filePath,
+            filePath: `virtual://generated-documents/${fileName}`, // Virtual path since we can't write to filesystem
             fileSize: Buffer.byteLength(documentContent, 'utf8'),
             mimeType: 'text/html',
             metadata: {
               templateType: template.templateType,
               customerName: templateData.customerName,
               generationMethod: isEnhancedServiceTemplate ? 'enhanced-template-service-bulk' : 'database-template-bulk',
-              originalTemplateId: templateId
+              originalTemplateId: templateId,
+              // Store the actual content in metadata since we can't write to filesystem
+              documentContent: documentContent
             }
           }
         });
