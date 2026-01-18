@@ -164,7 +164,8 @@ export function createApiResponse(data: any, status: number = 200): NextResponse
 export async function handleSecureUpload(
   req: NextRequest,
   maxSizeBytes: number = 10 * 1024 * 1024, // 10MB default
-  allowedTypes: string[] = ['text/csv', 'application/json']
+  allowedTypes: string[] = ['text/csv', 'application/json'],
+  skipContentScan: boolean = false // Skip malicious content detection for data files
 ): Promise<{ file: File; isValid: boolean; error?: string }> {
   try {
     const formData = await req.formData()
@@ -184,10 +185,13 @@ export async function handleSecureUpload(
       return { file, isValid: false, error: 'Invalid file type' }
     }
     
-    // Check file content for malicious patterns
-    const content = await file.text()
-    if (detectSQLInjection(content) || detectXSS(content)) {
-      return { file, isValid: false, error: 'Malicious content detected' }
+    // Only check file content for malicious patterns if not skipped
+    // Skip for data files like CSV which may contain legitimate SQL-like content
+    if (!skipContentScan) {
+      const content = await file.text()
+      if (detectSQLInjection(content) || detectXSS(content)) {
+        return { file, isValid: false, error: 'Malicious content detected' }
+      }
     }
     
     return { file, isValid: true }
