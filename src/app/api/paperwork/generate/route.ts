@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
 
     // Generate the document using enhanced service
     console.log('📝 Generating document with template data...');
+    // For now, use the hardcoded template while we ensure the database template matches
     const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
     console.log('✅ Document generated, length:', result.length);
 
