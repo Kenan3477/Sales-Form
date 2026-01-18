@@ -13,11 +13,16 @@ const generateDocumentSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  console.log('📝 Document generation request started');
+  
   try {
     // Rate limiting
     const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log('📝 Client IP:', clientIP);
+    
     const rateLimitCheck = await checkApiRateLimit(clientIP);
     if (!rateLimitCheck.success) {
+      console.log('❌ Rate limit exceeded');
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please try again later.' },
         { status: 429 }
@@ -27,18 +32,26 @@ export async function POST(request: NextRequest) {
     // Authentication
     const session = await getServerSession(authOptions);
     if (!session?.user) {
+      console.log('❌ No session or user found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    console.log('✅ User authenticated:', session.user.email);
 
     // Parse and validate request body
     const body = await request.json();
+    console.log('📝 Request body:', body);
+    
     const validatedData = generateDocumentSchema.parse(body);
+    console.log('✅ Request data validated:', validatedData);
 
     // Initialize enhanced template service
     const enhancedTemplateService = new EnhancedTemplateService();
+    console.log('✅ Enhanced template service initialized');
 
     // Load sale data for document generation
     const { prisma } = await import('@/lib/prisma');
+    console.log('📝 Loading sale data for ID:', validatedData.saleId);
+    
     const sale = await prisma.sale.findUnique({
       where: { id: validatedData.saleId },
       include: {
@@ -52,8 +65,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (!sale) {
+      console.log('❌ Sale not found for ID:', validatedData.saleId);
       return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
     }
+    
+    console.log('✅ Sale loaded:', {
+      id: sale.id,
+      customer: `${sale.customerFirstName} ${sale.customerLastName}`,
+      email: sale.email
+    });
 
     // Check user permissions (agents can only generate for their own sales)
     if (session.user.role === 'AGENT') {
@@ -98,6 +118,11 @@ export async function POST(request: NextRequest) {
     };
 
     // Find the template record
+    console.log('📝 Looking for template:', { 
+      templateType: validatedData.templateType, 
+      isActive: true 
+    });
+    
     const template = await prisma.documentTemplate.findFirst({
       where: {
         templateType: validatedData.templateType,
@@ -106,11 +131,28 @@ export async function POST(request: NextRequest) {
     });
 
     if (!template) {
+      console.log('❌ Template not found for type:', validatedData.templateType);
+      
+      // List available templates for debugging
+      const availableTemplates = await prisma.documentTemplate.findMany({
+        where: { isActive: true },
+        select: { templateType: true, name: true }
+      });
+      console.log('📋 Available templates:', availableTemplates);
+      
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     }
+    
+    console.log('✅ Template found:', {
+      id: template.id,
+      name: template.name,
+      type: template.templateType
+    });
 
     // Generate the document using enhanced service
+    console.log('📝 Generating document with template data...');
     const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+    console.log('✅ Document generated, length:', result.length);
 
     // Generate filename and file path
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -172,10 +214,12 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error) {
-    console.error('Document generation error:', error);
+    } catch (error) {
+    console.error('❌ Document generation error:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
     if (error instanceof z.ZodError) {
+      console.error('❌ Validation error details:', error.issues);
       return NextResponse.json(
         { 
           error: 'Invalid request data',
@@ -186,6 +230,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof Error) {
+      console.error('❌ Known error:', error.message);
       // Handle specific paperwork service errors
       if (error.message.includes('not found')) {
         return NextResponse.json({ error: error.message }, { status: 404 });
