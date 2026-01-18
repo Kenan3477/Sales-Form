@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PaperworkService } from '@/lib/paperwork';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 
 export async function GET(request: NextRequest) {
@@ -27,16 +26,12 @@ export async function GET(request: NextRequest) {
     const saleId = url.searchParams.get('saleId');
     const userId = session.user.role === 'AGENT' ? session.user.id : undefined;
 
-    // Initialize paperwork service and get documents
-    const paperworkService = new PaperworkService();
-    const documents = await paperworkService.getGeneratedDocuments({
-      saleId: saleId || undefined,
-      userId: userId
-    });
-
+    // Enhanced Template Service generates documents on-demand
+    // Documents are not stored in database for security and storage efficiency
     return NextResponse.json({
       success: true,
-      documents,
+      documents: [],
+      message: "Documents are generated on-demand using the Flash Team template. Use the Generate Documents tab to create new documents."
     });
 
   } catch (error) {

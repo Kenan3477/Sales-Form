@@ -86,7 +86,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      document: result,
+      document: {
+        id: `doc-${Date.now()}`,
+        content: result,
+        fileName: `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}.html`,
+        templateName: 'Flash Team Welcome Letter',
+        saleId: sale.id,
+        customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+        customerEmail: sale.email,
+        generatedAt: new Date().toISOString(),
+        downloadUrl: `/api/paperwork/download/${sale.id}`
+      }
     });
 
   } catch (error) {
