@@ -101,44 +101,65 @@ export async function POST(request: NextRequest) {
           
           console.log(`✅ Found template: ${template.name} (${template.templateType})`);
 
-        // Transform sale data for template
-        const templateData = {
-          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
-          email: sale.email,
-          phone: sale.phoneNumber,
-          address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
-          coverageStartDate: new Date().toLocaleDateString('en-GB'),
-          policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Format: TFT0123
-          totalCost: (sale.totalPlanCost * 12).toFixed(2), // Annual cost = monthly * 12
-          monthlyCost: sale.totalPlanCost.toFixed(2), // Monthly cost
-          hasApplianceCover: sale.applianceCoverSelected,
-          hasBoilerCover: sale.boilerCoverSelected,
-          appliances: sale.appliances.map(appliance => ({
-            name: appliance.appliance + (appliance.otherText ? ` (${appliance.otherText})` : ''),
-            coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
-            monthlyCost: `£${appliance.cost.toFixed(2)}`
-          })),
-          boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : null,
-          currentDate: new Date().toLocaleDateString('en-GB', { 
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          }),
-          // Add agreement structure for backward compatibility with existing template
-          agreement: {
-            coverage: {
-              hasBoilerCover: sale.boilerCoverSelected,
-              boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+          // Transform sale data for template
+          const templateData = {
+            customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+            email: sale.email,
+            phone: sale.phoneNumber,
+            address: `${sale.mailingStreet || ''}, ${sale.mailingCity || ''}, ${sale.mailingProvince || ''}, ${sale.mailingPostalCode || ''}`.replace(/^,\s*|,\s*$/g, ''), // Clean up empty address parts
+            coverageStartDate: new Date().toLocaleDateString('en-GB'),
+            policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Format: TFT0123
+            totalCost: (sale.totalPlanCost * 12).toFixed(2), // Annual cost = monthly * 12
+            monthlyCost: sale.totalPlanCost.toFixed(2), // Monthly cost
+            hasApplianceCover: sale.applianceCoverSelected,
+            hasBoilerCover: sale.boilerCoverSelected,
+            appliances: sale.appliances.map(appliance => ({
+              name: appliance.appliance + (appliance.otherText ? ` (${appliance.otherText})` : ''),
+              coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
+              monthlyCost: `£${appliance.cost.toFixed(2)}`
+            })),
+            boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : null,
+            currentDate: new Date().toLocaleDateString('en-GB', { 
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            }),
+            // Add agreement structure for backward compatibility with existing template
+            agreement: {
+              coverage: {
+                hasBoilerCover: sale.boilerCoverSelected,
+                boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+              }
+            },
+            metadata: {
+              agentName: sale.agentName || sale.createdBy?.email || 'Flash Team Support'
             }
-          },
-          metadata: {
-            agentName: sale.agentName || sale.createdBy?.email || 'Flash Team Support'
-          }
-        };
+          };
 
-        // Generate document using enhanced service (for now, always use welcome-letter regardless of template type)
-        const documentContent = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
-        console.log(`✅ Generated document content length: ${documentContent.length}`);
+          console.log(`📄 Template data prepared for ${sale.customerFirstName} ${sale.customerLastName}:`, {
+            customerName: templateData.customerName,
+            email: templateData.email,
+            phone: templateData.phone,
+            hasValidAddress: !!templateData.address && templateData.address.length > 5,
+            totalCost: templateData.totalCost,
+            monthlyCost: templateData.monthlyCost,
+            appliancesCount: templateData.appliances.length,
+            hasBoilerCover: templateData.hasBoilerCover
+          });        // Generate document using enhanced service (for now, always use welcome-letter regardless of template type)
+        console.log(`📄 Generating document using Enhanced Template Service...`);
+        let documentContent;
+        
+        try {
+          documentContent = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+          console.log(`✅ Generated document content length: ${documentContent.length}`);
+          
+          if (!documentContent || documentContent.length < 100) {
+            throw new Error(`Generated content is too short (${documentContent?.length || 0} chars) - likely generation failed`);
+          }
+        } catch (enhancedServiceError) {
+          console.error(`❌ Enhanced Template Service error:`, enhancedServiceError);
+          throw new Error(`Template generation failed: ${enhancedServiceError instanceof Error ? enhancedServiceError.message : 'Unknown template error'}`);
+        }
         
         // Generate filename and file path
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
