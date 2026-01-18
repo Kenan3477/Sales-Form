@@ -237,7 +237,7 @@ export default function NewSalePage() {
     
     // Check for high confidence duplicates before submission
     if (duplicateCheck?.isDuplicate && duplicateCheck.confidence === 'HIGH' && !showDuplicateForm) {
-      setError(`Cannot create sale: ${duplicateCheck.message}. Please review the existing customer or use different contact details.`)
+      setError(`Cannot create sale: ${duplicateCheck.reason}. Please review the existing customer or use different contact details.`)
       setLoading(false)
       return
     }
@@ -279,12 +279,29 @@ export default function NewSalePage() {
       if (response.ok) {
         const sale = await response.json()
         router.push(`/sales/success?id=${sale.id}`)
+      } else if (response.status === 409) {
+        // Handle duplicate detection
+        const errorData = await response.json()
+        if (errorData.isDuplicate && !showDuplicateForm) {
+          // Show duplicate warning and allow user to proceed
+          setDuplicateCheck({
+            isDuplicate: true,
+            customer: errorData.duplicateDetails,
+            reason: errorData.error,
+            confidence: errorData.confidence
+          })
+          setShowDuplicateForm(true)
+          setError('')
+          return
+        } else {
+          setError(errorData.error || 'Duplicate customer detected')
+        }
       } else {
         const errorData = await response.json()
         if (errorData.error && errorData.error.includes('Already A Sale')) {
           setError('Already A Sale - A sale with the same customer details, account number, phone number, and price already exists.')
         } else {
-          setError('Error creating sale. Please try again.')
+          setError(errorData.error || 'Error creating sale. Please try again.')
         }
       }
     } catch (error) {
@@ -541,7 +558,7 @@ export default function NewSalePage() {
                               ? 'text-yellow-700'
                               : 'text-blue-700'
                           }`}>
-                            <p>{duplicateCheck.message}</p>
+                            <p>{duplicateCheck.reason}</p>
                             {duplicateCheck.customer && (
                               <div className="mt-3 p-3 bg-white rounded border border-gray-200">
                                 <h4 className="font-medium text-gray-900">Existing Customer Details:</h4>
@@ -573,7 +590,10 @@ export default function NewSalePage() {
                               <div className="flex space-x-3">
                                 <button
                                   type="button"
-                                  onClick={() => setShowDuplicateForm(true)}
+                                  onClick={() => {
+                                    setShowDuplicateForm(true)
+                                    setDuplicateCheck(null)
+                                  }}
                                   className="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md font-medium"
                                 >
                                   Continue Anyway
