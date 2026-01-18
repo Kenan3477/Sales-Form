@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PaperworkService } from '@/lib/paperwork';
+import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
 
@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { saleIds, templateIds } = bulkGenerateSchema.parse(body);
 
-    // Initialize paperwork service
-    const paperworkService = new PaperworkService();
+    // Initialize enhanced template service
+    const enhancedTemplateService = new EnhancedTemplateService();
     
     // Track results
     const results: {
@@ -49,26 +49,77 @@ export async function POST(request: NextRequest) {
       documents: []
     };
 
-    // Generate documents for each sale-template combination
+    // Load database connection
+    const { prisma } = await import('@/lib/prisma');
+
+    // Generate documents for each sale (using Flash Team welcome letter template)
     for (const saleId of saleIds) {
-      for (const templateId of templateIds) {
-        try {
-          const document = await paperworkService.generateDocumentById(saleId, templateId);
-          results.documents.push(document);
-          results.generated++;
-        } catch (error) {
+      try {
+        // Load sale data
+        const sale = await prisma.sale.findUnique({
+          where: { id: saleId },
+          include: {
+            appliances: true,
+            createdBy: {
+              select: { email: true }
+            }
+          }
+        });
+
+        if (!sale) {
           results.failed++;
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          results.errors.push(`Sale ${saleId.slice(-6)}: ${errorMessage}`);
-          console.error(`Bulk generation error for sale ${saleId}, template ${templateId}:`, error);
+          results.errors.push(`Sale ${saleId.slice(-6)}: Sale not found`);
+          continue;
         }
+
+        // Transform sale data for template
+        const templateData = {
+          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+          email: sale.email,
+          phone: sale.phoneNumber,
+          address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+          coverageStartDate: new Date().toLocaleDateString('en-GB'),
+          policyNumber: `FT-2025-${sale.id.slice(-6)}`,
+          totalCost: sale.totalPlanCost.toString(),
+          monthlyCost: (sale.totalPlanCost / 12).toFixed(2),
+          hasApplianceCover: sale.applianceCoverSelected,
+          hasBoilerCover: sale.boilerCoverSelected,
+          currentDate: new Date().toLocaleDateString('en-GB', { 
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          })
+        };
+
+        // Generate document using enhanced service
+        const documentContent = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+        
+        const document = {
+          id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          content: documentContent,
+          fileName: `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}.html`,
+          templateName: 'Flash Team Welcome Letter',
+          saleId: sale.id,
+          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+          customerEmail: sale.email,
+          generatedAt: new Date().toISOString(),
+          downloadUrl: `/api/paperwork/download/${sale.id}`
+        };
+
+        results.documents.push(document);
+        results.generated++;
+      } catch (error) {
+        results.failed++;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push(`Sale ${saleId.slice(-6)}: ${errorMessage}`);
+        console.error(`Bulk generation error for sale ${saleId}:`, error);
       }
     }
 
     return NextResponse.json({
       success: true,
       ...results,
-      total: saleIds.length * templateIds.length
+      total: saleIds.length
     });
 
   } catch (error) {
