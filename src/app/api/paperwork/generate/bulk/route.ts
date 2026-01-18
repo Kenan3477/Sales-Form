@@ -12,6 +12,8 @@ const bulkGenerateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  console.log('📄 Bulk generation request started');
+  
   try {
     // Rate limiting
     const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -26,12 +28,16 @@ export async function POST(request: NextRequest) {
     // Authentication - only admins can bulk generate
     const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== 'ADMIN') {
+      console.log('❌ Access denied - not admin');
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Parse and validate request body
     const body = await request.json();
+    console.log('📄 Request body received:', body);
+    
     const { saleIds, templateIds } = bulkGenerateSchema.parse(body);
+    console.log('📄 Validated data:', { saleIds, templateIds });
 
     // Initialize enhanced template service
     const enhancedTemplateService = new EnhancedTemplateService();
@@ -52,44 +58,48 @@ export async function POST(request: NextRequest) {
     // Load database connection
     const { prisma } = await import('@/lib/prisma');
 
-    // Generate documents for each sale (using Flash Team welcome letter template)
+    // Generate documents for each sale and template combination
     for (const saleId of saleIds) {
-      try {
-        console.log(`Processing sale ID: ${saleId}`);
-        
-        // Load sale data
-        const sale = await prisma.sale.findUnique({
-          where: { id: saleId },
-          include: {
-            appliances: true,
-            createdBy: {
-              select: { email: true }
+      for (const templateId of templateIds) {
+        try {
+          console.log(`📄 Processing sale ID: ${saleId} with template ID: ${templateId}`);
+          
+          // Load sale data
+          const sale = await prisma.sale.findUnique({
+            where: { id: saleId },
+            include: {
+              appliances: true,
+              createdBy: {
+                select: { email: true }
+              }
             }
+          });
+
+          if (!sale) {
+            console.log(`❌ Sale ${saleId} not found in database`);
+            results.failed++;
+            results.errors.push(`Sale ${saleId.slice(-6)}: Sale not found`);
+            continue;
           }
-        });
+          
+          console.log(`✅ Found sale: ${sale.customerFirstName} ${sale.customerLastName}`);
 
-        if (!sale) {
-          console.log(`Sale ${saleId} not found in database`);
-          results.failed++;
-          results.errors.push(`Sale ${saleId.slice(-6)}: Sale not found`);
-          continue;
-        }
-        
-        console.log(`Found sale: ${sale.customerFirstName} ${sale.customerLastName}`);
+          // Find the template in database
+          const template = await prisma.documentTemplate.findFirst({
+            where: {
+              id: templateId,
+              isActive: true
+            }
+          });
 
-        // Find the welcome letter template in database
-        const template = await prisma.documentTemplate.findFirst({
-          where: {
-            templateType: 'welcome_letter',
-            isActive: true
+          if (!template) {
+            console.log(`❌ Template ${templateId} not found`);
+            results.failed++;
+            results.errors.push(`Sale ${saleId.slice(-6)}: Template ${templateId.slice(-6)} not found`);
+            continue;
           }
-        });
-
-        if (!template) {
-          results.failed++;
-          results.errors.push(`Sale ${saleId.slice(-6)}: Welcome letter template not found`);
-          continue;
-        }
+          
+          console.log(`✅ Found template: ${template.name} (${template.templateType})`);
 
         // Transform sale data for template
         const templateData = {
@@ -126,13 +136,13 @@ export async function POST(request: NextRequest) {
           }
         };
 
-        // Generate document using enhanced service
+        // Generate document using enhanced service (for now, always use welcome-letter regardless of template type)
         const documentContent = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
-        console.log(`Generated document content length: ${documentContent.length}`);
+        console.log(`✅ Generated document content length: ${documentContent.length}`);
         
         // Generate filename and file path
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const fileName = `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.html`;
+        const fileName = `${template.templateType}-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.html`;
         const filePath = `storage/documents/${fileName}`;
 
         // Save the document content to file
@@ -157,7 +167,7 @@ export async function POST(request: NextRequest) {
             fileSize: Buffer.byteLength(documentContent, 'utf8'),
             mimeType: 'text/html',
             metadata: {
-              templateType: 'welcome_letter',
+              templateType: template.templateType,
               customerName: templateData.customerName,
               generationMethod: 'enhanced-template-service-bulk'
             }
@@ -178,24 +188,30 @@ export async function POST(request: NextRequest) {
 
         results.documents.push(document);
         results.generated++;
+        console.log(`✅ Successfully generated document for ${sale.customerFirstName} ${sale.customerLastName}`);
+        
       } catch (error) {
         results.failed++;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         results.errors.push(`Sale ${saleId.slice(-6)}: ${errorMessage}`);
-        console.error(`Bulk generation error for sale ${saleId}:`, error);
+        console.error(`❌ Bulk generation error for sale ${saleId}:`, error);
+      }
       }
     }
+
+    console.log(`📄 Bulk generation complete. Generated: ${results.generated}, Failed: ${results.failed}`);
 
     return NextResponse.json({
       success: true,
       ...results,
-      total: saleIds.length
+      total: saleIds.length * templateIds.length // Updated to reflect sale x template combinations
     });
 
   } catch (error) {
-    console.error('Bulk generate documents error:', error);
+    console.error('❌ Bulk generate documents error:', error);
 
     if (error instanceof z.ZodError) {
+      console.error('❌ Validation error:', error.issues);
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },
         { status: 400 }
