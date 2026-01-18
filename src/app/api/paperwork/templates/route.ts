@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PaperworkService } from '@/lib/paperwork';
+import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
 
@@ -43,9 +43,29 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const activeOnly = url.searchParams.get('activeOnly') !== 'false'; // Default to true
 
-    // Initialize paperwork service and get templates
-    const paperworkService = new PaperworkService();
-    const templates = await paperworkService.getTemplates(activeOnly);
+    // Initialize Enhanced Template Service and get templates
+    const enhancedTemplateService = new EnhancedTemplateService();
+    const availableTemplates = enhancedTemplateService.getAvailableTemplates();
+    
+    // Convert to expected format
+    const templates = availableTemplates.map(template => ({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      templateType: 'welcome_letter', // Since we only have welcome letter now
+      htmlContent: template.html,
+      isActive: true,
+      version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: {
+        name: 'Flash Team System',
+        email: 'system@theflashteam.co.uk'
+      },
+      _count: {
+        generatedDocuments: 0
+      }
+    }));
 
     return NextResponse.json({
       success: true,

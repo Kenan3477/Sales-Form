@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PaperworkService } from '@/lib/paperwork';
+import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
 
@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = generateDocumentSchema.parse(body);
 
-    // Initialize paperwork service
-    const paperworkService = new PaperworkService();
+    // Initialize enhanced template service
+    const enhancedTemplateService = new EnhancedTemplateService();
 
     // Check user permissions (agents can only generate for their own sales)
     if (session.user.role === 'AGENT') {
@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate the document
-    const result = await paperworkService.generateDocument(validatedData);
+    // Generate the document using enhanced service
+    const result = await enhancedTemplateService.generateDocument(validatedData.saleId, 'welcome_letter');
 
     return NextResponse.json({
       success: true,
