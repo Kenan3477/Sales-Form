@@ -80,7 +80,7 @@ export default function AdminPaperworkPage() {
         // Fetch both templates and sales data
         const [templatesResponse, salesResponse] = await Promise.all([
           fetch('/api/paperwork/templates?activeOnly=true'),
-          fetch('/api/admin/sales')
+          fetch('/api/sales')
         ]);
         
         if (!templatesResponse.ok) throw new Error('Failed to fetch templates');
