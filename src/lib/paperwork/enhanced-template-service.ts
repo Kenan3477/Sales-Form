@@ -338,7 +338,6 @@ export class EnhancedTemplateService {
         <div class="card-header">What Your Plan Provides</div>
         <div class="body-pad">
           <p><strong>Monthly Payment:</strong> £{{monthlyCost}}</p>
-          {{#if appliancesCount}}<p><strong>Appliances Covered:</strong> {{appliancesCount}}</p>{{/if}}
 
           <ul>
             <li>Access to qualified engineers for covered appliance breakdowns</li>
@@ -356,25 +355,6 @@ export class EnhancedTemplateService {
       </div>
 
     </div>
-
-    {{#if appliances.length}}
-    <h2>Covered Appliances</h2>
-    <div class="card">
-      <div class="card-header">Your Appliance Cover Details</div>
-      {{#each appliances}}
-      <div class="row">
-        <div class="label">{{name}}</div>
-        <div class="value">Up to {{coverLimit}} cover - {{monthlyCost}}/month</div>
-      </div>
-      {{/each}}
-      {{#if boilerCost}}
-      <div class="row">
-        <div class="label">Boiler & Central Heating</div>
-        <div class="value">Full system cover - {{boilerCost}}/month</div>
-      </div>
-      {{/if}}
-    </div>
-    {{/if}}
 
     <h2>Requesting Assistance</h2>
     <div class="steps">
@@ -398,6 +378,21 @@ export class EnhancedTemplateService {
         <ul>
           <li>The Direct Debit Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits.</li>
           <li>If there are any changes to the amount, date or frequency of your Direct Debit, we will notify you in advance.</li>
+          <li>If an error is made in the payment of your Direct Debit, you are entitled to a full and immediate refund from your bank or building society.</li>
+          <li>You can cancel a Direct Debit at any time by contacting your bank or building society. Written confirmation may be required.</li>
+        </ul>
+        <div class="note">
+          Keep this letter safe — you'll need your plan reference <strong>{{policyNumber}}</strong> when contacting us.
+        </div>
+      </div>
+    </div>
+
+    <h2>Important Information</h2>
+    <ul>
+      <li>This Protection Plan is a <strong>service agreement</strong> and is not an insurance policy.</li>
+      <li>All services are provided subject to the plan <strong>terms, conditions and exclusions</strong>.</li>
+      <li><strong>Annual boiler service:</strong> Please contact us to book your annual boiler service.</li>
+    </ul>
           <li>If an error is made in the payment of your Direct Debit, you are entitled to a full and immediate refund from your bank or building society.</li>
           <li>You can cancel a Direct Debit at any time by contacting your bank or building society. Written confirmation may be required.</li>
         </ul>
