@@ -13,21 +13,36 @@ function normalizeCustomerStatus(status?: string): 'ACTIVE' | 'CANCELLED' | 'CAN
   if (!status) return 'ACTIVE'
   
   const normalizedStatus = status.toLowerCase().trim()
+  console.log(`Normalizing status: "${status}" -> "${normalizedStatus}"`)
   
-  switch (normalizedStatus) {
-    case 'active':
-      return 'ACTIVE'
-    case 'cancelled':
-      return 'CANCELLED'
-    case 'cancellation notice received':
+  // More flexible matching with partial string matching
+  if (normalizedStatus.includes('cancel')) {
+    if (normalizedStatus.includes('notice') || normalizedStatus.includes('cnr')) {
+      console.log(`Matched CANCELLATION_NOTICE_RECEIVED for: ${status}`)
       return 'CANCELLATION_NOTICE_RECEIVED'
-    case 'failed payment':
-      return 'FAILED_PAYMENT'
-    case 'process dd':
-      return 'PROCESS_DD'
-    default:
-      return 'ACTIVE' // Default fallback
+    } else {
+      console.log(`Matched CANCELLED for: ${status}`)
+      return 'CANCELLED'
+    }
   }
+  
+  if (normalizedStatus.includes('fail') && normalizedStatus.includes('payment')) {
+    console.log(`Matched FAILED_PAYMENT for: ${status}`)
+    return 'FAILED_PAYMENT'
+  }
+  
+  if (normalizedStatus.includes('process') && normalizedStatus.includes('dd')) {
+    console.log(`Matched PROCESS_DD for: ${status}`)
+    return 'PROCESS_DD'
+  }
+  
+  if (normalizedStatus.includes('active')) {
+    console.log(`Matched ACTIVE for: ${status}`)
+    return 'ACTIVE'
+  }
+  
+  console.log(`No match found for "${status}", defaulting to ACTIVE`)
+  return 'ACTIVE' // Default fallback
 }
 
 interface DuplicateCheckResult {

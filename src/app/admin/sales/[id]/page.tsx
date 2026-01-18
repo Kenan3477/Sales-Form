@@ -23,6 +23,7 @@ interface Sale {
   sortCode: string
   accountNumber: string
   directDebitDate: string
+  status: string
   applianceCoverSelected: boolean
   boilerCoverSelected: boolean
   boilerPriceSelected?: number
@@ -201,6 +202,12 @@ export default function SaleDetailPage() {
                     </p>
                   </div>
                   <div className="flex space-x-3">
+                    <Link
+                      href={`/admin/sales/${sale.id}/edit`}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                      ✏️ Edit Sale
+                    </Link>
                     <button
                       onClick={deleteSale}
                       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -232,6 +239,24 @@ export default function SaleDetailPage() {
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Phone Number</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{sale.phoneNumber}</dd>
+                  </div>
+                  <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Status</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        sale.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                        sale.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                        sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? 'bg-yellow-100 text-yellow-800' :
+                        sale.status === 'FAILED_PAYMENT' ? 'bg-orange-100 text-orange-800' :
+                        sale.status === 'PROCESS_DD' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? 'CNR' : 
+                         sale.status === 'FAILED_PAYMENT' ? 'Failed Payment' :
+                         sale.status === 'PROCESS_DD' ? 'Process DD' :
+                         sale.status?.charAt(0) + sale.status?.slice(1).toLowerCase()}
+                      </span>
+                    </dd>
                   </div>
                   {(sale.mailingStreet || sale.mailingCity || sale.mailingProvince || sale.mailingPostalCode) && (
                     <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

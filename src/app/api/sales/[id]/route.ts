@@ -49,6 +49,84 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { id } = await params
+    const saleId = id
+    const body = await request.json()
+
+    // Check if the sale exists
+    const existingSale = await prisma.sale.findUnique({
+      where: { id: saleId },
+      include: { appliances: true }
+    })
+
+    if (!existingSale) {
+      return NextResponse.json({ error: 'Sale not found' }, { status: 404 })
+    }
+
+    // Update the sale and appliances in a transaction
+    const updatedSale = await prisma.$transaction(async (prisma) => {
+      // Delete existing appliances
+      await prisma.appliance.deleteMany({
+        where: { saleId }
+      })
+
+      // Update the sale with new data
+      return await prisma.sale.update({
+        where: { id: saleId },
+        data: {
+          customerFirstName: body.customerFirstName,
+          customerLastName: body.customerLastName,
+          title: body.title || null,
+          phoneNumber: body.phoneNumber,
+          email: body.email,
+          notes: body.notes || null,
+          mailingStreet: body.mailingStreet || null,
+          mailingCity: body.mailingCity || null,
+          mailingProvince: body.mailingProvince || null,
+          mailingPostalCode: body.mailingPostalCode || null,
+          accountName: body.accountName,
+          sortCode: body.sortCode,
+          accountNumber: body.accountNumber,
+          directDebitDate: new Date(body.directDebitDate),
+          status: body.status || 'ACTIVE',
+          applianceCoverSelected: body.applianceCoverSelected,
+          boilerCoverSelected: body.boilerCoverSelected,
+          boilerPriceSelected: body.boilerPriceSelected || null,
+          totalPlanCost: body.totalPlanCost,
+          appliances: {
+            create: body.appliances || []
+          }
+        },
+        include: {
+          appliances: true,
+          createdBy: {
+            select: {
+              id: true,
+              email: true,
+            }
+          }
+        }
+      })
+    })
+
+    return NextResponse.json(updatedSale)
+  } catch (error) {
+    console.error('Error updating sale:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
