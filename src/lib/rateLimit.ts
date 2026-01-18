@@ -23,6 +23,11 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 // In-memory fallback for development (not recommended for production)
 const memoryStore = new Map<string, { count: number; resetTime: number }>()
 
+// Clear cache for development
+if (process.env.NODE_ENV === 'development') {
+  memoryStore.clear()
+}
+
 export interface RateLimitResult {
   success: boolean
   remaining: number
@@ -91,11 +96,11 @@ export async function checkRateLimit(identifier: string, limit = 10, window = 36
 }
 
 export async function checkLoginRateLimit(ip: string): Promise<RateLimitResult> {
-  return checkRateLimit(`login:${ip}`, 5, 3600000) // 5 attempts per hour per IP
+  return checkRateLimit(`login:${ip}`, 50, 3600000) // 50 attempts per hour per IP (increased for dev)
 }
 
 export async function checkApiRateLimit(ip: string): Promise<RateLimitResult> {
-  return checkRateLimit(`api:${ip}`, 100, 3600000) // 100 API calls per hour per IP
+  return checkRateLimit(`api:${ip}`, 1000, 3600000) // 1000 API calls per hour per IP (increased for dev)
 }
 
 export async function checkSMSRateLimit(userId: string): Promise<RateLimitResult> {

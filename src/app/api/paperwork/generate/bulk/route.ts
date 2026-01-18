@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
     // Generate documents for each sale (using Flash Team welcome letter template)
     for (const saleId of saleIds) {
       try {
+        console.log(`Processing sale ID: ${saleId}`);
+        
         // Load sale data
         const sale = await prisma.sale.findUnique({
           where: { id: saleId },
@@ -67,8 +69,25 @@ export async function POST(request: NextRequest) {
         });
 
         if (!sale) {
+          console.log(`Sale ${saleId} not found in database`);
           results.failed++;
           results.errors.push(`Sale ${saleId.slice(-6)}: Sale not found`);
+          continue;
+        }
+        
+        console.log(`Found sale: ${sale.customerFirstName} ${sale.customerLastName}`);
+
+        // Find the welcome letter template in database
+        const template = await prisma.documentTemplate.findFirst({
+          where: {
+            templateType: 'welcome_letter',
+            isActive: true
+          }
+        });
+
+        if (!template) {
+          results.failed++;
+          results.errors.push(`Sale ${saleId.slice(-6)}: Welcome letter template not found`);
           continue;
         }
 
@@ -93,17 +112,52 @@ export async function POST(request: NextRequest) {
 
         // Generate document using enhanced service
         const documentContent = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+        console.log(`Generated document content length: ${documentContent.length}`);
+        
+        // Generate filename and file path
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileName = `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.html`;
+        const filePath = `storage/documents/${fileName}`;
+
+        // Save the document content to file
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        
+        // Ensure storage directory exists
+        const fullStoragePath = path.join(process.cwd(), 'storage/documents');
+        await fs.mkdir(fullStoragePath, { recursive: true });
+        
+        // Write the document content to file
+        const fullFilePath = path.join(process.cwd(), filePath);
+        await fs.writeFile(fullFilePath, documentContent, 'utf8');
+
+        // Create GeneratedDocument record in database
+        const generatedDocument = await prisma.generatedDocument.create({
+          data: {
+            saleId: sale.id,
+            templateId: template.id,
+            filename: fileName,
+            filePath: filePath,
+            fileSize: Buffer.byteLength(documentContent, 'utf8'),
+            mimeType: 'text/html',
+            metadata: {
+              templateType: 'welcome_letter',
+              customerName: templateData.customerName,
+              generationMethod: 'enhanced-template-service-bulk'
+            }
+          }
+        });
         
         const document = {
-          id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: generatedDocument.id,
           content: documentContent,
-          fileName: `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}.html`,
-          templateName: 'Flash Team Welcome Letter',
+          fileName: fileName,
+          templateName: template.name,
           saleId: sale.id,
           customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
           customerEmail: sale.email,
-          generatedAt: new Date().toISOString(),
-          downloadUrl: `/api/paperwork/download/${sale.id}`
+          generatedAt: generatedDocument.generatedAt.toISOString(),
+          downloadUrl: `/api/paperwork/download/${generatedDocument.id}`
         };
 
         results.documents.push(document);

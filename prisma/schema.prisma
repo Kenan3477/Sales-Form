@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,86 +9,131 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      String   @default("AGENT")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  sales             Sale[]
+  id                String             @id @default(cuid())
+  email             String             @unique
+  password          String
+  role              String             @default("AGENT")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   documentTemplates DocumentTemplate[]
+  sales             Sale[]
 
   @@map("users")
 }
 
 model Sale {
-  id                      String   @id @default(cuid())
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-
-  // Customer information
+  id                     String              @id @default(cuid())
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
   customerFirstName      String
   customerLastName       String
   title                  String?
   phoneNumber            String
   email                  String
   notes                  String?
-
-  // Address information
   mailingStreet          String?
   mailingCity            String?
   mailingProvince        String?
   mailingPostalCode      String?
-
-  // Direct debit information
   accountName            String
   sortCode               String
   accountNumber          String
   directDebitDate        DateTime
-
-  // Coverage selection
-  applianceCoverSelected Boolean  @default(false)
-  boilerCoverSelected    Boolean  @default(false)
+  applianceCoverSelected Boolean             @default(false)
+  boilerCoverSelected    Boolean             @default(false)
   boilerPriceSelected    Float?
-
-  // Total cost
   totalPlanCost          Float
-
-  // Agent information
-  agentName              String?
-
-  // Relations
   createdById            String
-  createdBy              User     @relation(fields: [createdById], references: [id])
+  agentName              String?
   appliances             Appliance[]
-  smsLogs                SMSLog[]
   generatedDocuments     GeneratedDocument[]
+  createdBy              User                @relation(fields: [createdById], references: [id])
+  smsLogs                SMSLog[]
 
   @@map("sales")
 }
 
 model Appliance {
-  id          String  @id @default(cuid())
-  saleId      String
-  appliance   String
-  otherText   String?
-  coverLimit  Float
-  cost        Float
-
-  sale        Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  id         String  @id @default(cuid())
+  saleId     String
+  appliance  String
+  otherText  String?
+  coverLimit Float
+  cost       Float
+  sale       Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@map("appliances")
 }
 
 model FieldConfiguration {
-  id          String  @id @default(cuid())
-  fieldName   String  @unique
-  isRequired  Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  fieldName  String   @unique
+  isRequired Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("field_configurations")
+}
+
+model SMSLog {
+  id                   String    @id @default(cuid())
+  saleId               String
+  phoneNumber          String
+  normalizedPhone      String?
+  messageContent       String
+  smsStatus            SMSStatus @default(NOT_SENT)
+  smsSentAt            DateTime?
+  smsProviderMessageId String?
+  smsError             String?
+  smsExternalReference String    @unique
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  sale                 Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([smsStatus])
+  @@map("sms_logs")
+}
+
+model DocumentTemplate {
+  id                 String              @id @default(cuid())
+  name               String
+  description        String?
+  templateType       String
+  htmlContent        String
+  isActive           Boolean             @default(true)
+  version            Int                 @default(1)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  createdById        String
+  createdBy          User                @relation(fields: [createdById], references: [id])
+  generatedDocuments GeneratedDocument[]
+
+  @@unique([templateType, version])
+  @@index([templateType, isActive])
+  @@map("document_templates")
+}
+
+model GeneratedDocument {
+  id             String           @id @default(cuid())
+  saleId         String
+  templateId     String
+  filename       String
+  filePath       String
+  fileSize       Int
+  mimeType       String           @default("application/pdf")
+  generatedAt    DateTime         @default(now())
+  downloadCount  Int              @default(0)
+  lastDownloadAt DateTime?
+  isDeleted      Boolean          @default(false)
+  metadata       Json?
+  sale           Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  template       DocumentTemplate @relation(fields: [templateId], references: [id])
+
+  @@index([saleId])
+  @@index([templateId])
+  @@index([generatedAt])
+  @@map("generated_documents")
 }
 
 enum SMSStatus {
@@ -100,69 +142,4 @@ enum SMSStatus {
   SENT
   FAILED
   SKIPPED
-}
-
-model SMSLog {
-  id                     String    @id @default(cuid())
-  saleId                String
-  phoneNumber           String
-  normalizedPhone       String?
-  messageContent        String
-  smsStatus             SMSStatus @default(NOT_SENT)
-  smsSentAt             DateTime?
-  smsProviderMessageId  String?
-  smsError              String?
-  smsExternalReference  String    @unique
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  sale                  Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
-
-  @@index([saleId])
-  @@index([smsStatus])
-  @@map("sms_logs")
-}
-
-// Paperwork Module Models
-model DocumentTemplate {
-  id                     String   @id @default(cuid())
-  name                   String
-  description            String?
-  templateType           String   // 'welcome_letter', 'service_agreement', 'direct_debit_form'
-  htmlContent            String   @db.Text
-  isActive               Boolean  @default(true)
-  version                Int      @default(1)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  createdById            String
-  
-  createdBy              User              @relation(fields: [createdById], references: [id])
-  generatedDocuments     GeneratedDocument[]
-
-  @@unique([templateType, version])
-  @@index([templateType, isActive])
-  @@map("document_templates")
-}
-
-model GeneratedDocument {
-  id                     String   @id @default(cuid())
-  saleId                 String
-  templateId             String
-  filename               String
-  filePath               String
-  fileSize               Int
-  mimeType               String   @default("application/pdf")
-  generatedAt            DateTime @default(now())
-  downloadCount          Int      @default(0)
-  lastDownloadAt         DateTime?
-  isDeleted              Boolean  @default(false)
-  metadata               Json?    // Store template context and generation details
-  
-  sale                   Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  template               DocumentTemplate @relation(fields: [templateId], references: [id])
-
-  @@index([saleId])
-  @@index([templateId])
-  @@index([generatedAt])
-  @@map("generated_documents")
 }

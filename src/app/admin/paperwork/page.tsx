@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import TemplateEditor from '../../../components/paperwork/TemplateEditor';
@@ -56,11 +56,13 @@ export default function AdminPaperworkPage() {
     redirect('/dashboard');
   }
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+  const fetchData = useCallback(async () => {
+    // Don't fetch if not authenticated or not admin
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      console.log('📋 Not authenticated or not admin, skipping fetch');
+      return;
+    }
 
-  const fetchData = async () => {
     setLoading(true);
     setError(null);
     
@@ -71,9 +73,11 @@ export default function AdminPaperworkPage() {
         const data = await response.json();
         setTemplates(data.templates || []);
       } else if (activeTab === 'documents') {
+        console.log('📋 Fetching documents...');
         const response = await fetch('/api/paperwork/documents');
         if (!response.ok) throw new Error('Failed to fetch documents');
         const data = await response.json();
+        console.log('📋 Documents response:', data);
         setDocuments(data.documents || []);
       } else if (activeTab === 'generate') {
         // Fetch both templates and sales data
@@ -107,7 +111,14 @@ export default function AdminPaperworkPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, session]);
+
+  useEffect(() => {
+    // Only fetch data when properly authenticated
+    if (session?.user && session.user.role === 'ADMIN') {
+      fetchData();
+    }
+  }, [fetchData, session]);
 
   const toggleTemplateStatus = async (templateId: string, currentStatus: boolean) => {
     try {
@@ -196,24 +207,38 @@ export default function AdminPaperworkPage() {
       setError('Please select at least one sale and one template');
       return;
     }
+    
+    console.log('Starting bulk generation with:', {
+      selectedSales,
+      templateIds,
+      salesData: sales.filter(s => selectedSales.includes(s.id))
+    });
 
     setGenerating(true);
     try {
+      const requestBody = {
+        saleIds: selectedSales,
+        templateIds: templateIds
+      };
+      
+      console.log('Request body:', requestBody);
+      
       const response = await fetch('/api/paperwork/generate/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          saleIds: selectedSales,
-          templateIds: templateIds
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.message || 'Failed to generate documents');
       }
 
       const result = await response.json();
+      console.log('Success result:', result);
       
       // Show success message and refresh data
       setError(null);
@@ -221,6 +246,7 @@ export default function AdminPaperworkPage() {
       setSelectedSales([]);
       await fetchData();
     } catch (err) {
+      console.error('Bulk generation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate documents');
     } finally {
       setGenerating(false);
@@ -552,6 +578,12 @@ export default function AdminPaperworkPage() {
                     <div className="text-gray-400 text-6xl mb-4">📑</div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Documents Found</h3>
                     <p className="text-gray-500">Generated documents will appear here</p>
+                    <button 
+                      onClick={fetchData}
+                      className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                    >
+                      Refresh Documents
+                    </button>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
