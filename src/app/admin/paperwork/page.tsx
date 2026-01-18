@@ -89,7 +89,18 @@ export default function AdminPaperworkPage() {
         const salesData = await salesResponse.json();
         
         setTemplates(templatesData.templates || []);
-        setSales(Array.isArray(salesData) ? salesData : salesData.sales || []);
+        
+        // Transform sales data to match expected format
+        const rawSales = Array.isArray(salesData) ? salesData : salesData.sales || [];
+        const transformedSales = rawSales.map((sale: any) => ({
+          ...sale,
+          customer: {
+            fullName: `${sale.customerFirstName} ${sale.customerLastName}`,
+            email: sale.email
+          },
+          totalPrice: sale.totalPlanCost || 0
+        }));
+        setSales(transformedSales);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
