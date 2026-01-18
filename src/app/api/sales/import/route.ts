@@ -216,27 +216,33 @@ async function handleImport(request: NextRequest, context: any) {
     })
 
     // Secure file upload handling
-    const uploadResult = await handleSecureUpload(
-      request, 
-      10 * 1024 * 1024, // 10MB max
-      ['text/csv', 'application/json'],
-      true // Skip content scanning for data files
-    )
+    const formData = await request.formData()
+    const file = formData.get('file') as File
+    const format = formData.get('format') as string
     
-    if (!uploadResult.isValid) {
-      logSecurityEvent('IMPORT_INVALID_FILE', securityContext, { 
-        error: uploadResult.error,
-        userId: user.id
-      })
+    if (!file) {
       return NextResponse.json({ 
         success: false,
-        error: uploadResult.error 
+        error: 'No file provided' 
       }, { status: 400 })
     }
-
-    const file = uploadResult.file
-    const formData = await request.formData()
-    const format = formData.get('format') as string
+    
+    // Check file size
+    if (file.size > 10 * 1024 * 1024) { // 10MB max
+      return NextResponse.json({ 
+        success: false,
+        error: 'File too large' 
+      }, { status: 400 })
+    }
+    
+    // Check file type
+    const allowedTypes = ['text/csv', 'application/json']
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Invalid file type' 
+      }, { status: 400 })
+    }
 
     logSecurityEvent('IMPORT_FILE_ACCEPTED', securityContext, {
       fileName: file.name,
