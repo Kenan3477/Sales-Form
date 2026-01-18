@@ -248,6 +248,79 @@ async function handleImport(request: NextRequest, context: any) {
     const fileContent = await file.text()
     let salesData: ImportSaleData[] = []
 
+    // Field mapping from CRM export format to database format
+    const fieldMapping: Record<string, string> = {
+      'First Name': 'customerFirstName',
+      'Last Name': 'customerLastName', 
+      'Title': 'title',
+      'Phone': 'phoneNumber',
+      'Email': 'email',
+      'Mailing Street': 'mailingStreet',
+      'Mailing City': 'mailingCity',
+      'Mailing Province': 'mailingProvince',
+      'Mailing Postal Code': 'mailingPostalCode',
+      'SortCode': 'sortCode',
+      'Acc Number': 'accountNumber',
+      'First DD Date': 'directDebitDate',
+      'Customer Premium': 'totalPlanCost',
+      'DD Amount': 'totalPlanCost',
+      'Appliance 1 Type': 'appliance1',
+      'Appliance 1 Value': 'appliance1Cost',
+      'Appliance 2 Type': 'appliance2',
+      'Appliance 2 Value': 'appliance2Cost',
+      'Appliance 3 Type': 'appliance3',
+      'Appliance 3 Value': 'appliance3Cost',
+      'Appliance 4 Type': 'appliance4',
+      'Appliance 4 Value': 'appliance4Cost',
+      'Appliance 5 Type': 'appliance5',
+      'Appliance 5 Value': 'appliance5Cost',
+      'Call Notes': 'notes'
+    }
+
+    // Function to normalize data from CRM export format to import format
+    const normalizeDataRow = (row: any): any => {
+      const normalized: any = {}
+      
+      for (const [key, value] of Object.entries(row)) {
+        const mappedKey = fieldMapping[key as string] || key
+        normalized[mappedKey] = value
+      }
+      
+      // Handle special cases
+      if (normalized['Customer Premium']) {
+        // Remove currency symbol and convert to number
+        const premium = normalized['Customer Premium']
+        if (typeof premium === 'string') {
+          normalized.totalPlanCost = parseFloat(premium.replace(/[£$,]/g, '')) || 0
+        }
+        delete normalized['Customer Premium']
+      }
+      
+      if (normalized['DD Amount']) {
+        const ddAmount = normalized['DD Amount']
+        if (typeof ddAmount === 'string') {
+          normalized.totalPlanCost = parseFloat(ddAmount.replace(/[£$,]/g, '')) || 0
+        }
+        delete normalized['DD Amount']
+      }
+      
+      // Set account name from customer name if missing
+      if (!normalized.accountName && normalized.customerFirstName && normalized.customerLastName) {
+        normalized.accountName = `${normalized.customerFirstName} ${normalized.customerLastName}`
+      }
+      
+      // Default values for required fields that might be missing
+      if (!normalized.applianceCoverSelected && (normalized.appliance1 || normalized.appliance2)) {
+        normalized.applianceCoverSelected = true
+      }
+      
+      if (!normalized.boilerCoverSelected && normalized.boilerPriceSelected) {
+        normalized.boilerCoverSelected = true
+      }
+      
+      return normalized
+    }
+
     // Parse based on format
     if (format === 'csv') {
       const parseResult = Papa.parse(fileContent, {
@@ -267,7 +340,8 @@ async function handleImport(request: NextRequest, context: any) {
         }, { status: 400 })
       }
 
-      salesData = parseResult.data as ImportSaleData[]
+      // Normalize the data from CRM export format
+      salesData = parseResult.data.map(normalizeDataRow) as ImportSaleData[]
     } else if (format === 'json') {
       try {
         const jsonData = JSON.parse(fileContent)
@@ -300,22 +374,45 @@ async function handleImport(request: NextRequest, context: any) {
       const saleData = salesData[i]
       
       try {
-        // Validate required fields
-        const requiredFields = [
-          'customerFirstName', 'customerLastName', 'phoneNumber', 'email',
-          'accountName', 'sortCode', 'accountNumber', 'directDebitDate', 'totalPlanCost'
-        ]
+        // Validate required fields (be more flexible for CRM imports)
+        const requiredFields = ['customerFirstName', 'customerLastName', 'phoneNumber', 'email']
+        const optionalFields = ['accountName', 'sortCode', 'accountNumber', 'directDebitDate', 'totalPlanCost']
         
         console.log(`Processing row ${i + 1}:`, Object.keys(saleData))
         
-        const missingFields = requiredFields.filter(field => !saleData[field as keyof ImportSaleData])
+        const missingFields = requiredFields.filter(field => !saleData[field as keyof ImportSaleData] || saleData[field as keyof ImportSaleData] === '')
         if (missingFields.length > 0) {
-          console.log(`Row ${i + 1} missing fields:`, missingFields)
+          console.log(`Row ${i + 1} missing critical fields:`, missingFields)
           errors.push({
             row: i + 1,
             error: `Missing required fields: ${missingFields.join(', ')}`
           })
           continue
+        }
+
+        // Set default values for missing optional fields
+        if (!saleData.accountName) {
+          saleData.accountName = `${saleData.customerFirstName} ${saleData.customerLastName}`
+        }
+        if (!saleData.sortCode) {
+          saleData.sortCode = '00-00-00'
+        }
+        if (!saleData.accountNumber) {
+          saleData.accountNumber = '00000000'
+        }
+        if (!saleData.directDebitDate) {
+          saleData.directDebitDate = new Date().toISOString().split('T')[0] // Today's date
+        }
+        if (!saleData.totalPlanCost || saleData.totalPlanCost === 0) {
+          // Calculate from appliances if available
+          let calculatedCost = 0
+          for (let j = 1; j <= 10; j++) {
+            const costField = saleData[`appliance${j}Cost` as keyof ImportSaleData] as number
+            if (costField) {
+              calculatedCost += Number(costField)
+            }
+          }
+          saleData.totalPlanCost = calculatedCost || 1 // Minimum 1 for validation
         }
 
         // Process appliances
