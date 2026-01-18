@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate the preview using enhanced template service
-    const result = await enhancedTemplateService.previewTemplate(validatedData.saleId, 'welcome_letter');
+    const result = await enhancedTemplateService.generateDocument(validatedData.saleId, 'welcome_letter');
 
     // Return HTML preview (Enhanced Template Service returns HTML)
     return new Response(result.content as string, {
