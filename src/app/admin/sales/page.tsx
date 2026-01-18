@@ -925,6 +925,9 @@ export default function AdminSalesPage() {
                         Customer
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Agent
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -960,6 +963,21 @@ export default function AdminSalesPage() {
                             <div className="text-sm text-gray-500">{sale.email}</div>
                             <div className="text-sm text-gray-500">{sale.phoneNumber}</div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            sale.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                            sale.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                            sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? 'bg-yellow-100 text-yellow-800' :
+                            sale.status === 'FAILED_PAYMENT' ? 'bg-orange-100 text-orange-800' :
+                            sale.status === 'PROCESS_DD' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? 'CNR' : 
+                             sale.status === 'FAILED_PAYMENT' ? 'Failed Payment' :
+                             sale.status === 'PROCESS_DD' ? 'Process DD' :
+                             sale.status?.charAt(0) + sale.status?.slice(1).toLowerCase()}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{sale.createdBy.email}</div>
