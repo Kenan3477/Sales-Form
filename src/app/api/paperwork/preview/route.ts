@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PaperworkService } from '@/lib/paperwork';
+import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
 
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = previewDocumentSchema.parse(body);
 
-    // Initialize paperwork service
-    const paperworkService = new PaperworkService();
+    // Initialize enhanced template service
+    const enhancedTemplateService = new EnhancedTemplateService();
 
     // Check user permissions (agents can only preview their own sales)
     if (session.user.role === 'AGENT') {
@@ -55,27 +55,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate the preview
-    const result = await paperworkService.generatePreview(validatedData, validatedData.format);
+    // Generate the preview using enhanced template service
+    const result = await enhancedTemplateService.previewTemplate(validatedData.saleId, 'welcome_letter');
 
-    // Return appropriate response based on format
-    if (validatedData.format === 'html') {
-      return new Response(result.content as string, {
-        headers: {
-          'Content-Type': result.mimeType,
-          'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
-        },
-      });
-    } else {
-      // PDF format
-      const pdfBuffer = result.content as Buffer;
-      return new Response(new Uint8Array(pdfBuffer), {
-        headers: {
-          'Content-Type': result.mimeType,
-          'Content-Disposition': 'inline; filename="preview.pdf"',
-        },
-      });
-    }
+    // Return HTML preview (Enhanced Template Service returns HTML)
+    return new Response(result.content as string, {
+      headers: {
+        'Content-Type': 'text/html',
+        'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+      },
+    });
 
   } catch (error) {
     console.error('Document preview error:', error);
