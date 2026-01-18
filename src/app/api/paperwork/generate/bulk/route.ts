@@ -39,6 +39,22 @@ export async function POST(request: NextRequest) {
     const { saleIds, templateIds } = bulkGenerateSchema.parse(body);
     console.log('📄 Validated data:', { saleIds, templateIds });
 
+    // Debug: Check what templates exist in the database
+    const { prisma } = await import('@/lib/prisma');
+    const allTemplates = await prisma.documentTemplate.findMany({
+      select: { id: true, name: true, templateType: true, isActive: true }
+    });
+    console.log('📄 Available templates in database:', allTemplates);
+    
+    // Check if the requested templates exist
+    const missingTemplates = templateIds.filter(id => 
+      !allTemplates.find(t => t.id === id && t.isActive)
+    );
+    if (missingTemplates.length > 0) {
+      console.error('❌ Missing template IDs:', missingTemplates);
+      console.log('📄 Valid template IDs:', allTemplates.filter(t => t.isActive).map(t => t.id));
+    }
+
     // Initialize enhanced template service
     const enhancedTemplateService = new EnhancedTemplateService();
     
@@ -54,9 +70,6 @@ export async function POST(request: NextRequest) {
       errors: [],
       documents: []
     };
-
-    // Load database connection
-    const { prisma } = await import('@/lib/prisma');
 
     // Generate documents for each sale and template combination
     for (const saleId of saleIds) {
