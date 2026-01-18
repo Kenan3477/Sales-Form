@@ -456,4 +456,21 @@ export class EnhancedTemplateService {
 
     return this.generateDocument(templateId, sampleData);
   }
+
+  /**
+   * Get default template content for backward compatibility
+   */
+  getDefaultTemplate(templateType: string): string {
+    // For backward compatibility, always return the welcome letter template
+    // since we now only have one template
+    const template = this.getTemplate('welcome-letter');
+    return template.html;
+  }
+
+  /**
+   * Render template using base service for backward compatibility
+   */
+  renderTemplate(htmlContent: string, context: any): string {
+    return this.baseService.renderTemplate(htmlContent, context);
+  }
 }
