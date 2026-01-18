@@ -8,6 +8,7 @@ import TemplateEditor from '../../../components/paperwork/TemplateEditor';
 interface DocumentTemplate {
   id: string;
   name: string;
+  description?: string | null;
   templateType: string;
   htmlContent: string;
   version: number;
@@ -143,8 +144,42 @@ export default function AdminPaperworkPage() {
   };
 
   const handleCreateTemplate = (templateType: string) => {
-    // Template creation disabled - using Flash Team template only
-    setError('Template creation is disabled. Using Flash Team template only.');
+    // Set up a new template for creation
+    const newTemplate: DocumentTemplate = {
+      id: '',
+      name: `New ${templateType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+      description: `Template for generating ${templateType.replace('_', ' ').toLowerCase()} documents`,
+      templateType: templateType,
+      htmlContent: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${templateType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</title>
+</head>
+<body>
+  <h1>${templateType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h1>
+  <p>Dear {{customerName}},</p>
+  
+  <p>Your template content goes here...</p>
+  
+  <!-- Available variables: -->
+  <!-- {{customerName}}, {{email}}, {{phone}}, {{address}} -->
+  <!-- {{totalCost}}, {{monthlyCost}}, {{policyNumber}} -->
+  <!-- {{coverageStartDate}}, {{currentDate}} -->
+  
+  <p>Best regards,<br>The Flash Team</p>
+</body>
+</html>`,
+      version: 1,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    setEditingTemplate(newTemplate);
+    setShowEditor(true);
+    setNewTemplateType('');
   };
 
   const handleEditTemplate = (template: DocumentTemplate) => {
@@ -152,7 +187,7 @@ export default function AdminPaperworkPage() {
     setShowEditor(true);
   };
 
-  const handleSaveTemplate = async (name: string, content: string) => {
+  const handleSaveTemplate = async (name: string, content: string, description?: string) => {
     if (!editingTemplate) return;
 
     try {
@@ -162,27 +197,76 @@ export default function AdminPaperworkPage() {
       
       const method = editingTemplate.id ? 'PUT' : 'POST';
       
+      const requestBody: any = {
+        name,
+        description: description || null,
+        templateType: editingTemplate.templateType,
+        htmlContent: content,
+        isActive: true
+      };
+
+      // Add ID for PUT requests
+      if (method === 'PUT') {
+        requestBody.id = editingTemplate.id;
+      }
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          templateType: editingTemplate.templateType,
-          htmlContent: content,
-          isActive: true
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save template');
+        throw new Error(errorData.error || 'Failed to save template');
       }
+
+      const result = await response.json();
+      console.log('Template saved successfully:', result);
 
       setShowEditor(false);
       setEditingTemplate(null);
       await fetchData();
+      
+      // Show success message
+      setError(null);
     } catch (err) {
+      console.error('Save template error:', err);
       setError(err instanceof Error ? err.message : 'Failed to save template');
+    }
+  };
+
+  const handleDeleteTemplate = async (template: DocumentTemplate) => {
+    // Prevent deletion of system templates
+    if (['welcome-letter', 'service-agreement', 'direct-debit-form', 'coverage-summary'].includes(template.id)) {
+      setError('Cannot delete system templates.');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete "${template.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/paperwork/templates/${template.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete template');
+      }
+
+      const result = await response.json();
+      console.log('Template deleted:', result);
+
+      // Refresh templates list
+      await fetchData();
+      setError(null);
+      
+    } catch (err) {
+      console.error('Delete template error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete template');
     }
   };
 
@@ -368,6 +452,7 @@ export default function AdminPaperworkPage() {
       <TemplateEditor
         templateId={editingTemplate.id}
         templateName={editingTemplate.name}
+        templateDescription={editingTemplate.description || ''}
         templateType={editingTemplate.templateType}
         currentContent={editingTemplate.htmlContent}
         onSave={handleSaveTemplate}
@@ -514,6 +599,9 @@ export default function AdminPaperworkPage() {
                             <h3 className="text-lg font-semibold text-gray-900 mb-1">
                               {template.name}
                             </h3>
+                            {template.description && (
+                              <p className="text-sm text-gray-600 mb-2">{template.description}</p>
+                            )}
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {template.templateType?.replace('_', ' ') || 'Unknown Type'}
                             </span>
@@ -555,6 +643,16 @@ export default function AdminPaperworkPage() {
                           >
                             {template.isActive ? 'Disable' : 'Enable'}
                           </button>
+                          {/* Only show delete button for non-system templates */}
+                          {!['welcome-letter', 'service-agreement', 'direct-debit-form', 'coverage-summary'].includes(template.id) && (
+                            <button 
+                              onClick={() => handleDeleteTemplate(template)}
+                              className="bg-red-50 text-red-600 px-3 py-2 rounded-md hover:bg-red-100 text-sm font-medium"
+                              title="Delete template"
+                            >
+                              🗑️
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
