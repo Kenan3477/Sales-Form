@@ -630,7 +630,8 @@ async function handleImport(request: NextRequest, context: any) {
           totalPlanCost: Number(saleData.totalPlanCost),
           createdById: user.id,
           createdAt: saleDate, // Set the actual sale date
-          appliances: appliances
+          appliances: appliances,
+          originalRowNumber: i + 2 // Add original row number for duplicate tracking
         }
 
         processedSales.push(processedSale)
@@ -672,7 +673,17 @@ async function handleImport(request: NextRequest, context: any) {
             email: saleData.email,
             phone: saleData.phoneNumber,
             reason: duplicateCheck.duplicateReason,
-            existingCustomer: duplicateCheck.existingCustomer
+            existingCustomer: duplicateCheck.existingCustomer,
+            data: {
+              postcode: saleData.mailingPostalCode || '',
+              address: `${saleData.mailingStreet || ''} ${saleData.mailingCity || ''}`.trim(),
+              accountName: saleData.accountName || '',
+              directDebitDate: saleData.directDebitDate || '',
+              totalCost: saleData.totalPlanCost || 0,
+              applianceCover: saleData.applianceCoverSelected || false,
+              boilerCover: saleData.boilerCoverSelected || false,
+              originalRowNumber: (saleData as any).originalRowNumber || 0
+            }
           })
           console.log(`Skipping duplicate customer: ${saleData.customerFirstName} ${saleData.customerLastName} - ${duplicateCheck.duplicateReason}`)
           continue
