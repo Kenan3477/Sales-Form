@@ -53,6 +53,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let id: string | undefined
+  let body: any
+
   try {
     const session = await getServerSession(authOptions)
     
@@ -60,9 +63,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = await params
+    const parsedParams = await params
+    id = parsedParams.id
     const saleId = id
-    const body = await request.json()
+    body = await request.json()
 
     // Check if the sale exists and if the user has permission to edit it
     const existingSale = await prisma.sale.findUnique({
@@ -86,6 +90,11 @@ export async function PUT(
         where: { saleId }
       })
 
+      // Validate required fields
+      if (!body.customerFirstName || !body.customerLastName || !body.email || !body.phoneNumber) {
+        throw new Error('Missing required customer fields')
+      }
+
       // Update the sale with new data
       return await prisma.sale.update({
         where: { id: saleId },
@@ -100,16 +109,21 @@ export async function PUT(
           mailingCity: body.mailingCity || null,
           mailingProvince: body.mailingProvince || null,
           mailingPostalCode: body.mailingPostalCode || null,
-          accountName: body.accountName,
-          sortCode: body.sortCode,
-          accountNumber: body.accountNumber,
-          directDebitDate: new Date(body.directDebitDate),
+          accountName: body.accountName || existingSale.accountName,
+          sortCode: body.sortCode || existingSale.sortCode,
+          accountNumber: body.accountNumber || existingSale.accountNumber,
+          directDebitDate: body.directDebitDate ? new Date(body.directDebitDate) : existingSale.directDebitDate,
           applianceCoverSelected: body.applianceCoverSelected,
           boilerCoverSelected: body.boilerCoverSelected,
           boilerPriceSelected: body.boilerPriceSelected || null,
           totalPlanCost: body.totalPlanCost,
           appliances: {
-            create: body.appliances || []
+            create: (body.appliances || []).map((appliance: any) => ({
+              appliance: appliance.appliance,
+              otherText: appliance.otherText || null,
+              coverLimit: appliance.coverLimit,
+              cost: appliance.cost
+            }))
           }
         },
         include: {
@@ -127,7 +141,21 @@ export async function PUT(
     return NextResponse.json(updatedSale)
   } catch (error) {
     console.error('Error updating sale:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Sale ID:', id)
+    console.error('Request body:', JSON.stringify(body, null, 2))
+    
+    // Return more specific error messages
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 

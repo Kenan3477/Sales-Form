@@ -105,12 +105,24 @@ export default function AgentSaleDetailPage() {
     setSuccessMessage('')
 
     try {
+      // Prepare the data by cleaning up appliances (remove id field for new appliances)
+      const dataToSend = {
+        ...editForm,
+        appliances: editForm.appliances?.map(appliance => ({
+          appliance: appliance.appliance,
+          otherText: appliance.otherText || null,
+          coverLimit: appliance.coverLimit,
+          cost: appliance.cost
+          // Don't include 'id' for create operations
+        })) || []
+      }
+
       const response = await fetch(`/api/sales/${saleId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify(dataToSend)
       })
 
       if (response.ok) {
