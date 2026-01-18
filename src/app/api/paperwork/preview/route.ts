@@ -13,6 +13,45 @@ const previewDocumentSchema = z.object({
   format: z.enum(['html', 'pdf']).default('html'),
 });
 
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Initialize enhanced template service
+    const enhancedTemplateService = new EnhancedTemplateService();
+
+    // Use sample data for template preview
+    const result = await enhancedTemplateService.previewTemplate('welcome-letter');
+
+    // Return HTML preview
+    return new Response(result, {
+      headers: {
+        'Content-Type': 'text/html',
+        'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+      },
+    });
+
+  } catch (error) {
+    console.error('Template preview error:', error);
+    
+    if (error instanceof Error && error.message.includes('not found')) {
+      return new Response('Template not found', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+
+    return new Response('Internal server error', {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting
