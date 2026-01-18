@@ -1,22 +1,28 @@
 DEPLOYMENT_TRIGGER=$(date)
 
-# Sales Editing 500 Error Fix Deployment
+# Duplicate Filtering Fix Deployment
 
 ## Changes Pushed:
-- ✅ Fixed 500 error when saving edited sales in agent interface
-- ✅ Enhanced data validation and error handling in API
-- ✅ Added fallback logic for payment fields in edit mode
-- ✅ Improved appliance data structure for Prisma operations
-- ✅ Enhanced frontend data sanitization before API calls
+- ✅ Fixed duplicate filtering logic that was causing blank exports
+- ✅ Enhanced exact matching instead of fuzzy includes() matching
+- ✅ Improved duplicate reference file processing for better accuracy
+- ✅ Added proper phone number normalization and account number matching
+- ✅ Fixed over-matching that was incorrectly excluding valid customers
 
-## Commit Hash: 01f3fd4
+## Commit Hash: b3480aa
 
-## Features Fixed:
-1. **500 Error Resolution**: Sales editing now works without server errors
-2. **Data Structure**: Clean appliance objects sent to API without conflicting fields
-3. **Payment Fields**: API falls back to existing sale data when payment fields not provided
-4. **Error Handling**: Better error messages and detailed logging for debugging
-5. **Data Validation**: Enhanced validation with proper error responses
+## Issues Fixed:
+1. **Blank Export Problem**: Export now correctly filters duplicates without excluding everyone
+2. **Exact Matching**: Customer name, phone, email, and account number matching is now precise
+3. **File Processing**: Duplicate reference file parsing extracts reliable identifiers only
+4. **Phone Normalization**: Removes formatting for accurate phone number comparison
+5. **Better Logging**: Enhanced debugging output to track filtering process
+
+## How Duplicate Filtering Now Works:
+- **Customer Name**: Exact match on "First Last" and "Last First" formats
+- **Phone Number**: Exact match after removing spaces, dashes, parentheses
+- **Email Address**: Exact case-insensitive match
+- **Account Number**: Exact match after removing formatting
 
 ## Deployment Status:
 - Commit pushed: $(date)
@@ -24,4 +30,4 @@ DEPLOYMENT_TRIGGER=$(date)
 - Vercel auto-deployment: TRIGGERED
 - Expected deployment time: 2-3 minutes
 
-The sales editing 500 error fix should be live shortly on the production site.
+The duplicate filtering fix should be live shortly on the production site.

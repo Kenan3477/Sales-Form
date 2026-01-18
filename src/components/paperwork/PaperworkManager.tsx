@@ -78,36 +78,50 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
   }
 
   const generateDocument = async (templateType: string, templateId?: string) => {
+    console.log('🔄 Starting document generation:', { templateType, templateId, saleId });
+    
     setGenerating(templateType)
     setError('')
     setSuccess('')
 
     try {
+      const requestData = {
+        saleId,
+        templateType,
+        templateId,
+      };
+      
+      console.log('📝 Sending request:', requestData);
+      
       const response = await fetch('/api/paperwork/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          saleId,
-          templateType,
-          templateId,
-        }),
+        body: JSON.stringify(requestData),
       })
+
+      console.log('📝 Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('❌ Response error:', errorData);
         throw new Error(errorData.error || 'Failed to generate document')
       }
 
       const data = await response.json()
+      console.log('✅ Success response:', data);
+      
       if (data.success) {
         setSuccess(`Document "${templateType}" generated successfully!`)
         await loadDocuments() // Refresh the documents list
         setShowTemplateSelector(false)
+      } else {
+        console.error('❌ Response indicates failure:', data);
+        throw new Error(data.error || 'Generation failed')
       }
     } catch (error) {
-      console.error('Error generating document:', error)
+      console.error('❌ Error generating document:', error)
       setError(error instanceof Error ? error.message : 'Failed to generate document')
     } finally {
       setGenerating(null)
