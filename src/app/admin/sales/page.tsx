@@ -53,7 +53,10 @@ export default function AdminSalesPage() {
     dateFrom: '',
     dateTo: '',
     agent: '',
-    search: ''
+    search: '',
+    planType: '', // appliance-only, boiler-only, both
+    applianceCount: '', // 1, 2-3, 4-5, 6+
+    hasBoilerCover: '' // yes, no
   })
   const [duplicateCheckFile, setDuplicateCheckFile] = useState<File | null>(null)
   const [showDuplicateCheck, setShowDuplicateCheck] = useState(false)
@@ -81,6 +84,9 @@ export default function AdminSalesPage() {
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom)
       if (filters.dateTo) params.append('dateTo', filters.dateTo)
       if (filters.agent) params.append('agent', filters.agent)
+      if (filters.planType) params.append('planType', filters.planType)
+      if (filters.applianceCount) params.append('applianceCount', filters.applianceCount)
+      if (filters.hasBoilerCover) params.append('hasBoilerCover', filters.hasBoilerCover)
 
       const response = await fetch(`/api/sales?${params}`)
       if (response.ok) {
@@ -640,7 +646,7 @@ export default function AdminSalesPage() {
           {/* Filters */}
           <div className="bg-white p-4 rounded-lg shadow mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-3">Filters</h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-7">
               <div>
                 <label htmlFor="search" className="block text-xs font-medium text-gray-700">
                   Search
@@ -677,6 +683,54 @@ export default function AdminSalesPage() {
                   onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
                 />
+              </div>
+              <div>
+                <label htmlFor="planType" className="block text-xs font-medium text-gray-700">
+                  Plan Type
+                </label>
+                <select
+                  id="planType"
+                  value={filters.planType}
+                  onChange={(e) => setFilters({...filters, planType: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                >
+                  <option value="">All Plans</option>
+                  <option value="appliance-only">Appliance Only</option>
+                  <option value="boiler-only">Boiler Only</option>
+                  <option value="both">Both</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="applianceCount" className="block text-xs font-medium text-gray-700">
+                  Appliances
+                </label>
+                <select
+                  id="applianceCount"
+                  value={filters.applianceCount}
+                  onChange={(e) => setFilters({...filters, applianceCount: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                >
+                  <option value="">Any Amount</option>
+                  <option value="1">1 Appliance</option>
+                  <option value="2-3">2-3 Appliances</option>
+                  <option value="4-5">4-5 Appliances</option>
+                  <option value="6+">6+ Appliances</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="hasBoilerCover" className="block text-xs font-medium text-gray-700">
+                  Boiler Cover
+                </label>
+                <select
+                  id="hasBoilerCover"
+                  value={filters.hasBoilerCover}
+                  onChange={(e) => setFilters({...filters, hasBoilerCover: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                >
+                  <option value="">Any</option>
+                  <option value="yes">Has Boiler Cover</option>
+                  <option value="no">No Boiler Cover</option>
+                </select>
               </div>
               <div className="flex items-end">
                 <button

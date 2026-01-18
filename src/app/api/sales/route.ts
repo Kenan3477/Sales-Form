@@ -366,6 +366,9 @@ export async function GET(request: NextRequest) {
     const agentFilter = searchParams.get('agent')
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
+    const planType = searchParams.get('planType')
+    const applianceCount = searchParams.get('applianceCount')
+    const hasBoilerCover = searchParams.get('hasBoilerCover')
 
     let whereClause: any = {}
 
@@ -387,6 +390,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Plan type filter
+    if (planType) {
+      if (planType === 'appliance-only') {
+        whereClause.applianceCoverSelected = true
+        whereClause.boilerCoverSelected = false
+      } else if (planType === 'boiler-only') {
+        whereClause.applianceCoverSelected = false
+        whereClause.boilerCoverSelected = true
+      } else if (planType === 'both') {
+        whereClause.applianceCoverSelected = true
+        whereClause.boilerCoverSelected = true
+      }
+    }
+
+    // Boiler cover filter
+    if (hasBoilerCover) {
+      whereClause.boilerCoverSelected = hasBoilerCover === 'yes'
+    }
+
     const sales = await prisma.sale.findMany({
       where: whereClause,
       include: {
@@ -403,7 +425,27 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(sales)
+    // Filter by appliance count if specified
+    let filteredSales = sales
+    if (applianceCount) {
+      filteredSales = sales.filter(sale => {
+        const count = sale.appliances.length
+        switch (applianceCount) {
+          case '1':
+            return count === 1
+          case '2-3':
+            return count >= 2 && count <= 3
+          case '4-5':
+            return count >= 4 && count <= 5
+          case '6+':
+            return count >= 6
+          default:
+            return true
+        }
+      })
+    }
+
+    return NextResponse.json(filteredSales)
   } catch (error) {
     console.error('Error fetching sales:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
