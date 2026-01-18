@@ -631,7 +631,7 @@ async function handleImport(request: NextRequest, context: any) {
           createdById: user.id,
           createdAt: saleDate, // Set the actual sale date
           appliances: appliances,
-          originalRowNumber: i + 2 // Add original row number for duplicate tracking
+          originalRowNumber: i + 2 // Keep for duplicate tracking only, don't save to DB
         }
 
         processedSales.push(processedSale)
@@ -690,11 +690,12 @@ async function handleImport(request: NextRequest, context: any) {
         }
 
         // Create sale if not duplicate
+        const { originalRowNumber, ...saleDataForDB } = saleData as any
         const sale = await prisma.sale.create({
           data: {
-            ...saleData,
+            ...saleDataForDB,
             appliances: {
-              create: saleData.appliances
+              create: saleDataForDB.appliances
             }
           },
           include: {
