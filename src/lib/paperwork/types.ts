@@ -11,6 +11,7 @@ export interface TemplateContext {
   customer: CustomerContext;
   agreement: AgreementContext;
   appliances: ApplianceContext[];
+  appliancesCount: number;
   metadata: MetadataContext;
 }
 
