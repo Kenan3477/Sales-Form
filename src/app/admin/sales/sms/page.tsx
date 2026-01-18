@@ -59,6 +59,7 @@ export default function AdminSMSPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [agentFilter, setAgentFilter] = useState('')
+  const [smsStatusFilter, setSmsStatusFilter] = useState('')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -78,10 +79,10 @@ export default function AdminSMSPage() {
   }, [session, status, router])
 
   useEffect(() => {
-    if (dateFrom || dateTo || agentFilter) {
+    if (dateFrom || dateTo || agentFilter || smsStatusFilter) {
       fetchSales()
     }
-  }, [dateFrom, dateTo, agentFilter])
+  }, [dateFrom, dateTo, agentFilter, smsStatusFilter])
 
   const fetchSales = async () => {
     try {
@@ -90,6 +91,7 @@ export default function AdminSMSPage() {
       if (dateFrom) params.append('dateFrom', dateFrom)
       if (dateTo) params.append('dateTo', dateTo)
       if (agentFilter) params.append('agent', agentFilter)
+      if (smsStatusFilter) params.append('smsStatus', smsStatusFilter)
 
       const response = await fetch(`/api/admin/sales/sms?${params}`)
       if (!response.ok) throw new Error('Failed to fetch sales')
@@ -243,7 +245,7 @@ export default function AdminSMSPage() {
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date From
@@ -279,6 +281,23 @@ export default function AdminSMSPage() {
                 {agents.map(agent => (
                   <option key={agent.id} value={agent.id}>{agent.email}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                SMS Status
+              </label>
+              <select
+                value={smsStatusFilter}
+                onChange={(e) => setSmsStatusFilter(e.target.value)}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              >
+                <option value="">All Status</option>
+                <option value="NOT_SENT">Not Sent</option>
+                <option value="SENT">Sent</option>
+                <option value="FAILED">Failed</option>
+                <option value="SKIPPED">Skipped</option>
+                <option value="SENDING">Sending</option>
               </select>
             </div>
           </div>
