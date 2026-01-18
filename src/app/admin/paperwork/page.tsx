@@ -95,6 +95,9 @@ export default function AdminPaperworkPage() {
         const templatesData = await templatesResponse.json();
         const salesData = await salesResponse.json();
         
+        console.log('📋 Templates data received:', templatesData);
+        console.log('📋 Individual templates:', templatesData.templates);
+        
         setTemplates(templatesData.templates || []);
         
         // Transform sales data to match expected format
@@ -595,17 +598,17 @@ export default function AdminPaperworkPage() {
                           />
                           <div className="flex-1">
                             <div className="font-medium text-gray-900">
-                              {sale.customer.fullName}
+                              {sale.customerFirstName} {sale.customerLastName}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {sale.customer.email} • Sale #{sale.id.slice(-6)}
+                              {sale.email} • Sale #{sale.id.slice(-6)}
                             </div>
                             <div className="text-sm text-gray-400">
                               {new Date(sale.createdAt).toLocaleDateString()}
                             </div>
                           </div>
                           <div className="text-sm font-medium text-green-600">
-                            £{sale.totalPrice}
+                            £{sale.totalPlanCost}/month
                           </div>
                         </label>
                       ))}
