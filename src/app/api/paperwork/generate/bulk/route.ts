@@ -97,13 +97,28 @@ export async function POST(request: NextRequest) {
           
           console.log(`✅ Found sale: ${sale.customerFirstName} ${sale.customerLastName}`);
 
-          // Find the template in database
-          const template = await prisma.documentTemplate.findFirst({
-            where: {
+          // Find the template in database OR use EnhancedTemplateService template
+          let template;
+          let isEnhancedServiceTemplate = false;
+          
+          // Check if this is an EnhancedTemplateService template ID
+          if (['welcome-letter', 'service-agreement', 'direct-debit-form', 'coverage-summary'].includes(templateId)) {
+            console.log(`📄 Using EnhancedTemplateService template: ${templateId}`);
+            isEnhancedServiceTemplate = true;
+            template = {
               id: templateId,
-              isActive: true
-            }
-          });
+              name: templateId.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+              templateType: templateId.replace('-', '_')
+            };
+          } else {
+            // Look for database template
+            template = await prisma.documentTemplate.findFirst({
+              where: {
+                id: templateId,
+                isActive: true
+              }
+            });
+          }
 
           if (!template) {
             console.log(`❌ Template ${templateId} not found`);
@@ -113,6 +128,21 @@ export async function POST(request: NextRequest) {
           }
           
           console.log(`✅ Found template: ${template.name} (${template.templateType})`);
+
+          // Check if this is an EnhancedTemplateService template ID or database template ID
+          let templateForGeneration;
+          if (['welcome-letter', 'service-agreement', 'direct-debit-form', 'coverage-summary'].includes(templateId)) {
+            // This is an EnhancedTemplateService template ID
+            console.log(`📄 Using EnhancedTemplateService template: ${templateId}`);
+            templateForGeneration = { 
+              id: templateId, 
+              name: templateId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              templateType: templateId.replace('-', '_') 
+            };
+          } else {
+            // This should be a database template - but we already handled this above
+            templateForGeneration = template;
+          }
 
           // Transform sale data for template
           const templateData = {
@@ -158,12 +188,14 @@ export async function POST(request: NextRequest) {
             monthlyCost: templateData.monthlyCost,
             appliancesCount: templateData.appliances.length,
             hasBoilerCover: templateData.hasBoilerCover
-          });        // Generate document using enhanced service (for now, always use welcome-letter regardless of template type)
+          });        // Generate document using enhanced service
         console.log(`📄 Generating document using Enhanced Template Service...`);
         let documentContent;
         
         try {
-          documentContent = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+          // Use the original templateId for EnhancedTemplateService (e.g., 'welcome-letter')
+          const templateIdForGeneration = isEnhancedServiceTemplate ? templateId : 'welcome-letter';
+          documentContent = await enhancedTemplateService.generateDocument(templateIdForGeneration, templateData);
           console.log(`✅ Generated document content length: ${documentContent.length}`);
           
           if (!documentContent || documentContent.length < 100) {
@@ -192,10 +224,40 @@ export async function POST(request: NextRequest) {
         await fs.writeFile(fullFilePath, documentContent, 'utf8');
 
         // Create GeneratedDocument record in database
+        // For EnhancedTemplateService templates, we need to find or create a database template
+        let dbTemplate = template;
+        if (isEnhancedServiceTemplate) {
+          // Try to find existing database template with this templateType
+          const existingTemplate = await prisma.documentTemplate.findFirst({
+            where: {
+              templateType: template.templateType,
+              isActive: true
+            }
+          });
+          
+          if (existingTemplate) {
+            dbTemplate = existingTemplate;
+          } else {
+            console.log(`📄 Creating database template for ${template.templateType}`);
+            // Create a database template record for this EnhancedTemplateService template
+            dbTemplate = await prisma.documentTemplate.create({
+              data: {
+                name: template.name,
+                templateType: template.templateType,
+                htmlContent: documentContent, // Use the generated content as template
+                description: `Auto-created template for ${template.name}`,
+                isActive: true,
+                version: 1,
+                createdById: 'cmkfyoun90000kk62g97wyhsx' // Default to admin user - this should be dynamic
+              }
+            });
+          }
+        }
+        
         const generatedDocument = await prisma.generatedDocument.create({
           data: {
             saleId: sale.id,
-            templateId: template.id,
+            templateId: dbTemplate.id,
             filename: fileName,
             filePath: filePath,
             fileSize: Buffer.byteLength(documentContent, 'utf8'),
@@ -203,7 +265,8 @@ export async function POST(request: NextRequest) {
             metadata: {
               templateType: template.templateType,
               customerName: templateData.customerName,
-              generationMethod: 'enhanced-template-service-bulk'
+              generationMethod: isEnhancedServiceTemplate ? 'enhanced-template-service-bulk' : 'database-template-bulk',
+              originalTemplateId: templateId
             }
           }
         });

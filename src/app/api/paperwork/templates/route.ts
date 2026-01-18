@@ -26,16 +26,39 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const activeOnly = url.searchParams.get('activeOnly') !== 'false'; // Default to true
 
+    // Get both Enhanced Template Service templates and database templates
+    const { prisma } = await import('@/lib/prisma');
+    
     // Initialize Enhanced Template Service and get templates
     const enhancedTemplateService = new EnhancedTemplateService();
     const availableTemplates = enhancedTemplateService.getAvailableTemplates();
     
-    // Convert to expected format
-    const templates = availableTemplates.map(template => ({
+    // Get database templates
+    const dbTemplates = await prisma.documentTemplate.findMany({
+      where: activeOnly ? { isActive: true } : {},
+      include: {
+        createdBy: {
+          select: {
+            email: true
+          }
+        },
+        _count: {
+          select: {
+            generatedDocuments: true
+          }
+        }
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      }
+    });
+
+    // Convert EnhancedTemplateService templates to expected format
+    const enhancedServiceTemplates = availableTemplates.map(template => ({
       id: template.id,
       name: template.name,
       description: template.description,
-      templateType: 'welcome_letter', // Since we only have welcome letter now
+      templateType: template.id.replace('-', '_'), // Convert ID to template type
       htmlContent: template.html,
       isActive: true,
       version: 1,
@@ -50,9 +73,25 @@ export async function GET(request: NextRequest) {
       }
     }));
 
+    // Combine both template sources - database templates already have the correct format
+    const allTemplates = [
+      ...enhancedServiceTemplates, 
+      ...dbTemplates.map(dbTemplate => ({
+        ...dbTemplate,
+        createdBy: dbTemplate.createdBy || { email: 'system@theflashteam.co.uk' }
+      }))
+    ];
+    
+    console.log('📄 Available templates:', {
+      enhancedService: enhancedServiceTemplates.length,
+      database: dbTemplates.length,
+      total: allTemplates.length,
+      templateIds: allTemplates.map(t => t.id)
+    });
+
     return NextResponse.json({
       success: true,
-      templates,
+      templates: allTemplates,
     });
 
   } catch (error) {
