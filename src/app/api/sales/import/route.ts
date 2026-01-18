@@ -6,6 +6,30 @@ import Papa from 'papaparse'
 import { withSecurity, handleSecureUpload } from '@/lib/apiSecurity'
 import { logSecurityEvent, createSecurityContext } from '@/lib/security'
 
+/**
+ * Normalize status values from import to match database enum
+ */
+function normalizeCustomerStatus(status?: string): 'ACTIVE' | 'CANCELLED' | 'CANCELLATION_NOTICE_RECEIVED' | 'FAILED_PAYMENT' | 'PROCESS_DD' {
+  if (!status) return 'ACTIVE'
+  
+  const normalizedStatus = status.toLowerCase().trim()
+  
+  switch (normalizedStatus) {
+    case 'active':
+      return 'ACTIVE'
+    case 'cancelled':
+      return 'CANCELLED'
+    case 'cancellation notice received':
+      return 'CANCELLATION_NOTICE_RECEIVED'
+    case 'failed payment':
+      return 'FAILED_PAYMENT'
+    case 'process dd':
+      return 'PROCESS_DD'
+    default:
+      return 'ACTIVE' // Default fallback
+  }
+}
+
 interface DuplicateCheckResult {
   isDuplicate: boolean
   existingCustomer?: {
@@ -141,6 +165,7 @@ interface ImportSaleData {
   phoneNumber: string
   email: string
   notes?: string
+  status?: string
 
   // Address information
   mailingStreet?: string
@@ -302,7 +327,7 @@ async function handleImport(request: NextRequest, context: any) {
       'Customers Name': '_ignore', // Calculated field
       'Lead Source': '_ignore',
       'Payment Method': '_ignore',
-      'Status': '_ignore',
+      'Status': 'status',
       'Brand': '_ignore',
       'Processor': '_ignore',
       'Record Id': '_ignore',
@@ -624,6 +649,7 @@ async function handleImport(request: NextRequest, context: any) {
           sortCode: saleData.sortCode,
           accountNumber: saleData.accountNumber,
           directDebitDate: new Date(saleData.directDebitDate),
+          status: normalizeCustomerStatus(saleData.status),
           applianceCoverSelected: Boolean(saleData.applianceCoverSelected) || appliances.length > 0,
           boilerCoverSelected: Boolean(saleData.boilerCoverSelected) || Boolean(saleData.boilerPriceSelected),
           boilerPriceSelected: saleData.boilerPriceSelected ? Number(saleData.boilerPriceSelected) : null,

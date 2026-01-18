@@ -39,6 +39,7 @@ model Sale {
   sortCode               String
   accountNumber          String
   directDebitDate        DateTime
+  status                 CustomerStatus      @default(ACTIVE)
   applianceCoverSelected Boolean             @default(false)
   boilerCoverSelected    Boolean             @default(false)
   boilerPriceSelected    Float?
@@ -142,4 +143,12 @@ enum SMSStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+enum CustomerStatus {
+  ACTIVE
+  CANCELLED
+  CANCELLATION_NOTICE_RECEIVED
+  FAILED_PAYMENT
+  PROCESS_DD
 }
