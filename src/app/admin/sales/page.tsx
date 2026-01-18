@@ -200,57 +200,93 @@ export default function AdminSalesPage() {
         
         processedRows++
         
-        // Create customer object with all identifiers for this row
+        // Extract the most reliable customer identifiers from this row
         const customerIdentifiers: string[] = []
+        let customerName = ''
+        let customerEmail = ''
+        let customerPhone = ''
+        let customerAccountNumber = ''
         
         validColumns.forEach(col => {
           const cleaned = col.trim()
           
-          // Add different formats of the data for matching
-          customerIdentifiers.push(cleaned.toLowerCase())
+          // Email detection
+          if (cleaned.includes('@') && cleaned.includes('.')) {
+            customerEmail = cleaned.toLowerCase()
+            customerIdentifiers.push(customerEmail)
+          }
           
-          // If it looks like a phone number, also add without spaces/dashes
-          if (/[\d\s\-\+\(\)]+/.test(cleaned) && cleaned.length > 6) {
-            const phoneOnly = cleaned.replace(/[^\d]/g, '')
-            if (phoneOnly.length >= 7) {
-              customerIdentifiers.push(phoneOnly)
+          // Phone number detection - must be 10+ digits
+          else if (/^[\d\s\-\+\(\)]{10,}$/.test(cleaned)) {
+            const phoneDigits = cleaned.replace(/[^\d]/g, '')
+            if (phoneDigits.length >= 10) {
+              customerPhone = phoneDigits
+              customerIdentifiers.push(customerPhone)
             }
           }
           
-          // If it looks like an email, add it
-          if (cleaned.includes('@')) {
-            customerIdentifiers.push(cleaned.toLowerCase())
+          // Account number detection - 8 digits typical for UK bank accounts
+          else if (/^\d{8}$/.test(cleaned.replace(/[\s\-]/g, ''))) {
+            customerAccountNumber = cleaned.replace(/[\s\-]/g, '')
+            customerIdentifiers.push(customerAccountNumber)
           }
           
-          // If it contains multiple words, might be a name
-          if (cleaned.includes(' ') && !cleaned.includes('@')) {
-            customerIdentifiers.push(cleaned.toLowerCase())
-            // Also add without spaces
-            customerIdentifiers.push(cleaned.replace(/\s+/g, '').toLowerCase())
+          // Name detection - must have 2+ words and be primarily letters
+          else if (/^[a-zA-Z\s\-\'\.]+$/.test(cleaned) && 
+                   cleaned.includes(' ') && 
+                   cleaned.split(' ').length >= 2 &&
+                   cleaned.length > 3) {
+            // This could be a customer name
+            const nameParts = cleaned.split(' ').filter(part => part.length > 1)
+            if (nameParts.length >= 2) {
+              const formattedName = nameParts.join(' ').toLowerCase()
+              if (!customerName) { // Take the first valid name found
+                customerName = formattedName
+                customerIdentifiers.push(formattedName)
+                // Also add reversed format (Last, First)
+                if (nameParts.length === 2) {
+                  customerIdentifiers.push(`${nameParts[1]} ${nameParts[0]}`.toLowerCase())
+                }
+              }
+            }
           }
         })
         
-        // Add all identifiers for this customer
-        customerIdentifiers.forEach(identifier => {
-          if (identifier) {
+        // Only add customers that have at least one reliable identifier
+        if (customerIdentifiers.length > 0) {
+          customerIdentifiers.forEach(identifier => {
             customers.add(identifier)
-          }
-        })
-        
-        customerCount++
+          })
+          customerCount++
+          
+          console.log(`Customer ${customerCount}:`, {
+            name: customerName || 'none',
+            email: customerEmail || 'none', 
+            phone: customerPhone || 'none',
+            accountNumber: customerAccountNumber || 'none',
+            identifiers: customerIdentifiers.length
+          })
+        }
       })
 
       console.log('CSV Processing Summary:', {
         totalLines: lines.length,
         processedRows,
         skippedRows,
-        uniqueCustomers: customers.size,
-        customerCount
+        uniqueIdentifiers: customers.size,
+        totalCustomers: customerCount,
+        sampleIdentifiers: Array.from(customers).slice(0, 10) // Show first 10 for debugging
       })
 
       setDuplicateExclusions(Array.from(customers))
       setDuplicateCustomerCount(customerCount)
-      console.log(`Loaded ${customerCount} customers with ${customers.size} total identifiers from file`)
+      
+      if (customers.size === 0) {
+        setDuplicateCheckUploadError('No valid customer identifiers found in file. Please check the file format.')
+        return
+      }
+      
+      console.log(`Successfully loaded ${customerCount} customers with ${customers.size} unique identifiers from duplicate reference file`)
       
     } catch (error) {
       console.error('Error processing duplicate check file:', error)

@@ -542,30 +542,45 @@ export async function POST(request: NextRequest) {
     // Filter out duplicates if exclusion list provided
     let filteredSales = sales
     if (excludeCustomers && excludeCustomers.length > 0) {
+      console.log(`Filtering ${sales.length} sales against ${excludeCustomers.length} exclusion entries`)
+      
       filteredSales = sales.filter(sale => {
-        // Check various customer identifiers against the exclusion list
-        const customerEmail = sale.email?.toLowerCase() || ''
-        const customerPhone = sale.phoneNumber?.toLowerCase() || ''
-        const customerName = `${sale.customerFirstName} ${sale.customerLastName}`.toLowerCase()
-        const customerFullName = `${sale.customerFirstName}${sale.customerLastName}`.toLowerCase()
-
-        // Check if any identifier matches the exclusion list
+        // Normalize customer data for comparison
+        const customerEmail = sale.email?.toLowerCase().trim() || ''
+        const customerPhone = sale.phoneNumber?.replace(/[\s\-\(\)]/g, '') || '' // Remove formatting
+        const customerFullName = `${sale.customerFirstName} ${sale.customerLastName}`.toLowerCase().trim()
+        const customerAccountNumber = sale.accountNumber?.replace(/[\s\-]/g, '') || ''
+        
+        // Check if any identifier exactly matches the exclusion list
         const isExcluded = excludeCustomers.some((exclude: string) => {
-          const excludeStr = exclude.toLowerCase()
-          return (
-            customerEmail.includes(excludeStr) ||
-            excludeStr.includes(customerEmail) ||
-            customerPhone.includes(excludeStr) ||
-            excludeStr.includes(customerPhone) ||
-            customerName.includes(excludeStr) ||
-            excludeStr.includes(customerName) ||
-            customerFullName.includes(excludeStr) ||
-            excludeStr.includes(customerFullName)
-          )
+          const excludeStr = exclude.toLowerCase().trim()
+          
+          // Parse the exclusion entry to extract identifiers
+          // Could be: email, phone, name, or account number
+          const excludePhone = excludeStr.replace(/[\s\-\(\)]/g, '')
+          const excludeAccountNumber = excludeStr.replace(/[\s\-]/g, '')
+          
+          // Exact matches only (no partial matching)
+          const emailMatch = customerEmail !== '' && customerEmail === excludeStr
+          const phoneMatch = customerPhone !== '' && customerPhone === excludePhone
+          const nameMatch = customerFullName === excludeStr
+          const accountMatch = customerAccountNumber !== '' && customerAccountNumber === excludeAccountNumber
+          
+          // Also check reversed name format (Last, First)
+          const reversedName = `${sale.customerLastName} ${sale.customerFirstName}`.toLowerCase().trim()
+          const reversedNameMatch = reversedName === excludeStr
+          
+          return emailMatch || phoneMatch || nameMatch || accountMatch || reversedNameMatch
         })
+        
+        if (isExcluded) {
+          console.log(`Excluding customer: ${customerFullName} (${customerEmail}) - matched exclusion list`)
+        }
 
         return !isExcluded
       })
+      
+      console.log(`Filtered result: ${filteredSales.length} sales remaining after exclusion (${sales.length - filteredSales.length} excluded)`)
     }
 
     // Generate CSV with same format as GET handler
