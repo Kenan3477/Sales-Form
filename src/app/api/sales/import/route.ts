@@ -271,8 +271,12 @@ async function handleImport(request: NextRequest, context: any) {
       'SortCode': 'sortCode',
       'Acc Number': 'accountNumber',
       'First DD Date': 'directDebitDate',
+      'Date of Sale': 'createdAt', // Use Date of Sale instead of First DD Date for sale date
       'Customer Premium': 'totalPlanCost',
       'DD Amount': 'totalPlanCost',
+      'Boiler Package Price (Internal)': 'boilerPriceSelected',
+      'Single App Price (Internal)': 'singleAppPrice',
+      'App Bundle Price (Internal)': 'appBundlePrice',
       'Appliance 1 Type': 'appliance1',
       'Appliance 1 Value': 'appliance1Cost',
       'Appliance 2 Type': 'appliance2',
@@ -340,16 +344,53 @@ async function handleImport(request: NextRequest, context: any) {
         normalized[mappedKey] = value
       }
       
-      // Handle special cases for currency fields
-      const currencyFields = ['Customer Premium', 'DD Amount', 'Single App Price (Internal)', 'Boiler Package Price (Internal)']
-      for (const currencyField of currencyFields) {
-        if (normalized[currencyField]) {
-          const premium = normalized[currencyField]
-          if (typeof premium === 'string') {
-            normalized.totalPlanCost = parseFloat(premium.replace(/[£$,]/g, '')) || 0
+      // Handle special cases for currency fields and pricing
+      let totalCost = 0
+      let boilerPrice = 0
+      
+      // Check various price fields in order of priority
+      const priceFields = [
+        'Customer Premium', 
+        'DD Amount', 
+        'App Bundle Price (Internal)',
+        'Single App Price (Internal)', 
+        'Boiler Package Price (Internal)'
+      ]
+      
+      for (const priceField of priceFields) {
+        if (normalized[priceField]) {
+          const price = normalized[priceField]
+          if (typeof price === 'string') {
+            const parsedPrice = parseFloat(price.replace(/[£$,]/g, '')) || 0
+            if (parsedPrice > 0) {
+              if (priceField === 'Boiler Package Price (Internal)') {
+                boilerPrice = parsedPrice
+                normalized.boilerPriceSelected = parsedPrice
+                normalized.boilerCoverSelected = true
+              } else {
+                totalCost = parsedPrice
+              }
+            }
           }
-          delete normalized[currencyField]
+          delete normalized[priceField]
         }
+      }
+      
+      // Set total cost from the highest priority field found
+      if (totalCost > 0) {
+        normalized.totalPlanCost = totalCost
+      } else if (boilerPrice > 0) {
+        normalized.totalPlanCost = boilerPrice
+      }
+      
+      // Handle Date of Sale vs Created Date
+      if (normalized.createdAt) {
+        // Parse the date of sale for when the record was actually created
+        const saleDate = new Date(normalized.createdAt)
+        if (!isNaN(saleDate.getTime())) {
+          normalized._saleDate = saleDate // Store for later use
+        }
+        delete normalized.createdAt // Remove from data to avoid confusion
       }
       
       // Set account name from customer name if missing
@@ -565,7 +606,9 @@ async function handleImport(request: NextRequest, context: any) {
           }
         }
 
-        // Create sale object
+        // Create sale object with proper date handling
+        const saleDate = (saleData as any)._saleDate || new Date() // Use Date of Sale or current date as fallback
+        
         const processedSale = {
           customerFirstName: saleData.customerFirstName,
           customerLastName: saleData.customerLastName,
@@ -586,6 +629,7 @@ async function handleImport(request: NextRequest, context: any) {
           boilerPriceSelected: saleData.boilerPriceSelected ? Number(saleData.boilerPriceSelected) : null,
           totalPlanCost: Number(saleData.totalPlanCost),
           createdById: user.id,
+          createdAt: saleDate, // Set the actual sale date
           appliances: appliances
         }
 
