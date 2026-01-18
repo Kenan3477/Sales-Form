@@ -25,6 +25,16 @@ interface ImportResult {
       phoneNumber: string
       createdAt: Date
     }
+    data?: {
+      originalRowNumber?: number
+      postcode?: string
+      address?: string
+      accountName?: string
+      directDebitDate?: string
+      totalCost?: number
+      applianceCover?: boolean
+      boilerCover?: boolean
+    }
   }>
   data?: any[]
   summary?: {
@@ -41,6 +51,66 @@ export default function SalesImportForm() {
   const [isUploading, setIsUploading] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [showSampleFormat, setShowSampleFormat] = useState(false)
+
+  const downloadDuplicatesCSV = (duplicates: any[]) => {
+    if (!duplicates || duplicates.length === 0) return
+
+    // Create CSV headers
+    const headers = [
+      'Row Number',
+      'Customer Name',
+      'Email',
+      'Phone',
+      'Reason',
+      'Existing Customer Name',
+      'Existing Customer Created',
+      'Postcode',
+      'Address',
+      'Account Name',
+      'Direct Debit Date',
+      'Total Cost',
+      'Appliance Cover',
+      'Boiler Cover'
+    ]
+
+    // Convert duplicates to CSV rows
+    const rows = duplicates.map(duplicate => [
+      duplicate.data?.originalRowNumber || '',
+      duplicate.customer || '',
+      duplicate.email || '',
+      duplicate.phone || '',
+      duplicate.reason || '',
+      duplicate.existingCustomer 
+        ? `${duplicate.existingCustomer.customerFirstName} ${duplicate.existingCustomer.customerLastName}`
+        : '',
+      duplicate.existingCustomer 
+        ? new Date(duplicate.existingCustomer.createdAt).toLocaleDateString()
+        : '',
+      duplicate.data?.postcode || '',
+      duplicate.data?.address || '',
+      duplicate.data?.accountName || '',
+      duplicate.data?.directDebitDate || '',
+      duplicate.data?.totalCost || '',
+      duplicate.data?.applianceCover ? 'Yes' : 'No',
+      duplicate.data?.boilerCover ? 'Yes' : 'No'
+    ])
+
+    // Combine headers and rows
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n')
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `duplicates-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -318,9 +388,18 @@ export default function SalesImportForm() {
           {/* Duplicate Information */}
           {result.duplicates && result.duplicates.length > 0 && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="font-medium text-yellow-800 mb-2">
-                🔄 Duplicates Skipped ({result.duplicates.length}):
-              </p>
+              <div className="flex justify-between items-center mb-2">
+                <p className="font-medium text-yellow-800">
+                  🔄 Duplicates Skipped ({result.duplicates.length}):
+                </p>
+                <button
+                  onClick={() => downloadDuplicatesCSV(result.duplicates || [])}
+                  className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+                  title="Download duplicates as CSV"
+                >
+                  📥 Download CSV
+                </button>
+              </div>
               <div className="space-y-2">
                 {result.duplicates.map((duplicate, index) => (
                   <div key={index} className="text-sm text-yellow-700 bg-yellow-100 p-2 rounded">
@@ -329,6 +408,12 @@ export default function SalesImportForm() {
                       <p>📧 Email: {duplicate.email}</p>
                       <p>📞 Phone: {duplicate.phone}</p>
                       <p>❓ Reason: {duplicate.reason}</p>
+                      {duplicate.data?.originalRowNumber && (
+                        <p>📄 Row: {duplicate.data.originalRowNumber}</p>
+                      )}
+                      {duplicate.data?.totalCost && (
+                        <p>💷 Total: £{duplicate.data.totalCost}</p>
+                      )}
                       {duplicate.existingCustomer && (
                         <p className="text-yellow-600">
                           Matches existing customer: {duplicate.existingCustomer.customerFirstName} {duplicate.existingCustomer.customerLastName} 
