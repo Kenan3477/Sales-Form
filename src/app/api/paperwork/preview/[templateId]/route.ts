@@ -39,14 +39,7 @@ export async function GET(
         'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
       },
     });
-      },
-      agreement: {
-        startDate: new Date().toLocaleDateString(),
-        totalPrice: '£299.99',
-        monthlyPrice: '£24.99',
-        paymentMethod: 'Direct Debit'
-      },
-      appliances: [
+
   } catch (error) {
     console.error('Template preview error:', error);
     
