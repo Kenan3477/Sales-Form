@@ -243,9 +243,35 @@ export default function AdminPaperworkPage() {
       const result = await response.json();
       console.log('Success result:', result);
       
+      // Log detailed error information if there are failures
+      if (result.failed > 0) {
+        console.error('❌ Generation failures:', result.failed);
+        console.error('❌ Error details:', result.errors);
+        result.errors?.forEach((error: string, index: number) => {
+          console.error(`❌ Error ${index + 1}:`, error);
+        });
+      }
+      
+      if (result.generated > 0) {
+        console.log(`✅ Successfully generated ${result.generated} documents`);
+        result.documents?.forEach((doc: any, index: number) => {
+          console.log(`📄 Document ${index + 1}:`, {
+            fileName: doc.fileName,
+            customer: doc.customerName,
+            templateName: doc.templateName
+          });
+        });
+      }
+      
       // Show success message and refresh data
       setError(null);
-      alert(`Successfully generated ${result.generated} documents!`);
+      
+      // Show detailed message including failures
+      const message = result.generated > 0 
+        ? `Successfully generated ${result.generated} documents!${result.failed > 0 ? ` (${result.failed} failed)` : ''}`
+        : `Failed to generate documents. ${result.errors?.join(', ') || 'Unknown error'}`;
+        
+      alert(message);
       setSelectedSales([]);
       await fetchData();
     } catch (err) {
