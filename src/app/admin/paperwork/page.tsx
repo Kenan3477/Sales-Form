@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import TemplateEditor from '../../../components/paperwork/TemplateEditor';
-import { EnhancedTemplateService } from '../../../lib/paperwork/enhanced-template-service';
 
 interface DocumentTemplate {
   id: string;
@@ -116,21 +115,8 @@ export default function AdminPaperworkPage() {
   };
 
   const handleCreateTemplate = (templateType: string) => {
-    const enhancedService = new EnhancedTemplateService();
-    const defaultContent = enhancedService.getDefaultTemplate(templateType);
-    
-    setEditingTemplate({
-      id: '',
-      name: `New ${templateType.replace('_', ' ')} Template`,
-      templateType: templateType,
-      htmlContent: defaultContent,
-      version: 1,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
-    setShowEditor(true);
-    setNewTemplateType('');
+    // Template creation disabled - using Flash Team template only
+    setError('Template creation is disabled. Using Flash Team template only.');
   };
 
   const handleEditTemplate = (template: DocumentTemplate) => {
