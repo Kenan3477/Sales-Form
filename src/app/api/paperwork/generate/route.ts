@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
       phone: sale.phoneNumber,
       address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
       coverageStartDate: new Date().toLocaleDateString('en-GB'),
-      policyNumber: `FT-2025-${sale.id.slice(-6)}`,
-      totalCost: sale.totalPlanCost.toString(),
-      monthlyCost: (sale.totalPlanCost / 12).toFixed(2),
+      policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Format: TFT0123
+      totalCost: (sale.totalPlanCost * 12).toFixed(2), // Annual cost = monthly * 12
+      monthlyCost: sale.totalPlanCost.toFixed(2), // Monthly cost
       hasApplianceCover: sale.applianceCoverSelected,
       hasBoilerCover: sale.boilerCoverSelected,
       currentDate: new Date().toLocaleDateString('en-GB', { 
