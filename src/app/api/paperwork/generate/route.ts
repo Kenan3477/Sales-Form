@@ -74,11 +74,27 @@ export async function POST(request: NextRequest) {
       monthlyCost: sale.totalPlanCost.toFixed(2), // Monthly cost
       hasApplianceCover: sale.applianceCoverSelected,
       hasBoilerCover: sale.boilerCoverSelected,
+      appliances: sale.appliances.map(appliance => ({
+        name: appliance.appliance + (appliance.otherText ? ` (${appliance.otherText})` : ''),
+        coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
+        monthlyCost: `£${appliance.cost.toFixed(2)}`
+      })),
+      boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : null,
       currentDate: new Date().toLocaleDateString('en-GB', { 
         day: 'numeric',
         month: 'long',
         year: 'numeric'
-      })
+      }),
+      // Add agreement structure for backward compatibility with existing template
+      agreement: {
+        coverage: {
+          hasBoilerCover: sale.boilerCoverSelected,
+          boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+        }
+      },
+      metadata: {
+        agentName: sale.agentName || sale.createdBy?.email || 'Flash Team Support'
+      }
     };
 
     // Find the template record
