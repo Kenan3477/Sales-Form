@@ -37,25 +37,52 @@ export async function POST(request: NextRequest) {
     // Initialize enhanced template service
     const enhancedTemplateService = new EnhancedTemplateService();
 
+    // Load sale data for document generation
+    const { prisma } = await import('@/lib/prisma');
+    const sale = await prisma.sale.findUnique({
+      where: { id: validatedData.saleId },
+      include: {
+        appliances: true,
+        createdBy: {
+          select: {
+            email: true,
+          }
+        }
+      }
+    });
+
+    if (!sale) {
+      return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
+    }
+
     // Check user permissions (agents can only generate for their own sales)
     if (session.user.role === 'AGENT') {
-      const { prisma } = await import('@/lib/prisma');
-      const sale = await prisma.sale.findUnique({
-        where: { id: validatedData.saleId },
-        select: { createdById: true },
-      });
-
-      if (!sale) {
-        return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
-      }
-
       if (sale.createdById !== session.user.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
     }
 
+    // Transform sale data for template
+    const templateData = {
+      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+      email: sale.email,
+      phone: sale.phoneNumber,
+      address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+      coverageStartDate: new Date().toLocaleDateString('en-GB'),
+      policyNumber: `FT-2025-${sale.id.slice(-6)}`,
+      totalCost: sale.totalPlanCost.toString(),
+      monthlyCost: (sale.totalPlanCost / 12).toFixed(2),
+      hasApplianceCover: sale.applianceCoverSelected,
+      hasBoilerCover: sale.boilerCoverSelected,
+      currentDate: new Date().toLocaleDateString('en-GB', { 
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
+    };
+
     // Generate the document using enhanced service
-    const result = await enhancedTemplateService.generateDocument(validatedData.saleId, 'welcome_letter');
+    const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
 
     return NextResponse.json({
       success: true,
