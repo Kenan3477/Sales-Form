@@ -56,7 +56,7 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -64,7 +64,7 @@ export async function PUT(
     const saleId = id
     const body = await request.json()
 
-    // Check if the sale exists
+    // Check if the sale exists and if the user has permission to edit it
     const existingSale = await prisma.sale.findUnique({
       where: { id: saleId },
       include: { appliances: true }
@@ -72,6 +72,11 @@ export async function PUT(
 
     if (!existingSale) {
       return NextResponse.json({ error: 'Sale not found' }, { status: 404 })
+    }
+
+    // Check permissions: Admin can edit any sale, Agent can only edit their own sales
+    if (session.user.role !== 'ADMIN' && existingSale.createdById !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden: You can only edit your own sales' }, { status: 403 })
     }
 
     // Update the sale and appliances in a transaction
@@ -99,7 +104,6 @@ export async function PUT(
           sortCode: body.sortCode,
           accountNumber: body.accountNumber,
           directDebitDate: new Date(body.directDebitDate),
-          status: body.status || 'ACTIVE',
           applianceCoverSelected: body.applianceCoverSelected,
           boilerCoverSelected: body.boilerCoverSelected,
           boilerPriceSelected: body.boilerPriceSelected || null,

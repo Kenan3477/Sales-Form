@@ -109,6 +109,9 @@ export default function MySalesPage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">My Sales</h1>
             <p className="mt-2 text-sm text-gray-600">
+              View and edit your submitted sales. Click "View/Edit" to view details and make changes.
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
               View all your submitted sales and their details.
             </p>
           </div>
@@ -219,7 +222,7 @@ export default function MySalesPage() {
                           href={`/sales/${sale.id}`}
                           className="inline-flex items-center px-2.5 py-1.5 border border-blue-300 shadow-sm text-xs leading-4 font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
-                          👁️ View Details
+                          ✏️ View/Edit
                         </Link>
                       </div>
                     </div>
