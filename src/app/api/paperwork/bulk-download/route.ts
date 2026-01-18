@@ -117,7 +117,7 @@ async function handleBulkDownload(request: NextRequest, context: any) {
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
     const zipFileName = `documents_${timestamp}.zip`;
 
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(new Uint8Array(zipBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',
