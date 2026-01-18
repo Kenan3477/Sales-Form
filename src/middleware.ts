@@ -43,10 +43,16 @@ export async function middleware(req: NextRequest) {
     }
   }
   
-  // Check for bot traffic on sensitive endpoints
+  // Check for bot traffic on sensitive endpoints (allow bots from localhost in development)
   if (isBot(securityContext.userAgent) && req.nextUrl.pathname.startsWith('/api/')) {
-    logSecurityEvent('BOT_API_ACCESS', securityContext)
-    return new NextResponse('Bot access denied', { status: 403 })
+    const isLocalhost = securityContext.ip === '::1' || securityContext.ip === '127.0.0.1' || securityContext.ip === 'unknown'
+    if (process.env.NODE_ENV === 'development' && isLocalhost) {
+      // Allow bots from localhost in development
+      console.log('Allowing bot from localhost in development mode')
+    } else {
+      logSecurityEvent('BOT_API_ACCESS', securityContext)
+      return new NextResponse('Bot access denied', { status: 403 })
+    }
   }
   
   // Rate limiting for API endpoints

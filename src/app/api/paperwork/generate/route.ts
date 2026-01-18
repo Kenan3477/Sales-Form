@@ -81,21 +81,78 @@ export async function POST(request: NextRequest) {
       })
     };
 
+    // Find the template record
+    const template = await prisma.documentTemplate.findFirst({
+      where: {
+        templateType: validatedData.templateType,
+        isActive: true
+      }
+    });
+
+    if (!template) {
+      return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+    }
+
     // Generate the document using enhanced service
     const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+
+    // Generate filename and file path
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.html`;
+    const filePath = `storage/documents/${fileName}`;
+
+    // Save the document content to file
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    
+    // Ensure storage directory exists
+    const fullStoragePath = path.join(process.cwd(), 'storage/documents');
+    await fs.mkdir(fullStoragePath, { recursive: true });
+    
+    // Write the document content to file
+    const fullFilePath = path.join(process.cwd(), filePath);
+    await fs.writeFile(fullFilePath, result, 'utf8');
+
+    // Create GeneratedDocument record in database
+    console.log('📝 Creating GeneratedDocument record with data:', {
+      saleId: sale.id,
+      templateId: template.id,
+      filename: fileName,
+      filePath: filePath,
+      fileSize: Buffer.byteLength(result, 'utf8'),
+      mimeType: 'text/html'
+    });
+
+    const generatedDocument = await prisma.generatedDocument.create({
+      data: {
+        saleId: sale.id,
+        templateId: template.id,
+        filename: fileName,
+        filePath: filePath,
+        fileSize: Buffer.byteLength(result, 'utf8'),
+        mimeType: 'text/html',
+        metadata: {
+          templateType: validatedData.templateType,
+          customerName: templateData.customerName,
+          generationMethod: 'enhanced-template-service'
+        }
+      }
+    });
+
+    console.log('📝 Successfully created GeneratedDocument:', generatedDocument.id);
 
     return NextResponse.json({
       success: true,
       document: {
-        id: `doc-${Date.now()}`,
+        id: generatedDocument.id,
         content: result,
-        fileName: `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}.html`,
-        templateName: 'Flash Team Welcome Letter',
+        fileName: fileName,
+        templateName: template.name,
         saleId: sale.id,
         customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
         customerEmail: sale.email,
-        generatedAt: new Date().toISOString(),
-        downloadUrl: `/api/paperwork/download/${sale.id}`
+        generatedAt: generatedDocument.generatedAt.toISOString(),
+        downloadUrl: `/api/paperwork/download/${generatedDocument.id}`
       }
     });
 

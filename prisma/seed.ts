@@ -60,9 +60,60 @@ async function main() {
     })
   }
 
+  // Create sample sales records for testing
+  const sampleSales = [
+    {
+      customerFirstName: 'John',
+      customerLastName: 'Smith', 
+      title: 'Mr',
+      phoneNumber: '07700900123',
+      email: 'john.smith@email.com',
+      notes: 'Sample customer for testing',
+      mailingStreet: '123 High Street',
+      mailingCity: 'London',
+      mailingProvince: 'Greater London',
+      mailingPostalCode: 'SW1A 1AA',
+      accountName: 'John Smith',
+      sortCode: '12-34-56',
+      accountNumber: '12345678',
+      directDebitDate: new Date('2025-02-01'),
+      applianceCoverSelected: true,
+      boilerCoverSelected: true,
+      totalPlanCost: 299.00,
+      createdById: agent.id,
+    },
+    {
+      customerFirstName: 'Sarah',
+      customerLastName: 'Johnson',
+      title: 'Ms',
+      phoneNumber: '07700900456',
+      email: 'sarah.johnson@email.com',
+      notes: 'Another sample customer',
+      mailingStreet: '456 Oak Avenue',
+      mailingCity: 'Manchester',
+      mailingProvince: 'Greater Manchester',
+      mailingPostalCode: 'M1 1AA',
+      accountName: 'Sarah Johnson',
+      sortCode: '65-43-21',
+      accountNumber: '87654321',
+      directDebitDate: new Date('2025-02-15'),
+      applianceCoverSelected: false,
+      boilerCoverSelected: true,
+      totalPlanCost: 199.00,
+      createdById: agent.id,
+    }
+  ];
+
+  for (const saleData of sampleSales) {
+    await prisma.sale.create({
+      data: saleData
+    });
+  }
+
   console.log('✅ Seeding completed!')
   console.log('Admin user: admin@salesportal.com / admin123')
   console.log('Agent user: agent@salesportal.com / agent123')
+  console.log(`📄 Created ${sampleSales.length} sample sales records`)
 }
 
 main()

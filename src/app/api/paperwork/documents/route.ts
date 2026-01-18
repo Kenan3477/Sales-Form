@@ -26,12 +26,83 @@ export async function GET(request: NextRequest) {
     const saleId = url.searchParams.get('saleId');
     const userId = session.user.role === 'AGENT' ? session.user.id : undefined;
 
-    // Enhanced Template Service generates documents on-demand
-    // Documents are not stored in database for security and storage efficiency
+    // Query generated documents from database
+    const { prisma } = await import('@/lib/prisma');
+    
+    const whereClause: any = {
+      isDeleted: false
+    };
+
+    // If specific sale ID is requested
+    if (saleId) {
+      whereClause.saleId = saleId;
+    }
+
+    // If agent user, only show their own sales' documents
+    if (userId) {
+      whereClause.sale = {
+        createdById: userId
+      };
+    }
+
+    console.log('📋 Fetching documents with where clause:', JSON.stringify(whereClause, null, 2));
+
+    const documents = await prisma.generatedDocument.findMany({
+      where: whereClause,
+      include: {
+        sale: {
+          select: {
+            id: true,
+            customerFirstName: true,
+            customerLastName: true,
+            email: true,
+            createdBy: {
+              select: {
+                email: true
+              }
+            }
+          }
+        },
+        template: {
+          select: {
+            name: true,
+            templateType: true
+          }
+        }
+      },
+      orderBy: {
+        generatedAt: 'desc'
+      }
+    });
+
+    console.log('📋 Found documents from database:', documents.length);
+    if (documents.length > 0) {
+      console.log('📋 First document:', JSON.stringify(documents[0], null, 2));
+    }
+
+    // Transform the data for frontend consumption
+    const transformedDocuments = documents.map(doc => ({
+      id: doc.id,
+      saleId: doc.saleId,
+      templateId: doc.templateId,
+      templateName: doc.template.name,
+      fileName: doc.filename,
+      downloadCount: doc.downloadCount,
+      createdAt: doc.generatedAt.toISOString(),
+      sale: {
+        id: doc.sale.id,
+        customer: {
+          fullName: `${doc.sale.customerFirstName} ${doc.sale.customerLastName}`,
+          email: doc.sale.email
+        }
+      }
+    }));
+
+    console.log('📋 Returning transformed documents:', transformedDocuments.length);
+
     return NextResponse.json({
       success: true,
-      documents: [],
-      message: "Documents are generated on-demand using the Flash Team template. Use the Generate Documents tab to create new documents."
+      documents: transformedDocuments
     });
 
   } catch (error) {
