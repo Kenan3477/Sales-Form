@@ -2,6 +2,7 @@
 # Force Vercel redeploy with env vars Fri Jan 16 15:51:38 GMT 2026
 # Deploy customer deduplication and user management Fri Jan 17 10:50:00 GMT 2026
 # Deploy paperwork generation system fixes Sat Jan 18 13:57:00 GMT 2026
+# Deploy SMS status filtering and agent sales editing Sat Jan 18 19:30:00 GMT 2026
 
 FORCE_DEPLOY_TIMESTAMP=2026-01-18T13:57:00Z
 REASON=Deploy comprehensive customer deduplication system and user management
