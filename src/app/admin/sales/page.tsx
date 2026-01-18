@@ -23,6 +23,7 @@ interface Sale {
   sortCode: string
   accountNumber: string
   directDebitDate: string
+  status: string
   applianceCoverSelected: boolean
   boilerCoverSelected: boolean
   boilerPriceSelected: number | null
@@ -56,7 +57,10 @@ export default function AdminSalesPage() {
     search: '',
     planType: '', // appliance-only, boiler-only, both
     applianceCount: '', // 1, 2-3, 4-5, 6+
-    hasBoilerCover: '' // yes, no
+    hasBoilerCover: '', // yes, no
+    status: '', // ACTIVE, CANCELLED, etc.
+    directDebitDateFrom: '',
+    directDebitDateTo: ''
   })
   const [duplicateCheckFile, setDuplicateCheckFile] = useState<File | null>(null)
   const [showDuplicateCheck, setShowDuplicateCheck] = useState(false)
@@ -87,6 +91,9 @@ export default function AdminSalesPage() {
       if (filters.planType) params.append('planType', filters.planType)
       if (filters.applianceCount) params.append('applianceCount', filters.applianceCount)
       if (filters.hasBoilerCover) params.append('hasBoilerCover', filters.hasBoilerCover)
+      if (filters.status) params.append('status', filters.status)
+      if (filters.directDebitDateFrom) params.append('directDebitDateFrom', filters.directDebitDateFrom)
+      if (filters.directDebitDateTo) params.append('directDebitDateTo', filters.directDebitDateTo)
 
       const response = await fetch(`/api/sales?${params}`)
       if (response.ok) {
@@ -264,6 +271,24 @@ export default function AdminSalesPage() {
       if (filters.agent) {
         params.append('agent', filters.agent)
       }
+      if (filters.status) {
+        params.append('status', filters.status)
+      }
+      if (filters.directDebitDateFrom) {
+        params.append('directDebitDateFrom', filters.directDebitDateFrom)
+      }
+      if (filters.directDebitDateTo) {
+        params.append('directDebitDateTo', filters.directDebitDateTo)
+      }
+      if (filters.planType) {
+        params.append('planType', filters.planType)
+      }
+      if (filters.applianceCount) {
+        params.append('applianceCount', filters.applianceCount)
+      }
+      if (filters.hasBoilerCover) {
+        params.append('hasBoilerCover', filters.hasBoilerCover)
+      }
 
       // If duplicate exclusions exist, send them as a POST request
       let response
@@ -277,7 +302,13 @@ export default function AdminSalesPage() {
             filters: {
               dateFrom: filters.dateFrom,
               dateTo: filters.dateTo,
-              agent: filters.agent
+              agent: filters.agent,
+              status: filters.status,
+              directDebitDateFrom: filters.directDebitDateFrom,
+              directDebitDateTo: filters.directDebitDateTo,
+              planType: filters.planType,
+              applianceCount: filters.applianceCount,
+              hasBoilerCover: filters.hasBoilerCover
             },
             excludeCustomers: duplicateExclusions
           })
@@ -646,7 +677,7 @@ export default function AdminSalesPage() {
           {/* Filters */}
           <div className="bg-white p-4 rounded-lg shadow mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-3">Filters</h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-7">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 lg:grid-cols-9">
               <div>
                 <label htmlFor="search" className="block text-xs font-medium text-gray-700">
                   Search
@@ -681,6 +712,48 @@ export default function AdminSalesPage() {
                   id="dateTo"
                   value={filters.dateTo}
                   onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="status" className="block text-xs font-medium text-gray-700">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  value={filters.status}
+                  onChange={(e) => setFilters({...filters, status: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                >
+                  <option value="">All Status</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="CANCELLATION_NOTICE_RECEIVED">Cancellation Notice Received</option>
+                  <option value="FAILED_PAYMENT">Failed Payment</option>
+                  <option value="PROCESS_DD">Process DD</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="directDebitDateFrom" className="block text-xs font-medium text-gray-700">
+                  DD From
+                </label>
+                <input
+                  type="date"
+                  id="directDebitDateFrom"
+                  value={filters.directDebitDateFrom}
+                  onChange={(e) => setFilters({...filters, directDebitDateFrom: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="directDebitDateTo" className="block text-xs font-medium text-gray-700">
+                  DD To
+                </label>
+                <input
+                  type="date"
+                  id="directDebitDateTo"
+                  value={filters.directDebitDateTo}
+                  onChange={(e) => setFilters({...filters, directDebitDateTo: e.target.value})}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
                 />
               </div>
@@ -732,14 +805,14 @@ export default function AdminSalesPage() {
                   <option value="no">No Boiler Cover</option>
                 </select>
               </div>
-              <div className="flex items-end">
-                <button
-                  onClick={fetchSales}
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Apply Filters
-                </button>
-              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={fetchSales}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
 

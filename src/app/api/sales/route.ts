@@ -369,6 +369,9 @@ export async function GET(request: NextRequest) {
     const planType = searchParams.get('planType')
     const applianceCount = searchParams.get('applianceCount')
     const hasBoilerCover = searchParams.get('hasBoilerCover')
+    const status = searchParams.get('status')
+    const directDebitDateFrom = searchParams.get('directDebitDateFrom')
+    const directDebitDateTo = searchParams.get('directDebitDateTo')
 
     let whereClause: any = {}
 
@@ -407,6 +410,22 @@ export async function GET(request: NextRequest) {
     // Boiler cover filter
     if (hasBoilerCover) {
       whereClause.boilerCoverSelected = hasBoilerCover === 'yes'
+    }
+
+    // Status filter
+    if (status && status !== 'all') {
+      whereClause.status = status
+    }
+
+    // Direct debit date filters
+    if (directDebitDateFrom || directDebitDateTo) {
+      whereClause.directDebitDate = {}
+      if (directDebitDateFrom) {
+        whereClause.directDebitDate.gte = new Date(directDebitDateFrom)
+      }
+      if (directDebitDateTo) {
+        whereClause.directDebitDate.lte = new Date(directDebitDateTo + 'T23:59:59.999Z')
+      }
     }
 
     const sales = await prisma.sale.findMany({
