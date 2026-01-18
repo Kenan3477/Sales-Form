@@ -261,6 +261,7 @@ async function handleImport(request: NextRequest, context: any) {
       'Title': 'title',
       'Phone': 'phoneNumber',
       'Plain Phone': 'phoneNumber',
+      'Mobile': 'phoneNumber', // Alternative phone field
       'Email': 'email',
       'Mailing Street': 'mailingStreet',
       'First Line Add': 'mailingStreet',
@@ -299,7 +300,24 @@ async function handleImport(request: NextRequest, context: any) {
       'Payment Method': '_ignore',
       'Status': '_ignore',
       'Brand': '_ignore',
-      'Processor': '_ignore'
+      'Processor': '_ignore',
+      'Record Id': '_ignore',
+      'Customers Owner.id': '_ignore',
+      'Customers Owner': '_ignore',
+      'Date of Birth': '_ignore',
+      'Modified By.id': '_ignore',
+      'Modified By': '_ignore',
+      'Modified Time': '_ignore',
+      'Salutation': '_ignore',
+      'Last Activity Time': '_ignore',
+      'Tag': '_ignore',
+      'Unsubscribed Mode': '_ignore',
+      'Unsubscribed Time': '_ignore',
+      'Change Log Time': '_ignore',
+      'Locked': '_ignore',
+      'Last Enriched Time': '_ignore',
+      'Enrich Status': '_ignore',
+      'Created Date': '_ignore'
     }
 
     // Function to normalize data from CRM export format to import format
@@ -425,18 +443,32 @@ async function handleImport(request: NextRequest, context: any) {
       const saleData = salesData[i]
       
       try {
-        // Validate required fields (be more flexible for CRM imports)
-        const requiredFields = ['customerFirstName', 'customerLastName', 'phoneNumber', 'email']
-        const optionalFields = ['accountName', 'sortCode', 'accountNumber', 'directDebitDate', 'totalPlanCost']
+        // Validate required fields (be very lenient for CRM imports)
+        const criticalFields = ['customerFirstName', 'customerLastName']
+        const contactFields = ['phoneNumber', 'email']
         
         console.log(`Processing row ${i + 1}:`, Object.keys(saleData))
         
-        const missingFields = requiredFields.filter(field => !saleData[field as keyof ImportSaleData] || saleData[field as keyof ImportSaleData] === '')
-        if (missingFields.length > 0) {
-          console.log(`Row ${i + 1} missing critical fields:`, missingFields)
+        // Check for critical fields (name)
+        const missingCritical = criticalFields.filter(field => !saleData[field as keyof ImportSaleData] || saleData[field as keyof ImportSaleData] === '')
+        if (missingCritical.length > 0) {
+          console.log(`Row ${i + 1} missing critical fields:`, missingCritical)
           errors.push({
             row: i + 1,
-            error: `Missing required fields: ${missingFields.join(', ')}`
+            error: `Missing critical fields: ${missingCritical.join(', ')}`
+          })
+          continue
+        }
+        
+        // Check for at least one contact method (phone OR email)
+        const hasPhone = saleData.phoneNumber && saleData.phoneNumber !== ''
+        const hasEmail = saleData.email && saleData.email !== ''
+        
+        if (!hasPhone && !hasEmail) {
+          console.log(`Row ${i + 1} missing both phone and email`)
+          errors.push({
+            row: i + 1,
+            error: `Missing both phone and email - need at least one contact method`
           })
           continue
         }
@@ -459,11 +491,19 @@ async function handleImport(request: NextRequest, context: any) {
           let calculatedCost = 0
           for (let j = 1; j <= 10; j++) {
             const costField = saleData[`appliance${j}Cost` as keyof ImportSaleData] as number
-            if (costField) {
+            if (costField && !isNaN(costField)) {
               calculatedCost += Number(costField)
             }
           }
           saleData.totalPlanCost = calculatedCost || 1 // Minimum 1 for validation
+        }
+        
+        // Set default contact info if missing
+        if (!hasPhone) {
+          saleData.phoneNumber = '00000000000' // Default placeholder
+        }
+        if (!hasEmail) {
+          saleData.email = `${saleData.customerFirstName.toLowerCase()}.${saleData.customerLastName.toLowerCase()}@placeholder.com`
         }
 
         // Process appliances
@@ -479,12 +519,47 @@ async function handleImport(request: NextRequest, context: any) {
             const costField = saleData[`appliance${j}Cost` as keyof ImportSaleData] as number
             const coverLimitField = saleData[`appliance${j}CoverLimit` as keyof ImportSaleData] as number
             
-            if (applianceField && costField && coverLimitField) {
+            if (applianceField && applianceField !== '') {
+              // Parse cost - handle various formats and default to reasonable values
+              let cost = 0
+              if (costField !== undefined && costField !== null) {
+                const parsedCost = typeof costField === 'string' 
+                  ? parseFloat((costField as string).replace(/[£$,]/g, '')) 
+                  : Number(costField)
+                cost = isNaN(parsedCost) ? 0 : parsedCost
+              }
+              
+              // If cost is 0 or missing, set reasonable defaults based on appliance type
+              if (cost <= 0) {
+                const applianceType = applianceField.toLowerCase()
+                if (applianceType.includes('washing machine')) cost = 19.99
+                else if (applianceType.includes('fridge') || applianceType.includes('freezer')) cost = 10.00
+                else if (applianceType.includes('dishwasher')) cost = 15.00
+                else if (applianceType.includes('oven') || applianceType.includes('cooker')) cost = 25.00
+                else if (applianceType.includes('hob')) cost = 4.99
+                else cost = 15.00 // Default appliance cost
+              }
+              
+              // Parse cover limit
+              let coverLimit = coverLimitField
+              if (!coverLimit || coverLimit === 0) {
+                const applianceType = applianceField.toLowerCase()
+                if (applianceType.includes('washing machine') || applianceType.includes('dishwasher')) {
+                  coverLimit = 600
+                } else if (applianceType.includes('fridge') || applianceType.includes('freezer')) {
+                  coverLimit = 400
+                } else if (applianceType.includes('oven') || applianceType.includes('cooker')) {
+                  coverLimit = 800
+                } else {
+                  coverLimit = 500 // Default
+                }
+              }
+              
               appliances.push({
                 appliance: applianceField,
                 otherText: null,
-                coverLimit: Number(coverLimitField),
-                cost: Number(costField)
+                coverLimit: Number(coverLimit),
+                cost: Number(cost)
               })
             }
           }
