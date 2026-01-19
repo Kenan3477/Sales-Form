@@ -539,88 +539,92 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Filter out duplicates if exclusion list provided
+    // OPTIMIZED: Filter out duplicates with hash maps for O(1) lookups instead of O(n*m) nested loops
     let filteredSales = sales
     if (excludeCustomers && excludeCustomers.length > 0) {
-      console.log(`\n=== STARTING DEDUPLICATION ===`)
-      console.log(`Total sales: ${sales.length}`)
-      console.log(`Exclusion entries: ${excludeCustomers.length}`)
-      console.log(`Sample exclusions:`, excludeCustomers.slice(0, 5))
+      console.log(`🚀 OPTIMIZED DEDUPLICATION - Starting with ${excludeCustomers.length} exclusions...`)
       
       try {
-        // Pre-process and normalize the exclusion list
-        const normalizedExclusions = excludeCustomers.map((exclude: string, index: number) => {
-          try {
-            const normalized = exclude?.toLowerCase().replace(/\s+/g, ' ').trim() || ''
-            return {
-              original: exclude || '',
-              normalized,
-              phone: normalized.replace(/[\s\-\(\)\+]/g, ''),
-              account: normalized.replace(/[\s\-]/g, ''),
-              isEmail: normalized.includes('@'),
-              isPhone: /\d{6,}/.test(normalized),
-              isAccount: /^\d{8,}$/.test(normalized.replace(/[\s\-]/g, ''))
+        // Build hash maps for instant lookups - O(n) instead of O(n*m)
+        const exclusionMaps = {
+          emails: new Set<string>(),
+          phones: new Set<string>(),
+          phonePartials: new Set<string>(),
+          accounts: new Set<string>(),
+          fullNames: new Set<string>(),
+          singleNames: new Set<string>()
+        }
+        
+        // Build hash maps from exclusions - O(n) operation
+        excludeCustomers.forEach((exclude: string) => {
+          const trimmed = exclude?.trim() || ''
+          if (!trimmed) return
+          
+          const normalized = trimmed.toLowerCase().trim()
+          
+          // Email detection
+          if (normalized.includes('@')) {
+            exclusionMaps.emails.add(normalized)
+          }
+          // Phone detection (6+ digits)
+          else if (/\d{6,}/.test(normalized)) {
+            const cleanPhone = normalized.replace(/[\s\-\(\)\+]/g, '')
+            exclusionMaps.phones.add(cleanPhone)
+            if (cleanPhone.length >= 8) {
+              exclusionMaps.phonePartials.add(cleanPhone.slice(-8))
             }
-          } catch (error) {
-            console.error(`Error normalizing exclusion ${index}:`, error)
-            return {
-              original: exclude || '',
-              normalized: '',
-              phone: '',
-              account: '',
-              isEmail: false,
-              isPhone: false,
-              isAccount: false
+          }
+          // Account number detection (8+ digits)
+          else if (/^\d{8,}$/.test(normalized.replace(/[\s\-]/g, ''))) {
+            exclusionMaps.accounts.add(normalized.replace(/[\s\-]/g, ''))
+          }
+          // Name detection
+          else {
+            exclusionMaps.fullNames.add(normalized)
+            
+            // Handle comma format: "Last, First" -> "first last"  
+            if (normalized.includes(',')) {
+              const commaClean = normalized.replace(',', '').replace(/\s+/g, ' ').trim()
+              exclusionMaps.fullNames.add(commaClean)
+              
+              // Also try reversed: "Last, First" -> "last first"
+              const parts = normalized.split(',').map(p => p.trim())
+              if (parts.length === 2) {
+                exclusionMaps.fullNames.add(`${parts[1]} ${parts[0]}`)
+              }
+            }
+            
+            // Handle reversed format: "First Last" -> "last first"
+            if (normalized.includes(' ')) {
+              const parts = normalized.split(/\s+/)
+              if (parts.length === 2) {
+                exclusionMaps.fullNames.add(`${parts[1]} ${parts[0]}`)
+              }
+            }
+            
+            // Single name handling
+            if (!normalized.includes(' ') && !normalized.includes(',')) {
+              exclusionMaps.singleNames.add(normalized)
             }
           }
         })
         
-        console.log(`Normalized exclusions sample:`, normalizedExclusions.slice(0, 3))
+        console.log(`🚀 OPTIMIZED DEDUPLICATION - Hash maps built: emails=${exclusionMaps.emails.size}, phones=${exclusionMaps.phones.size}, names=${exclusionMaps.fullNames.size}`)
         
-        // Debug: Check for Margot Maitland in exclusions
-        const margotExclusions = normalizedExclusions.filter((ex: any) => 
-          ex.normalized.includes('margot') || ex.normalized.includes('maitland')
+        // Check for Margot specifically in exclusions
+        const margotFound = Array.from(exclusionMaps.fullNames).filter(name => 
+          name.includes('margot') || name.includes('maitland')
         )
-        if (margotExclusions.length > 0) {
-          console.log('*** FOUND MARGOT/MAITLAND EXCLUSIONS ***')
-          margotExclusions.forEach((ex: any, i: number) => {
-            console.log(`Exclusion ${i}:`, {
-              original: ex.original,
-              normalized: ex.normalized,
-              phone: ex.phone,
-              account: ex.account,
-              isEmail: ex.isEmail,
-              isPhone: ex.isPhone,
-              isAccount: ex.isAccount
-            })
-          })
-          console.log('*** END MARGOT/MAITLAND EXCLUSIONS ***')
+        if (margotFound.length > 0) {
+          console.log('🎯 MARGOT FOUND in exclusions:', margotFound)
         } else {
-          console.log('*** NO MARGOT/MAITLAND FOUND IN EXCLUSIONS ***')
-          console.log('Sample exclusions for debugging:')
-          normalizedExclusions.slice(0, 10).forEach((ex: any, i: number) => {
-            console.log(`${i}: "${ex.original}" -> "${ex.normalized}"`)
-          })
+          console.log('❌ MARGOT NOT FOUND in exclusions')
+          console.log('Sample exclusion names:', Array.from(exclusionMaps.fullNames).slice(0, 10))
         }
         
-        // Performance safeguard - limit processing if dataset is too large
-        const maxProcessableCustomers = 10000 // Reasonable limit for serverless
-        const maxProcessableExclusions = 50000 // Reasonable limit for exclusions
-        
-        if (sales.length > maxProcessableCustomers) {
-          console.warn(`Dataset too large: ${sales.length} sales (max: ${maxProcessableCustomers}). Processing first ${maxProcessableCustomers} only.`)
-        }
-        
-        if (normalizedExclusions.length > maxProcessableExclusions) {
-          console.warn(`Exclusion list too large: ${normalizedExclusions.length} exclusions (max: ${maxProcessableExclusions}). Processing first ${maxProcessableExclusions} only.`)
-        }
-        
-        const processableSales = sales.slice(0, maxProcessableCustomers)
-        const processableExclusions = normalizedExclusions.slice(0, maxProcessableExclusions)
-      
-      filteredSales = processableSales.filter((sale, index) => {
-        try {
-          // Comprehensive customer data normalization
+        // Apply deduplication with O(1) hash map lookups - O(m) instead of O(n*m)
+        const dedupStart = Date.now()
+        filteredSales = sales.filter((sale, index) => {
           const customer = {
             email: sale.email?.toLowerCase().trim() || '',
             phone: sale.phoneNumber?.replace(/[\s\-\(\)\+]/g, '') || '',
@@ -630,189 +634,66 @@ export async function POST(request: NextRequest) {
             reversedName: `${sale.customerLastName?.trim() || ''} ${sale.customerFirstName?.trim() || ''}`.toLowerCase().replace(/\s+/g, ' ').trim(),
             account: sale.accountNumber?.replace(/[\s\-]/g, '') || ''
           }
-          
-          // Progress logging every 10 customers
-          if (index % 10 === 0) {
-            console.log(`Processing customer ${index + 1}/${processableSales.length}: ${customer.fullName}`)
-          }
-          
-          // Debug specific customer - more comprehensive
-          const isTargetCustomer = customer.fullName.includes('margot') && customer.fullName.includes('maitland')
-          if (isTargetCustomer) {
-            console.log('*** DEBUGGING MARGOT MAITLAND ***')
-            console.log('Customer data:', customer)
-            console.log('Sale data:', {
-              id: sale.id,
-              email: sale.email,
-              phoneNumber: sale.phoneNumber,
-              accountNumber: sale.accountNumber,
-              customerFirstName: sale.customerFirstName,
-              customerLastName: sale.customerLastName
+
+          // Debug Margot specifically
+          const isMargot = customer.fullName.includes('margot') && customer.fullName.includes('maitland')
+          if (isMargot) {
+            console.log('🎯 MARGOT DEBUG (OPTIMIZED):', {
+              customerData: customer,
+              salesId: sale.id
             })
-            console.log('Will check against', processableExclusions.length, 'exclusions')
           }
+
+          // O(1) hash map lookups instead of nested loops
+          const matches: string[] = []
           
-          // Check against every exclusion entry - use OR logic, not else-if
-          const isExcluded = processableExclusions.some((exclusion: any, excIndex: number) => {
-            try {
-              const matches: string[] = []
-              
-              if (isTargetCustomer && (excIndex < 5 || exclusion.normalized.includes('margot') || exclusion.normalized.includes('maitland'))) {
-                console.log(`Checking against exclusion ${excIndex}:`, exclusion)
-              }
-              
-              // CRITICAL: Add null/undefined checks for all comparisons
-              
-              // 1. Exact email match (highest priority)
-              if (customer.email && exclusion.isEmail && exclusion.normalized && customer.email === exclusion.normalized) {
-                matches.push('email-exact')
-              }
-              
-              // 2. Exact phone number match
-              if (customer.phone && exclusion.isPhone && exclusion.phone && customer.phone === exclusion.phone) {
-                matches.push('phone-exact')
-              }
-              
-              // 3. Partial phone match (last 8+ digits)
-              if (customer.phone && exclusion.phone && customer.phone.length >= 8 && exclusion.phone.length >= 8) {
-                const customerLast8 = customer.phone.slice(-8)
-                const exclusionLast8 = exclusion.phone.slice(-8)
-                if (customerLast8 === exclusionLast8) {
-                  matches.push('phone-partial-8')
-                }
-              }
-              
-              // 4. Account number match
-              if (customer.account && exclusion.isAccount && exclusion.account && customer.account === exclusion.account) {
-                matches.push('account-exact')
-              }
-              
-              // 5. Exact full name match
-              if (customer.fullName && exclusion.normalized && customer.fullName === exclusion.normalized) {
-                matches.push('name-full-exact')
-              }
-              
-              // 6. Reversed name match (Last, First format)
-              if (customer.reversedName && exclusion.normalized && customer.reversedName === exclusion.normalized) {
-                matches.push('name-reversed-exact')
-              }
-              
-              // 7. Name with comma format match
-              if (customer.fullName && exclusion.normalized) {
-                const cleanedExclusion = exclusion.normalized.replace(',', '').replace(/\s+/g, ' ').trim()
-                if (customer.fullName === cleanedExclusion) {
-                  matches.push('name-comma-cleaned')
-                }
-              }
-              
-              // 8. First and last name individual checks (for partial entries)
-              if (exclusion.normalized && exclusion.normalized.includes(' ')) {
-                const parts = exclusion.normalized.split(/\s+/)
-                if (parts.length === 2) {
-                  const [first, last] = parts
-                  if ((customer.firstName === first && customer.lastName === last) ||
-                      (customer.firstName === last && customer.lastName === first)) {
-                    matches.push('name-parts-exact')
-                  }
-                }
-              }
-              
-              // 9. Single name match (if exclusion is just first or last name)
-              if (exclusion.normalized && !exclusion.normalized.includes(' ') && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
-                if (customer.firstName === exclusion.normalized || customer.lastName === exclusion.normalized) {
-                  matches.push('name-single')
-                }
-              }
-              
-              // 10. Fuzzy name matching - comprehensive word-based matching
-              if (exclusion.normalized && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
-                try {
-                  const exclusionWords = exclusion.normalized.split(/\s+/).filter((word: string) => word && word.length > 1)
-                  const customerWords = [...customer.firstName.split(/\s+/), ...customer.lastName.split(/\s+/)].filter((word: string) => word && word.length > 1)
-                  
-                  // Check if all customer name parts are found in exclusion
-                  if (customerWords.length >= 2 && exclusionWords.length >= 2) {
-                    const customerWordsInExclusion = customerWords.every((word: string) => 
-                      exclusionWords.some((excWord: string) => excWord && (excWord.includes(word) || word.includes(excWord)))
-                    )
-                    if (customerWordsInExclusion) {
-                      matches.push('name-fuzzy')
-                    }
-                  }
-                } catch (fuzzyError) {
-                  console.error('Error in fuzzy matching:', fuzzyError)
-                }
-              }
-              
-              // 11. Substring matching - check if exclusion contains customer name as substring
-              if (exclusion.normalized && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
-                if (customer.fullName && exclusion.normalized.includes(customer.fullName)) {
-                  matches.push('name-substring-in-exclusion')
-                }
-                if (customer.fullName && customer.fullName.includes(exclusion.normalized)) {
-                  matches.push('name-exclusion-in-customer')
-                }
-              }
-              
-              // 12. Case-insensitive contains matching
-              if (exclusion.normalized && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
-                const excLower = exclusion.normalized.toLowerCase()
-                const custLower = customer.fullName.toLowerCase()
-                if (customer.firstName && customer.lastName &&
-                    custLower.includes(customer.firstName.toLowerCase()) && 
-                    custLower.includes(customer.lastName.toLowerCase()) &&
-                    (excLower.includes(customer.firstName.toLowerCase()) && excLower.includes(customer.lastName.toLowerCase()))) {
-                  matches.push('name-contains-both-names')
-                }
-              }
-              
-              if (isTargetCustomer && (excIndex < 5 || exclusion.normalized.includes('margot') || exclusion.normalized.includes('maitland'))) {
-                console.log(`Exclusion ${excIndex} matches:`, matches)
-              }
-              
-              const hasMatch = matches.length > 0
-              if (hasMatch) {
-                console.log(`EXCLUDING: ${customer.fullName} (${customer.email}) - matched "${exclusion.original}" via: ${matches.join(', ')}`)
-              }
-              
-              return hasMatch
-              
-            } catch (exclusionError) {
-              console.error(`Error checking exclusion ${excIndex} for customer ${customer.fullName}:`, exclusionError)
-              return false // Don't exclude on error - be safe
-            }
-          })
-          
-          if (isTargetCustomer) {
-            console.log('*** MARGOT MAITLAND RESULT: isExcluded =', isExcluded, '***')
+          if (customer.email && exclusionMaps.emails.has(customer.email)) {
+            matches.push('email-exact')
+          }
+          if (customer.phone && exclusionMaps.phones.has(customer.phone)) {
+            matches.push('phone-exact')
+          }
+          if (customer.phone && customer.phone.length >= 8 && exclusionMaps.phonePartials.has(customer.phone.slice(-8))) {
+            matches.push('phone-partial-8')
+          }
+          if (customer.account && exclusionMaps.accounts.has(customer.account)) {
+            matches.push('account-exact')
+          }
+          if (customer.fullName && exclusionMaps.fullNames.has(customer.fullName)) {
+            matches.push('name-full-exact')
+          }
+          if (customer.reversedName && exclusionMaps.fullNames.has(customer.reversedName)) {
+            matches.push('name-reversed-exact')
+          }
+          if (customer.firstName && exclusionMaps.singleNames.has(customer.firstName)) {
+            matches.push('name-first-only')
+          }
+          if (customer.lastName && exclusionMaps.singleNames.has(customer.lastName)) {
+            matches.push('name-last-only')
+          }
+
+          const isExcluded = matches.length > 0
+
+          if (isMargot) {
+            console.log('🎯 MARGOT RESULT (OPTIMIZED): isExcluded =', isExcluded, ', matches:', matches)
+          }
+
+          if (isExcluded) {
+            console.log(`🚀 EXCLUDING: ${customer.fullName} via: ${matches.join(', ')}`)
           }
 
           return !isExcluded
-          
-        } catch (customerError) {
-          console.error(`Error processing customer ${index} (${sale.customerFirstName} ${sale.customerLastName}):`, customerError)
-          return true // Include customer on error - be safe
-        }
-      })
-      
-      console.log(`\n=== DEDUPLICATION COMPLETE ===`)
-      console.log(`Sales retained: ${filteredSales.length}`)
-      console.log(`Sales excluded: ${processableSales.length - filteredSales.length}`)
-      console.log(`Original sales count: ${sales.length}`)
-      console.log(`=== END DEDUPLICATION ===\n`)
-      
-      // If we had to truncate the original list, add remaining sales back
-      if (sales.length > processableSales.length) {
-        const remainingSales = sales.slice(processableSales.length)
-        filteredSales = [...filteredSales, ...remainingSales]
-        console.log(`Added ${remainingSales.length} unprocessed sales back to export (total: ${filteredSales.length})`)
-      }
-      
+        })
+        
+        const dedupEnd = Date.now()
+        console.log(`🚀 OPTIMIZED DEDUPLICATION - Completed in ${dedupEnd - dedupStart}ms (avg ${((dedupEnd - dedupStart) / sales.length).toFixed(2)}ms per sale)`)
+        console.log(`🚀 OPTIMIZED DEDUPLICATION - Excluded ${sales.length - filteredSales.length} duplicates, kept ${filteredSales.length}`)
+        
       } catch (deduplicationError) {
-        console.error('Critical error during deduplication:', deduplicationError)
+        console.error('🚨 Critical error during optimized deduplication:', deduplicationError)
         // Fall back to original sales list if deduplication fails
         filteredSales = sales
-        console.log('Falling back to unfiltered sales due to deduplication error')
+        console.log('🚨 Falling back to unfiltered sales due to deduplication error')
       }
     }
 
