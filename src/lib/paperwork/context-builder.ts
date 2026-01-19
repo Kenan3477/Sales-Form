@@ -145,9 +145,11 @@ export class ContextBuilder {
    * Format currency values
    */
   private static formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-CA', {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'CAD',
+      currency: 'GBP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(value);
   }
 

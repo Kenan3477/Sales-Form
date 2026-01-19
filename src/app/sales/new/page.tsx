@@ -601,7 +601,7 @@ export default function NewSalePage() {
                                     <span className="font-medium">Phone:</span> {duplicateCheck.customer.phoneNumber}
                                   </div>
                                   <div>
-                                    <span className="font-medium">Previous Sale:</span> £{duplicateCheck.customer.totalPlanCost.toFixed(2)}
+                                    <span className="font-medium">Previous Sale:</span> {formatCurrency(duplicateCheck.customer.totalPlanCost)}
                                   </div>
                                   <div>
                                     <span className="font-medium">Sale Date:</span> {new Date(duplicateCheck.customer.createdAt).toLocaleDateString()}
