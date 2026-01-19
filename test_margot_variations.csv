@@ -1,7 +1,0 @@
-Name,Email,Phone,Account
-Margot Maitland,margot@test.com,01234567890,12345678
-MARGOT MAITLAND,margot.caps@test.com,01234567891,12345679
-margot maitland,margot.lower@test.com,01234567892,12345680
-Maitland, Margot,margot.comma@test.com,01234567893,12345681
-Maitland Margot,margot.reversed@test.com,01234567894,12345682
-John Doe,john@test.com,09876543210,98765432

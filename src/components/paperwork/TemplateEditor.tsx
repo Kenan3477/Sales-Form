@@ -97,7 +97,7 @@ export default function TemplateEditor({
     { label: 'Agent Name', value: '{{metadata.agentName}}' },
     { label: 'Generation Date', value: '{{date metadata.generationDate "long"}}' },
     { label: 'Monthly Payment', value: '{{agreement.monthlyPaymentFormatted}}' },
-    { label: 'Total Cost', value: '{{agreement.totalCostFormatted}}' },
+    { label: 'Monthly Payment', value: '{{agreement.monthlyPaymentFormatted}}' },
     { label: 'Direct Debit Date', value: '{{date agreement.directDebitDate "long"}}' },
     { label: 'Account Name', value: '{{agreement.accountDetails.accountName}}' },
     { label: 'Sort Code', value: '{{agreement.accountDetails.sortCodeFormatted}}' },

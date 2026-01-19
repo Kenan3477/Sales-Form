@@ -374,7 +374,7 @@ export class TemplateService {
             </div>
             <div class="info-row">
                 <span class="label">Annual Total:</span>
-                <span class="value">{{agreement.totalCostFormatted}}</span>
+                <span class="value">{{agreement.monthlyPaymentFormatted}} monthly</span>
             </div>
             <div class="info-row">
                 <span class="label">Direct Debit Date:</span>
@@ -402,7 +402,7 @@ export class TemplateService {
                     <span class="value">{{this.coverLimitFormatted}}</span>
                 </div>
                 <div class="info-row">
-                    <span class="label">Annual Cost:</span>
+                    <span class="label">Monthly Cost:</span>
                     <span class="value">{{this.costFormatted}}</span>
                 </div>
             </div>
@@ -421,7 +421,7 @@ export class TemplateService {
             </div>
             {{#if agreement.coverage.boilerPriceFormatted}}
             <div class="info-row">
-                <span class="label">Annual Cost:</span>
+                <span class="label">Monthly Cost:</span>
                 <span class="value">{{agreement.coverage.boilerPriceFormatted}}</span>
             </div>
             {{/if}}
@@ -431,8 +431,8 @@ export class TemplateService {
 
     <div class="section">
         <div class="total-section">
-            <h3>Total Annual Coverage Cost</h3>
-            <div class="total-amount">{{agreement.totalCostFormatted}}</div>
+            <h3>Total Monthly Coverage Cost</h3>
+            <div class="total-amount">{{agreement.monthlyPaymentFormatted}}</div>
             <div style="margin-top: 10px; font-size: 12px;">
                 Monthly payments of {{agreement.monthlyPaymentFormatted}} beginning {{date agreement.directDebitDate 'month-year'}}
             </div>
@@ -443,7 +443,7 @@ export class TemplateService {
         <h3>What's Next?</h3>
         <ul style="margin-left: 20px; margin-top: 10px;">
             <li>Your coverage begins immediately upon completion of this agreement</li>
-            <li>You will receive your policy documents within 5-7 business days</li>
+            <li>You will receive your plan documents within 5-7 business days</li>
             <li>For claims or service, contact us at 1-800-COVERAGE</li>
             <li>Questions? Reach out to your agent {{#if metadata.agentName}}{{metadata.agentName}}{{else}}or our support team{{/if}}</li>
         </ul>
@@ -538,7 +538,7 @@ export class TemplateService {
                 <tr>
                     <th>Item</th>
                     <th>Coverage Limit</th>
-                    <th>Annual Cost</th>
+                    <th>Monthly Cost</th>
                 </tr>
             </thead>
             <tbody>

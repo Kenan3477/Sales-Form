@@ -17,6 +17,7 @@ export class ContextBuilder {
       appliances: this.buildApplianceContexts(sale),
       appliancesCount: sale.appliances.length,
       metadata: this.buildMetadataContext(sale, documentId),
+      planNumber: this.generatePlanNumber(sale), // Add for direct access
     };
   }
 
@@ -63,11 +64,10 @@ export class ContextBuilder {
    * Build agreement context
    */
   private static buildAgreementContext(sale: SaleWithRelations): AgreementContext {
-    const monthlyPayment = sale.totalPlanCost / 12; // Assuming annual cost
+    // totalPlanCost represents the monthly cost, not annual
+    const monthlyPayment = sale.totalPlanCost;
 
     return {
-      totalCost: sale.totalPlanCost,
-      totalCostFormatted: this.formatCurrency(sale.totalPlanCost),
       monthlyPayment,
       monthlyPaymentFormatted: this.formatCurrency(monthlyPayment),
       directDebitDate: sale.directDebitDate.toISOString(),
@@ -129,6 +129,14 @@ export class ContextBuilder {
       saleId: sale.id,
       documentId,
     };
+  }
+
+  /**
+   * Generate plan reference number
+   */
+  private static generatePlanNumber(sale: SaleWithRelations): string {
+    // Generate a plan number based on sale ID (e.g., TFT followed by sale ID)
+    return `TFT${sale.id.toString().padStart(4, '0')}`;
   }
 
   // Utility formatting methods
@@ -211,8 +219,6 @@ export class ContextBuilder {
         'customer.address.fullAddress',
       ],
       agreement: [
-        'agreement.totalCost',
-        'agreement.totalCostFormatted',
         'agreement.monthlyPayment',
         'agreement.monthlyPaymentFormatted',
         'agreement.directDebitDate',
@@ -244,6 +250,7 @@ export class ContextBuilder {
         'metadata.saleId',
         'metadata.documentId',
       ],
+      planNumber: ['planNumber'], // Plan reference number for direct access
     };
   }
 }

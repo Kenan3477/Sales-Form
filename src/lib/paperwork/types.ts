@@ -13,6 +13,7 @@ export interface TemplateContext {
   appliances: ApplianceContext[];
   appliancesCount: number;
   metadata: MetadataContext;
+  planNumber: string; // Plan reference number
 }
 
 export interface CustomerContext {
@@ -34,8 +35,6 @@ export interface AddressContext {
 }
 
 export interface AgreementContext {
-  totalCost: number;
-  totalCostFormatted: string;
   monthlyPayment: number;
   monthlyPaymentFormatted: string;
   directDebitDate: string;
