@@ -46,6 +46,7 @@ export default function AdminPaperworkPage() {
   const [editingTemplate, setEditingTemplate] = useState<DocumentTemplate | null>(null);
   const [newTemplateType, setNewTemplateType] = useState<string>('');
   const [selectedSales, setSelectedSales] = useState<string[]>([]);
+  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentFilter, setDocumentFilter] = useState<'all' | 'downloaded' | 'undownloaded'>('all');
@@ -447,6 +448,69 @@ export default function AdminPaperworkPage() {
     }
   };
 
+  const handleDeleteDocument = async (documentId: string) => {
+    try {
+      setError(null);
+      
+      const response = await fetch('/api/paperwork/delete-document', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete document');
+      }
+
+      // Remove the document from the local state
+      setDocuments(documents.filter(doc => doc.id !== documentId));
+      setSelectedDocuments(selectedDocuments.filter(id => id !== documentId));
+      
+      // Show success message
+      alert('Document deleted successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete document';
+      setError(errorMessage);
+      alert(errorMessage);
+    }
+  };
+
+  const handleRegenerateDocument = async (documentId: string, saleId: string, templateId: string) => {
+    try {
+      setError(null);
+      
+      const response = await fetch('/api/paperwork/regenerate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId,
+          saleId,
+          templateId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate document');
+      }
+
+      // Refresh the documents list
+      await fetchData();
+      
+      // Show success message
+      alert('Document regenerated successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to regenerate document';
+      setError(errorMessage);
+      alert(errorMessage);
+    }
+  };
+
   if (showEditor && editingTemplate) {
     return (
       <TemplateEditor
@@ -722,29 +786,70 @@ export default function AdminPaperworkPage() {
 
                   {/* Template Selection & Generation */}
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Templates</h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Select Templates</h3>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm text-gray-600">
+                          {selectedTemplates.length} of {templates.filter(t => t.isActive).length} selected
+                        </span>
+                        <button
+                          onClick={() => {
+                            const activeTemplates = templates.filter(t => t.isActive);
+                            if (selectedTemplates.length === activeTemplates.length) {
+                              setSelectedTemplates([]);
+                            } else {
+                              setSelectedTemplates(activeTemplates.map(t => t.id));
+                            }
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          {selectedTemplates.length === templates.filter(t => t.isActive).length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
+                    </div>
                     
                     <div className="space-y-3 mb-6">
                       {templates.filter(t => t.isActive).map((template) => (
-                        <div key={template.id} className="bg-white rounded-lg p-4 border">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium text-gray-900">{template.name}</h4>
-                              <p className="text-sm text-gray-500">
-                                {template.templateType?.replace('_', ' ') || 'Unknown Type'}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm text-gray-500">v{template.version}</div>
-                              <button
-                                onClick={() => window.open(`/api/paperwork/preview/${template.id}`, '_blank')}
-                                className="text-blue-600 hover:text-blue-800 text-sm"
-                              >
-                                Preview
-                              </button>
+                        <label key={template.id} className="flex items-center p-4 bg-white rounded-lg border hover:shadow-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedTemplates.includes(template.id)}
+                            onChange={() => {
+                              if (selectedTemplates.includes(template.id)) {
+                                setSelectedTemplates(selectedTemplates.filter(id => id !== template.id));
+                              } else {
+                                setSelectedTemplates([...selectedTemplates, template.id]);
+                              }
+                            }}
+                            className="mr-3 h-4 w-4 text-blue-600 rounded"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium text-gray-900">{template.name}</h4>
+                                <p className="text-sm text-gray-500">
+                                  {template.templateType?.replace(/[-_]/g, ' ') || 'Unknown Type'}
+                                </p>
+                                {template.description && (
+                                  <p className="text-sm text-gray-400 mt-1">{template.description}</p>
+                                )}
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="text-sm text-gray-500">v{template.version}</div>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.open(`/api/paperwork/preview/${template.id}`, '_blank');
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  Preview
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        </label>
                       ))}
                     </div>
 
@@ -755,21 +860,49 @@ export default function AdminPaperworkPage() {
                       </div>
                     )}
 
-                    {selectedSales.length > 0 && templates.filter(t => t.isActive).length > 0 && (
+                    {selectedSales.length > 0 && selectedTemplates.length > 0 && (
                       <div className="mt-6 pt-4 border-t">
                         <button
-                          onClick={() => handleBulkGenerate(templates.filter(t => t.isActive).map(t => t.id))}
+                          onClick={() => handleBulkGenerate(selectedTemplates)}
                           disabled={generating}
                           className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
                         >
                           {generating 
                             ? 'Generating Documents...' 
-                            : `Generate Documents for ${selectedSales.length} Customer${selectedSales.length === 1 ? '' : 's'}`
+                            : `Generate ${selectedTemplates.length} Template${selectedTemplates.length === 1 ? '' : 's'} for ${selectedSales.length} Customer${selectedSales.length === 1 ? '' : 's'}`
                           }
                         </button>
                         <p className="text-sm text-gray-500 text-center mt-2">
-                          This will generate {selectedSales.length} × {templates.filter(t => t.isActive).length} = {selectedSales.length * templates.filter(t => t.isActive).length} documents
+                          This will generate {selectedSales.length} × {selectedTemplates.length} = {selectedSales.length * selectedTemplates.length} documents
                         </p>
+                      </div>
+                    )}
+
+                    {selectedSales.length > 0 && selectedTemplates.length === 0 && (
+                      <div className="mt-6 pt-4 border-t">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <div className="flex">
+                            <div className="text-yellow-400 text-xl mr-3">⚠️</div>
+                            <div>
+                              <h4 className="text-yellow-800 font-medium">Select Templates</h4>
+                              <p className="text-yellow-700 text-sm">Please select at least one template to generate documents.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedSales.length === 0 && selectedTemplates.length > 0 && (
+                      <div className="mt-6 pt-4 border-t">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="flex">
+                            <div className="text-blue-400 text-xl mr-3">ℹ️</div>
+                            <div>
+                              <h4 className="text-blue-800 font-medium">Select Customers</h4>
+                              <p className="text-blue-700 text-sm">Please select at least one customer to generate documents for.</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -931,20 +1064,46 @@ export default function AdminPaperworkPage() {
                               {new Date(document.createdAt).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <a
-                                href={`/api/paperwork/download/${document.id}`}
-                                className="text-blue-600 hover:text-blue-900 mr-4"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                📥 Download
-                              </a>
-                              <a
-                                href={`/admin/sales/${document.saleId}`}
-                                className="text-green-600 hover:text-green-900"
-                              >
-                                👁️ View Sale
-                              </a>
+                              <div className="flex space-x-3">
+                                <a
+                                  href={`/api/paperwork/download/${document.id}`}
+                                  className="text-blue-600 hover:text-blue-900"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Download Document"
+                                >
+                                  📥 Download
+                                </a>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Are you sure you want to regenerate this document? This will overwrite the existing document.')) {
+                                      handleRegenerateDocument(document.id, document.saleId, document.templateId);
+                                    }
+                                  }}
+                                  className="text-yellow-600 hover:text-yellow-900"
+                                  title="Regenerate Document"
+                                >
+                                  🔄 Regenerate
+                                </button>
+                                <a
+                                  href={`/admin/sales/${document.saleId}`}
+                                  className="text-green-600 hover:text-green-900"
+                                  title="View Sale Details"
+                                >
+                                  👁️ View Sale
+                                </a>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to delete the document "${document.fileName}"? This action cannot be undone.`)) {
+                                      handleDeleteDocument(document.id);
+                                    }
+                                  }}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Delete Document"
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
