@@ -139,10 +139,18 @@ export class EnhancedTemplateService {
             width: 20px;
             height: 20px;
             background: white;
-            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
-            display: inline-block;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             margin-right: 10px;
             vertical-align: middle;
+            font-size: 12px;
+            color: #ff6500;
+        }
+        
+        .activation-banner .lightning-small::before {
+            content: '⚡';
         }
         
         .activation-text {

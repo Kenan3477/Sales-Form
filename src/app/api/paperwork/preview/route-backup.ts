@@ -78,17 +78,8 @@ export async function GET(request: NextRequest) {
             width: 32px;
             height: 32px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
+            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
             box-shadow: 0 0 10px rgba(255,101,0,0.4);
-        }
-        
-        .lightning-icon::before {
-            content: '⚡';
         }
         
         .logo-text {
@@ -149,26 +140,14 @@ export async function GET(request: NextRequest) {
             width: 20px;
             height: 20px;
             background: white;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
+            display: inline-block;
             margin-right: 10px;
             vertical-align: middle;
         }
         
         .activation-text {
             font-size: 18px;
-        }
-        .lightning-small::before {
-            content: "⚡";
-            font-size: 16px;
-            color: #3498db;
             font-weight: bold;
             position: relative;
             z-index: 1;
@@ -350,11 +329,6 @@ export async function GET(request: NextRequest) {
         
         .important-title {
             font-size: 18px;
-        }
-        .lightning-small::before {
-            content: "⚡";
-            font-size: 16px;
-            color: #3498db;
             font-weight: bold;
             color: #1a365d;
             margin-bottom: 15px;
@@ -519,7 +493,7 @@ export async function GET(request: NextRequest) {
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability.</span>
+                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (now for old wree ahere applicable), subject to availability.</span>
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
@@ -560,11 +534,10 @@ export async function GET(request: NextRequest) {
                         If you pay by Direct Debit, payments will appear on your bank statement as Warmcare.
                     </div>
                     <ul class="guarantee-list">
-                        <li>This Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits</li>
-                        <li>If there are any changes to the amount, date or frequency of your Direct Debit we will notify you at least 10 working days in advance</li>
-                        <li>If you request us to collect a payment, confirmation will be given at the time of the request</li>
-                        <li>If an error is made in the payment of your Direct Debit, by us or your bank or building society you are entitled to a full and immediate refund of the amount paid</li>
-                        <li>You can cancel your Direct Debit at any time via your bank or building society</li>
+                        <li>Call 0330 822 7695</li>
+                        <li>Quote your plan reference {{planNumber}}</li>
+                        <li>Describe the issue so we can assess eligibility</li>
+                        <li>You may cancel your Direct Debit at any time via your bank or building society</li>
                     </ul>
                 </div>
             </div>
@@ -767,17 +740,8 @@ export async function POST(request: NextRequest) {
             width: 32px;
             height: 32px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
+            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
             box-shadow: 0 0 10px rgba(255,101,0,0.4);
-        }
-        
-        .lightning-icon::before {
-            content: '⚡';
         }
         
         .logo-text {
@@ -838,26 +802,14 @@ export async function POST(request: NextRequest) {
             width: 20px;
             height: 20px;
             background: white;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
+            display: inline-block;
             margin-right: 10px;
             vertical-align: middle;
         }
         
         .activation-text {
             font-size: 18px;
-        }
-        .lightning-small::before {
-            content: "⚡";
-            font-size: 16px;
-            color: #3498db;
             font-weight: bold;
             position: relative;
             z-index: 1;
@@ -1039,11 +991,6 @@ export async function POST(request: NextRequest) {
         
         .important-title {
             font-size: 18px;
-        }
-        .lightning-small::before {
-            content: "⚡";
-            font-size: 16px;
-            color: #3498db;
             font-weight: bold;
             color: #1a365d;
             margin-bottom: 15px;
@@ -1208,7 +1155,7 @@ export async function POST(request: NextRequest) {
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability.</span>
+                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (now for old wree ahere applicable), subject to availability.</span>
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
@@ -1249,11 +1196,10 @@ export async function POST(request: NextRequest) {
                         If you pay by Direct Debit, payments will appear on your bank statement as Warmcare.
                     </div>
                     <ul class="guarantee-list">
-                        <li>This Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits</li>
-                        <li>If there are any changes to the amount, date or frequency of your Direct Debit we will notify you at least 10 working days in advance</li>
-                        <li>If you request us to collect a payment, confirmation will be given at the time of the request</li>
-                        <li>If an error is made in the payment of your Direct Debit, by us or your bank or building society you are entitled to a full and immediate refund of the amount paid</li>
-                        <li>You can cancel your Direct Debit at any time via your bank or building society</li>
+                        <li>Call 0330 822 7695</li>
+                        <li>Quote your plan reference {{planNumber}}</li>
+                        <li>Describe the issue so we can assess eligibility</li>
+                        <li>You may cancel your Direct Debit at any time via your bank or building society</li>
                     </ul>
                 </div>
             </div>
