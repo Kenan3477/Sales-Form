@@ -606,7 +606,7 @@ export class EnhancedTemplateService {
    * Replace simple variables in template
    */
   private replaceVariables(html: string, data: any): string {
-    return html.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+    return html.replace(/\{\{([^}]+)\}\}/g, (match: string, key: string) => {
       const value = this.getNestedValue(data, key.trim());
       return value !== undefined ? String(value) : match;
     });
@@ -617,7 +617,7 @@ export class EnhancedTemplateService {
    */
   private processEachBlocks(html: string, data: any): string {
     return html.replace(/\{\{#each ([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g, 
-      (match, arrayName, blockContent) => {
+      (match: string, arrayName: string, blockContent: string) => {
         const arrayData = this.getNestedValue(data, arrayName.trim());
         if (!Array.isArray(arrayData)) {
           return '';
@@ -634,7 +634,7 @@ export class EnhancedTemplateService {
           
           // Replace nested properties if item is object
           if (typeof item === 'object' && item !== null) {
-            itemHtml = itemHtml.replace(/\{\{([^}]+)\}\}/g, (propMatch, propKey) => {
+            itemHtml = itemHtml.replace(/\{\{([^}]+)\}\}/g, (propMatch: string, propKey: string) => {
               if (propKey.trim() === 'this') return String(item);
               if (propKey.trim() === '@index') return String(index);
               
