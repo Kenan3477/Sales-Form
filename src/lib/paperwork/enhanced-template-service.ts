@@ -508,6 +508,37 @@ export class EnhancedTemplateService {
                             <span class="detail-value">£{{monthlyCost}}</span>
                         </div>
                         
+                        <!-- Coverage Summary -->
+                        <div style="background: #f8fafc; border-radius: 6px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #ff6500;">
+                            <div style="font-weight: bold; color: #1a365d; margin-bottom: 10px; font-size: 14px;">Your Coverage Includes:</div>
+                            {{#if applianceCount}}
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <div style="width: 16px; height: 16px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: white; font-size: 10px; font-weight: bold;">✓</span>
+                                </div>
+                                <span style="font-size: 14px; color: #374151;"><strong>{{applianceCount}} Appliance{{#if applianceCount > 1}}s{{/if}}</strong> - Kitchen and household appliances</span>
+                            </div>
+                            {{/if}}
+                            {{#if boilerCover}}
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <div style="width: 16px; height: 16px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: white; font-size: 10px; font-weight: bold;">✓</span>
+                                </div>
+                                <span style="font-size: 14px; color: #374151;"><strong>Boiler & Central Heating</strong> - Full heating system coverage</span>
+                            </div>
+                            {{/if}}
+                            {{#if annualBoilerService}}
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; background: #ff6500; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: white; font-size: 10px; font-weight: bold;">⚡</span>
+                                </div>
+                                <span style="font-size: 14px; color: #374151;"><strong>Annual Boiler Service</strong> - Yearly maintenance included</span>
+                            </div>
+                            {{/if}}
+                        </div>
+                        
+                        <div style="font-weight: 600; color: #1a365d; margin-bottom: 12px; font-size: 14px;">Plan Benefits:</div>
+                        
                         <div class="checklist-item">
                             <div class="check-icon"></div>
                             <span>Access to qualified engineers for covered breakdowns</span>
@@ -762,7 +793,10 @@ export class EnhancedTemplateService {
       agreement: {
         referenceNumber: 'TFT0123'
       },
-      monthlyCost: '29.99'
+      monthlyCost: '29.99',
+      applianceCount: 5,
+      boilerCover: true,
+      annualBoilerService: true
     };
     
     return this.generateDocument(templateId, sampleData);
