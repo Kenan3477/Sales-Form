@@ -391,6 +391,25 @@ export default function EditSalePage() {
                     type="text"
                     value={formData.sortCode}
                     onChange={(e) => setFormData({...formData, sortCode: e.target.value})}
+                    onPaste={(e) => {
+                      // Handle paste event to clean the pasted data
+                      e.preventDefault()
+                      const paste = e.clipboardData.getData('text')
+                      const cleanPaste = paste.replace(/[\s\-\D]/g, '').slice(0, 6) // Remove non-digits and limit to 6 characters
+                      setFormData({...formData, sortCode: cleanPaste})
+                    }}
+                    onInput={(e) => {
+                      // Clean input as user types, but allow hyphens for user-friendly display
+                      const target = e.target as HTMLInputElement
+                      let cleanValue = target.value.replace(/[^\d\-]/g, '') // Allow digits and hyphens
+                      // Remove spaces and limit to reasonable length
+                      if (cleanValue.replace(/\-/g, '').length > 6) {
+                        cleanValue = cleanValue.replace(/\-/g, '').slice(0, 6)
+                      }
+                      if (target.value !== cleanValue) {
+                        setFormData({...formData, sortCode: cleanValue})
+                      }
+                    }}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                   />
                 </div>
@@ -400,6 +419,21 @@ export default function EditSalePage() {
                     type="text"
                     value={formData.accountNumber}
                     onChange={(e) => setFormData({...formData, accountNumber: e.target.value})}
+                    onPaste={(e) => {
+                      // Handle paste event to clean the pasted data
+                      e.preventDefault()
+                      const paste = e.clipboardData.getData('text')
+                      const cleanPaste = paste.replace(/[\s\-\D]/g, '').slice(0, 8) // Remove non-digits and limit to 8 characters
+                      setFormData({...formData, accountNumber: cleanPaste})
+                    }}
+                    onInput={(e) => {
+                      // Clean input as user types
+                      const target = e.target as HTMLInputElement
+                      const cleanValue = target.value.replace(/[\s\-\D]/g, '').slice(0, 8)
+                      if (target.value !== cleanValue) {
+                        setFormData({...formData, accountNumber: cleanValue})
+                      }
+                    }}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                   />
                 </div>

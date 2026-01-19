@@ -243,6 +243,12 @@ export default function NewSalePage() {
     }
     
     // Manual validation for required fields since schema resolver is disabled
+    if (!data.title || data.title.trim() === '') {
+      setError('Title is required')
+      setLoading(false)
+      return
+    }
+    
     if (!data.mailingCity || data.mailingCity.trim() === '') {
       setError('City is required')
       setLoading(false)
@@ -253,6 +259,28 @@ export default function NewSalePage() {
       setError('Please select an agent')
       setLoading(false)
       return
+    }
+    
+    // Validate and format sort code (must be exactly 6 digits)
+    if (data.sortCode) {
+      const cleanSortCode = data.sortCode.replace(/[\s\-]/g, '') // Remove spaces and hyphens
+      if (!/^\d{6}$/.test(cleanSortCode)) {
+        setError('Sort code must be exactly 6 digits (e.g., 123456 or 12-34-56)')
+        setLoading(false)
+        return
+      }
+      data.sortCode = cleanSortCode // Update data with cleaned sort code
+    }
+    
+    // Validate and format account number (must be exactly 8 digits)
+    if (data.accountNumber) {
+      const cleanAccountNumber = data.accountNumber.replace(/[\s\-]/g, '') // Remove spaces and hyphens
+      if (!/^\d{8}$/.test(cleanAccountNumber)) {
+        setError('Account number must be exactly 8 digits')
+        setLoading(false)
+        return
+      }
+      data.accountNumber = cleanAccountNumber // Update data with cleaned account number
     }
     
     try {
@@ -647,10 +675,30 @@ export default function NewSalePage() {
                     </label>
                     <input
                       type="text"
-                      placeholder="123456"
+                      placeholder="12-34-56 or 123456"
                       {...register('sortCode')}
+                      onPaste={(e) => {
+                        // Handle paste event to clean the pasted data
+                        e.preventDefault()
+                        const paste = e.clipboardData.getData('text')
+                        const cleanPaste = paste.replace(/[\s\-\D]/g, '').slice(0, 6) // Remove non-digits and limit to 6 characters
+                        setValue('sortCode', cleanPaste)
+                      }}
+                      onInput={(e) => {
+                        // Clean input as user types, but allow hyphens for user-friendly display
+                        const target = e.target as HTMLInputElement
+                        let cleanValue = target.value.replace(/[^\d\-]/g, '') // Allow digits and hyphens
+                        // Remove spaces and limit to reasonable length
+                        if (cleanValue.replace(/\-/g, '').length > 6) {
+                          cleanValue = cleanValue.replace(/\-/g, '').slice(0, 6)
+                        }
+                        if (target.value !== cleanValue) {
+                          setValue('sortCode', cleanValue)
+                        }
+                      }}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     />
+                    <p className="mt-1 text-xs text-gray-500">6 digits (hyphens will be removed automatically)</p>
                     {errors.sortCode && (
                       <p className="mt-1 text-sm text-red-600">{errors.sortCode.message}</p>
                     )}
@@ -664,8 +712,24 @@ export default function NewSalePage() {
                       type="text"
                       placeholder="12345678"
                       {...register('accountNumber')}
+                      onPaste={(e) => {
+                        // Handle paste event to clean the pasted data
+                        e.preventDefault()
+                        const paste = e.clipboardData.getData('text')
+                        const cleanPaste = paste.replace(/[\s\-\D]/g, '').slice(0, 8) // Remove non-digits and limit to 8 characters
+                        setValue('accountNumber', cleanPaste)
+                      }}
+                      onInput={(e) => {
+                        // Clean input as user types
+                        const target = e.target as HTMLInputElement
+                        const cleanValue = target.value.replace(/[\s\-\D]/g, '').slice(0, 8)
+                        if (target.value !== cleanValue) {
+                          setValue('accountNumber', cleanValue)
+                        }
+                      }}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     />
+                    <p className="mt-1 text-xs text-gray-500">8 digits only</p>
                     {errors.accountNumber && (
                       <p className="mt-1 text-sm text-red-600">{errors.accountNumber.message}</p>
                     )}

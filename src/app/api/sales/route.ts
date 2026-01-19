@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { saleSchema } from '@/lib/schemas'
 import { withSecurity } from '@/lib/apiSecurity'
 import { logSecurityEvent, createSecurityContext, sanitizeInput } from '@/lib/security'
+import { z } from 'zod'
 
 /**
  * Enhanced duplicate checking function for sales creation
@@ -229,7 +230,20 @@ export async function POST(request: NextRequest) {
       hasIgnoreDuplicateFlag: !!body.ignoreDuplicateWarning
     })
 
-    const validatedData = saleSchema.parse(body)
+    // Fetch field configurations for dynamic validation
+    const fieldConfigurations = await prisma.fieldConfiguration.findMany()
+    const fieldConfigMap = Object.fromEntries(
+      fieldConfigurations.map(config => [config.fieldName, config.isRequired])
+    )
+    
+    // Create dynamic schema based on field configuration
+    const dynamicSaleSchema = saleSchema.extend({
+      email: fieldConfigMap.email 
+        ? z.string().email('Valid email is required') 
+        : z.string().email('Valid email is required').optional().or(z.literal(''))
+    })
+
+    const validatedData = dynamicSaleSchema.parse(body)
 
     // Calculate total cost
     let totalCost = 0
@@ -247,7 +261,7 @@ export async function POST(request: NextRequest) {
       const duplicateCheck = await checkForSaleDuplicate({
         customerFirstName: validatedData.customerFirstName,
         customerLastName: validatedData.customerLastName,
-        email: validatedData.email,
+        email: validatedData.email || undefined, // Handle optional email
         phoneNumber: validatedData.phoneNumber,
         accountNumber: validatedData.accountNumber,
         totalPlanCost: totalCost
@@ -286,7 +300,7 @@ export async function POST(request: NextRequest) {
         customerLastName: validatedData.customerLastName,
         title: validatedData.title,
         phoneNumber: validatedData.phoneNumber,
-        email: validatedData.email,
+        email: validatedData.email || '', // Handle optional email
         notes: validatedData.notes,
         mailingStreet: validatedData.mailingStreet,
         mailingCity: validatedData.mailingCity,
@@ -379,7 +393,18 @@ export async function GET(request: NextRequest) {
     if (!isAdmin) {
       whereClause.createdById = session.user.id
     } else if (agentFilter) {
-      whereClause.createdById = agentFilter
+      // Filter by agent email - need to find the user with that email first
+      const agent = await prisma.user.findFirst({
+        where: { email: agentFilter },
+        select: { id: true }
+      })
+      
+      if (agent) {
+        whereClause.createdById = agent.id
+      } else {
+        // If agent not found, return no results
+        whereClause.createdById = 'non-existent-id'
+      }
     }
 
     // Date filters
