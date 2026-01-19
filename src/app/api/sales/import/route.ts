@@ -584,7 +584,8 @@ async function handleImport(request: NextRequest, context: any) {
           saleData.phoneNumber = '00000000000' // Default placeholder
         }
         if (!hasEmail) {
-          saleData.email = `${saleData.customerFirstName.toLowerCase()}.${saleData.customerLastName.toLowerCase()}@placeholder.com`
+          // Leave email blank instead of generating placeholder
+          saleData.email = ''
         }
 
         // Process appliances

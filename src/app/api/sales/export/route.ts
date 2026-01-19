@@ -252,7 +252,8 @@ export async function GET(request: NextRequest) {
         sale.customerFirstName, // First Name
         sale.customerLastName, // Last Name
         `${sale.customerFirstName} ${sale.customerLastName}`, // Customers Name (First - Last)
-        sale.email, // Email
+        // Filter out placeholder/fake emails
+        (sale.email && !sale.email.includes('placeholder') && !sale.email.includes('example') && !sale.email.includes('test')) ? sale.email : '', // Email
         sale.title ? sale.title : '', // Title - ensure it's not null
         sale.phoneNumber, // Phone
         '', // Mobile - blank
@@ -929,7 +930,8 @@ export async function POST(request: NextRequest) {
         sale.customerFirstName, // First Name
         sale.customerLastName, // Last Name
         `${sale.customerFirstName} ${sale.customerLastName}`, // Customers Name
-        sale.email, // Email
+        // Filter out placeholder/fake emails
+        (sale.email && !sale.email.includes('placeholder') && !sale.email.includes('example') && !sale.email.includes('test')) ? sale.email : '', // Email
         sale.title || '', // Title
         sale.phoneNumber, // Phone
         '', // Mobile
