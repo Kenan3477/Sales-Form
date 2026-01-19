@@ -285,7 +285,7 @@ export async function GET(request: NextRequest) {
         '', // Card Number - blank
         '', // LeadIdCPY - blank
         sale.phoneNumber, // Plain Phone (same as Phone)
-        `£${sale.totalPlanCost.toFixed(2)}`, // Customer Premium - total plan cost
+        `£${(singleAppPrice + boilerPrice).toFixed(2)}`, // Customer Premium - calculated total
         '', // Package Excess - blank
         '', // Last Service Date - blank
         '', // Boiler Make - blank
@@ -295,20 +295,17 @@ export async function GET(request: NextRequest) {
         '', // Renewal Date - blank
         '', // Cancellation Fee - blank
         '', // Date of renewal notification - blank
-        sale.agentName || sale.createdBy?.email || '', // Lead Sales Agent - prefer agentName, fall back to email
+        sale.agentName || sale.createdBy.email, // Lead Sales Agent - prefer agentName, fall back to email
         createdAt.toLocaleDateString('en-GB'), // Date of Sale
         sale.mailingStreet || '', // First Line Add
         // Customer Package - determine based on what coverage is selected
-        (() => {
-          if (sale.applianceCoverSelected && sale.boilerCoverSelected) return 'Both Appliance & Boiler Cover'
-          if (sale.boilerCoverSelected) return 'Boiler Cover Only'
-          if (sale.applianceCoverSelected) return 'Appliance Cover Only'
-          return 'No Cover Selected'
-        })(), // Customer Package
+        sale.boilerCoverSelected && sale.applianceCoverSelected ? 'appliance + boiler' : 
+        sale.boilerCoverSelected ? 'boiler' : 
+        sale.applianceCoverSelected ? 'appliance' : '', // Customer Package
         '', // Cancellation status - blank
         '', // Type of renewal notification - blank
-        sale.directDebitDate ? new Date(sale.directDebitDate).toLocaleDateString('en-GB') : '', // First DD Date
-        `£${sale.totalPlanCost.toFixed(2)}`, // DD Amount - total plan cost
+        directDebitDate.toLocaleDateString('en-GB'), // First DD Date
+        `£${sale.totalPlanCost.toFixed(2)}`, // DD Amount
         '', // Residential Status - blank
         '', // Plan Reference Number - blank
         '', // Brand - blank
@@ -375,9 +372,9 @@ export async function GET(request: NextRequest) {
         '', // TV 2 Model Number - blank
         '', // TV 2 Brand - blank
         '', // TV 2 - Size - blank
-        sale.boilerCoverSelected && sale.boilerPriceSelected ? `£${Number(sale.boilerPriceSelected).toFixed(2)}` : '', // Boiler Package Price (Internal)
-        sale.applianceCoverSelected ? `£${singleAppPrice.toFixed(2)}` : '', // Single App Price (Internal)
-        sale.applianceCoverSelected && sale.boilerCoverSelected ? `£${sale.totalPlanCost.toFixed(2)}` : '', // App Bundle Price (Internal) - total when both selected
+        boilerPrice > 0 ? `£${boilerPrice.toFixed(2)}` : '', // Boiler Package Price (Internal)
+        singleAppPrice > 0 ? `£${singleAppPrice.toFixed(2)}` : '', // Single App Price (Internal)
+        '', // App Bundle Price (Internal) - blank
         '', // Landlord Boiler Package Price (Internal) - blank
         '', // Appliance 9 Type - blank
         '', // Appliance 9 Brand - blank
@@ -926,9 +923,9 @@ export async function POST(request: NextRequest) {
       }
 
       return [
-        '', // 1. Record Id
-        '', // 2. Customers Owner.id
-        'Kenan', // 3. Customers Owner
+        sale.id || '', // Record Id
+        'Kenan', // Customers Owner
+        sale.createdBy?.id || '', // Customers Owner.id
         'FE3', // Lead Source
         sale.customerFirstName, // First Name
         sale.customerLastName, // Last Name
