@@ -42,10 +42,29 @@ export class EnhancedTemplateService {
         }
         
         .header {
-            background: linear-gradient(135deg, #1a365d 0%, #2c5282 30%, #1e4c72 70%, #1a365d 100%);
+            background: linear-gradient(135deg, #1a2f4a 0%, #2c4a73 25%, #1e3a5f 50%, #243752 75%, #1a2f4a 100%),
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="lightning" patternUnits="userSpaceOnUse" width="100" height="100"><path d="M20 20 L40 60 L30 60 L50 80 L30 40 L40 40 Z" fill="rgba(255,255,255,0.03)" /></pattern></defs><rect width="100" height="100" fill="url(%23lightning)" /></svg>');
+            background-size: cover, 200px 200px;
             color: white;
             padding: 30px 40px;
             position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                transparent 30%, 
+                rgba(255,255,255,0.02) 40%, 
+                rgba(255,255,255,0.05) 50%, 
+                rgba(255,255,255,0.02) 60%, 
+                transparent 70%);
+            pointer-events: none;
         }
         
         .header::after {
@@ -61,29 +80,46 @@ export class EnhancedTemplateService {
         .logo-section {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 18px;
+            position: relative;
+            z-index: 2;
         }
         
         .lightning-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(45deg, #ff6500, #ffa500);
-            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
-            box-shadow: 0 0 10px rgba(255,101,0,0.4);
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ff6500 0%, #ffb347 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(255,101,0,0.3);
+        }
+        
+        .lightning-icon::before {
+            content: '⚡';
+            font-size: 24px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
         }
         
         .logo-text {
-            font-size: 36px;
-            font-weight: bold;
-            letter-spacing: 2px;
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
         .tagline {
-            font-size: 14px;
+            font-size: 16px;
             opacity: 0.95;
-            margin-top: 2px;
+            margin-top: 4px;
             font-style: italic;
             letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         
         .content {
