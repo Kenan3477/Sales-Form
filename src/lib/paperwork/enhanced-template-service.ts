@@ -550,7 +550,7 @@ export class EnhancedTemplateService {
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (now for old wree ahere applicable), subject to availability.</span>
+                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability.</span>
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
