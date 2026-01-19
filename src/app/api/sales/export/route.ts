@@ -960,44 +960,49 @@ export async function POST(request: NextRequest) {
         'Process DD', // Status
         createdAt.toLocaleDateString('en-GB'), // Created Date
         sale.sortCode || '', // SortCode
-        sale.accountNumber || '', // Account Number
-        sale.accountName || '', // Account Name
-        sale.directDebitDate ? new Date(sale.directDebitDate).toLocaleDateString('en-GB') : '', // DD Date
-        sale.createdBy?.email || '', // Lead Sales Agent
+        sale.accountNumber || '', // Acc Number
+        '', // CVC
+        '', // EXP Date
+        '', // Card Number
+        '', // LeadIdCPY
+        sale.phoneNumber, // Plain Phone
+        `£${sale.totalPlanCost.toFixed(2)}`, // Customer Premium - total plan cost
+        '', // Package Excess
+        '', // Last Service Date
+        '', // Boiler Make
+        '', // Pre Existing Issue
+        '', // Boiler Age
+        '', // Cancellation Notes
+        '', // Renewal Date
+        '', // Cancellation Fee
+        '', // Date of renewal notification
+        sale.agentName || sale.createdBy?.email || '', // Lead Sales Agent
         createdAt.toLocaleDateString('en-GB'), // Date of Sale
         sale.mailingStreet || '', // First Line Add
         customerPackage, // Customer Package
-        packageCost.toString(), // Customer Package Cost
-        sale.applianceCoverSelected ? 'Yes' : 'No', // Appliance Cover Selected
-        sale.boilerCoverSelected ? 'Yes' : 'No', // Boiler Cover Selected
-        sale.totalPlanCost?.toString() || '0', // Total Cost
-        '', // Boiler Make - not available in current schema
-        '', // Boiler Age - not available in current schema
-        '', // Brand Value
-        '', // Call Outcome
-        '', // Comments
-        '', // Renewal Date
-        '', // Quoted Cost
-        '', // Monthly Cost
-        '', // Commission Cost
-        '', // Plan Reference Number
-        '', // Brand
+        '', // Cancellation status
+        '', // Type of renewal notification
+        sale.directDebitDate ? new Date(sale.directDebitDate).toLocaleDateString('en-GB') : '', // First DD Date
+        `£${sale.totalPlanCost.toFixed(2)}`, // DD Amount - total plan cost
+        '', // Residential Status
+        `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Plan Reference Number
+        'Flash Team', // Brand
         '', // Processor
-        '', // Appliance 2 Age - not available in current schema
-        sale.appliances && sale.appliances[0] ? sale.appliances[0].appliance : '', // Appliance 1 Brand
-        sale.appliances && sale.appliances[4] ? sale.appliances[4].appliance : '', // Appliance 5 Type
-        sale.appliances && sale.appliances[3] ? sale.appliances[3].appliance : '', // Appliance 4 Type
-        sale.appliances && sale.appliances[2] ? sale.appliances[2].appliance : '', // Appliance 3 Type
-        '', // Appliance 1 Age - not available in current schema
-        sale.appliances && sale.appliances[4] ? sale.appliances[4].appliance : '', // Appliance 5 Brand
-        sale.appliances && sale.appliances[3] ? sale.appliances[3].appliance : '', // Appliance 4 Brand
-        sale.appliances && sale.appliances[2] ? sale.appliances[2].appliance : '', // Appliance 3 Brand
-        '', // Appliance 5 Age - not available in current schema
-        '', // Appliance 4 Age - not available in current schema
-        sale.appliances && sale.appliances[1] ? sale.appliances[1].appliance : '', // Appliance 2 Type
-        sale.appliances && sale.appliances[0] ? sale.appliances[0].appliance : '', // Appliance 1 Type
-        sale.appliances && sale.appliances[1] ? sale.appliances[1].appliance : '', // Appliance 2 Brand
-        '', // Appliance 3 Age - not available in current schema
+        '', // Appliance 2 Age
+        '', // Appliance 1 Brand
+        sale.appliances[4]?.appliance || '', // Appliance 5 Type
+        sale.appliances[3]?.appliance || '', // Appliance 4 Type
+        sale.appliances[2]?.appliance || '', // Appliance 3 Type
+        '', // Appliance 1 Age
+        '', // Appliance 5 Brand
+        '', // Appliance 4 Brand
+        '', // Appliance 3 Brand
+        '', // Appliance 5 Age
+        '', // Appliance 4 Age
+        sale.appliances[1]?.appliance || '', // Appliance 2 Type
+        sale.appliances[0]?.appliance || '', // Appliance 1 Type
+        '', // Appliance 2 Brand
+        '', // Appliance 3 Age
         '', // TV Value - not available in current schema
         '', // TV Brand - not available in current schema
         '', // TV Size - not available in current schema
