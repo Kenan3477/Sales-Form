@@ -238,215 +238,235 @@ export async function GET(request: NextRequest) {
     // Generate CSV rows
     const rows = sales.map((sale: any) => {
       const createdAt = new Date(sale.createdAt)
-    // Generate CSV rows - Fixed to match exactly 173 headers
-    const rows = sales.map((sale: any) => {
-      const createdAt = new Date(sale.createdAt)
+      const directDebitDate = new Date(sale.directDebitDate)
       
       // Calculate internal pricing
       const singleAppPrice = sale.appliances.reduce((sum: number, app: any) => sum + Number(app.cost), 0)
       const boilerPrice = sale.boilerCoverSelected && sale.boilerPriceSelected ? Number(sale.boilerPriceSelected) : 0
       
-      // Customer Package logic
-      let customerPackage = ''
-      if (sale.applianceCoverSelected && sale.boilerCoverSelected) {
-        customerPackage = 'Both Appliance & Boiler Cover'
-      } else if (sale.applianceCoverSelected) {
-        customerPackage = 'Appliance Cover Only'
-      } else if (sale.boilerCoverSelected) {
-        customerPackage = 'Boiler Cover Only'
-      } else {
-        customerPackage = 'No Cover Selected'
-      }
-      
-      // Get appliances data (up to 10)
-      const appliances = Array(10).fill(null).map((_, i) => {
-        const app = sale.appliances[i]
-        return app ? {
-          type: app.appliance,
-          brand: '', // Not captured in our system
-          age: '', // Not captured in our system
-          value: `£${app.coverLimit.toFixed(2)}`
-        } : { type: '', brand: '', age: '', value: '' }
-      })
-      
-      // Build row with exactly 173 fields to match headers
-      return [
-        '', // 1. Record Id
-        '', // 2. Customers Owner.id
-        'Kenan', // 3. Customers Owner
-        'FE3', // 4. Lead Source
-        sale.customerFirstName, // 5. First Name
-        sale.customerLastName, // 6. Last Name
-        `${sale.customerFirstName} ${sale.customerLastName}`, // 7. Customers Name
-        // 8. Email - Filter out placeholder/fake emails
-        (sale.email && !sale.email.includes('placeholder') && !sale.email.includes('example') && !sale.email.includes('test') && !sale.email.includes('imported') && !sale.email.includes('demo') && !sale.email.includes('fake') && !sale.email.includes('temp')) ? sale.email : '',
-        sale.title || '', // 9. Title
-        sale.phoneNumber, // 10. Phone
-        '', // 11. Mobile
-        '', // 12. Date of Birth
-        '', // 13. Modified By.id
-        '', // 14. Modified By
-        '', // 15. Modified Time
-        '', // 16. Salutation
-        '', // 17. Last Activity Time
-        sale.mailingStreet || '', // 18. Mailing Street
-        sale.mailingCity || 'London', // 19. Mailing City
-        sale.mailingProvince || '', // 20. Mailing Province
-        sale.mailingPostalCode || '', // 21. Mailing Postal Code
-        '', // 22. Description
-        '', // 23. Tag
-        '', // 24. Unsubscribed Mode
-        '', // 25. Unsubscribed Time
-        '', // 26. Change Log Time
-        '', // 27. Locked
-        '', // 28. Last Enriched Time
-        '', // 29. Enrich Status
-        'DD', // 30. Payment Method
-        'Process DD', // 31. Status
-        createdAt.toLocaleDateString('en-GB'), // 32. Created Date
-        sale.sortCode || '', // 33. SortCode
-        sale.accountNumber || '', // 34. Acc Number
-        '', // 35. CVC
-        '', // 36. EXP Date
-        '', // 37. Card Number
-        '', // 38. LeadIdCPY
-        sale.phoneNumber, // 39. Plain Phone
-        `£${(singleAppPrice + boilerPrice).toFixed(2)}`, // 40. Customer Premium
-        '', // 41. Package Excess
-        '', // 42. Last Service Date
-        '', // 43. Boiler Make
-        '', // 44. Pre Existing Issue
-        '', // 45. Boiler Age
-        '', // 46. Cancellation Notes
-        '', // 47. Renewal Date
-        '', // 48. Cancellation Fee
-        '', // 49. Date of renewal notification
-        sale.agentName || sale.createdBy?.email || '', // 50. Lead Sales Agent
-        createdAt.toLocaleDateString('en-GB'), // 51. Date of Sale
-        sale.mailingStreet || '', // 52. First Line Add
-        customerPackage, // 53. Customer Package
-        '', // 54. Cancellation status
-        '', // 55. Type of renewal notification
-        sale.directDebitDate ? new Date(sale.directDebitDate).toLocaleDateString('en-GB') : '', // 56. First DD Date
-        `£${(singleAppPrice + boilerPrice).toFixed(2)}`, // 57. DD Amount
-        '', // 58. Residential Status
-        `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // 59. Plan Reference Number
-        'Flash Team', // 60. Brand
-        '', // 61. Processor
-        appliances[1].age, // 62. Appliance 2 Age
-        appliances[0].brand, // 63. Appliance 1 Brand
-        appliances[4].type, // 64. Appliance 5 Type
-        appliances[3].type, // 65. Appliance 4 Type
-        appliances[2].type, // 66. Appliance 3 Type
-        appliances[0].age, // 67. Appliance 1 Age
-        appliances[4].brand, // 68. Appliance 5 Brand
-        appliances[3].brand, // 69. Appliance 4 Brand
-        appliances[2].brand, // 70. Appliance 3 Brand
-        appliances[4].age, // 71. Appliance 5 Age
-        appliances[3].age, // 72. Appliance 4 Age
-        appliances[1].type, // 73. Appliance 2 Type
-        appliances[0].type, // 74. Appliance 1 Type
-        appliances[1].brand, // 75. Appliance 2 Brand
-        appliances[2].age, // 76. Appliance 3 Age
-        '', // 77. TV Value
-        '', // 78. TV Brand
-        '', // 79. TV Size
-        '', // 80. TV Age
-        'Flash Team', // 81. Sales Office Name
-        '', // 82. Affiliate Reference
-        '', // 83. Free Offer Period_Months
-        '', // 84. Cancellation Agent
-        '', // 85. Remaining Payments Due
-        '', // 86. Cancellation Reason
-        '', // 87. Welcome Letter Sent Date
-        '', // 88. Date of CNR
-        '', // 89. Contact Attempts
-        '', // 90. Last Contact Date
-        '', // 91. Resend Welcome Pack
-        '', // 92. Resend Method
-        '', // 93. Cancelled Date
-        '', // 94. Call Notes
-        customerPackage, // 95. Product sold
-        '', // 96. Customer Upgraded
-        sale.directDebitDate ? new Date(sale.directDebitDate).getDate() : '', // 97. Preferred Payment Date
-        sale.accountNumber ? sale.accountNumber.slice(-2) : '', // 98. Last 2 Acc Number (Post Docs)
-        '', // 99. DD Originator Reference
-        '', // 100. Authorised Persons on Account
-        '', // 101. Customer Preferences
-        '', // 102. Details of Vulnerabilities (if any)
-        '', // 103. POA
-        appliances[5].age, // 104. Appliance 6 Age
-        appliances[5].type, // 105. Appliance 6 Type
-        appliances[5].brand, // 106. Appliance 6 Brand
-        appliances[6].brand, // 107. Appliance 7 Brand
-        appliances[6].type, // 108. Appliance 7 Type
-        appliances[6].age, // 109. Appliance 7 Age
-        appliances[7].type, // 110. Appliance 8 Type
-        appliances[7].brand, // 111. Appliance 8 Brand
-        appliances[7].age, // 112. Appliance 8 Age
-        '', // 113. Reduced price exp date
-        '', // 114. Reduced Price
-        '', // 115. TV Model Number
-        '', // 116. Contacted for TV Information
-        '', // 117. Boiler 2 Age
-        '', // 118. Boiler 2 Make
-        '', // 119. TV 2 Value
-        '', // 120. TV 2 -Age
-        '', // 121. TV 2 Model Number
-        '', // 122. TV 2 Brand
-        '', // 123. TV 2 - Size
-        `£${boilerPrice.toFixed(2)}`, // 124. Boiler Package Price (Internal)
-        `£${singleAppPrice.toFixed(2)}`, // 125. Single App Price (Internal)
-        `£${(singleAppPrice + boilerPrice).toFixed(2)}`, // 126. App Bundle Price (Internal)
-        '', // 127. Landlord Boiler Package Price (Internal)
-        appliances[8].type, // 128. Appliance 9 Type
-        appliances[8].brand, // 129. Appliance 9 Brand
-        appliances[8].age, // 130. Appliance 9 Age
-        '', // 131. Multi Package Discount
-        '', // 132. TV Monthly Premium
-        '', // 133. Boiler 3-Months Free
-        appliances[4].value, // 134. Appliance 5 Value
-        appliances[5].value, // 135. Appliance 6 Value
-        appliances[3].value, // 136. Appliance 4 Value
-        appliances[1].value, // 137. Appliance 2 Value
-        appliances[2].value, // 138. Appliance 3 Value
-        appliances[0].value, // 139. Appliance 1 Value
-        appliances[8].value, // 140. Appliance 9 Value
-        appliances[6].value, // 141. Appliance 7 Value
-        appliances[7].value, // 142. Appliance 8 Value
-        '', // 143. GC Mandate ID
-        '', // 144. Reinstated Date
-        '', // 145. Payment Status
-        '', // 146. Date of last payment status
-        appliances[9].type, // 147. Appliance 10 Type
-        appliances[9].brand, // 148. Appliance 10 Brand
-        appliances[9].age, // 149. Appliance 10 Age
-        appliances[9].value, // 150. Appliance 10 Value
-        createdAt.toLocaleDateString('en-GB'), // 151. Plan Start Date
-        '', // 152. Months Free Provided
-        'Yes', // 153. Sale Approved
-        '', // 154. GC Bank Account ID
-        '', // 155. GC Customer ID
-        '', // 156. Connected To.module
-        '', // 157. Connected To.id
-        '', // 158. GC Subscription Status
-        '', // 159. GC Subscription ID
-        '', // 160. GC API Status
-        '', // 161. GC Mandate Status
-        '', // 162. GC Payment Status Update
-        '', // 163. GC Payment ID
-        '', // 164. GC Last Event ID
-        '', // 165. GC Last Webhook ID
-        '', // 166. GC Last Cause
-        '', // 167. GC Last Description
-        '', // 168. GC Last Received At Date
-        '', // 169. GC Last Resource Type
-        '', // 170. GS Manual Update All Status
-        '', // 171. GC Payment ID Scheduled To Refund
-        '', // 172. GC Last Payment Refunded
-        '' // 173. Cancellation Fee Taken
+      const row = [
+        '', // Record Id - blank as requested
+        '', // Customers Owner.id - blank
+        'Kenan', // Customers Owner - hardcoded
+        'FE3', // Lead Source - hardcoded
+        sale.customerFirstName, // First Name
+        sale.customerLastName, // Last Name
+        `${sale.customerFirstName} ${sale.customerLastName}`, // Customers Name (First - Last)
+        // Filter out placeholder/fake emails
+        (sale.email && !sale.email.includes('placeholder') && !sale.email.includes('example') && !sale.email.includes('test') && !sale.email.includes('imported') && !sale.email.includes('demo') && !sale.email.includes('fake') && !sale.email.includes('temp')) ? sale.email : '', // Email
+        sale.title ? sale.title : '', // Title - ensure it's not null
+        sale.phoneNumber, // Phone
+        '', // Mobile - blank
+        '', // Date of Birth - blank
+        '', // Modified By.id - blank
+        '', // Modified By - blank
+        '', // Modified Time - blank
+        '', // Salutation - blank
+        '', // Last Activity Time - blank
+        sale.mailingStreet ? sale.mailingStreet : '', // Mailing Street - ensure it's not null
+        sale.mailingCity ? sale.mailingCity : 'London', // Mailing City - default to London if missing
+        sale.mailingProvince ? sale.mailingProvince : '', // Mailing Province - ensure it's not null
+        sale.mailingPostalCode ? sale.mailingPostalCode : '', // Mailing Postal Code - ensure it's not null
+        '', // Description - blank
+        '', // Tag - blank
+        '', // Unsubscribed Mode - blank
+        '', // Unsubscribed Time - blank
+        '', // Change Log Time - blank
+        '', // Locked - blank
+        '', // Last Enriched Time - blank
+        '', // Enrich Status - blank
+        'DD', // Payment Method - hardcoded to DD
+        'Process DD', // Status - hardcoded
+        createdAt.toLocaleDateString('en-GB'), // Created Date
+        sale.sortCode, // SortCode
+        sale.accountNumber, // Acc Number
+        '', // CVC - blank
+        '', // EXP Date - blank
+        '', // Card Number - blank
+        '', // LeadIdCPY - blank
+        sale.phoneNumber, // Plain Phone (same as Phone)
+        `£${(singleAppPrice + boilerPrice).toFixed(2)}`, // Customer Premium - calculated total
+        '', // Package Excess - blank
+        '', // Last Service Date - blank
+        '', // Boiler Make - blank
+        '', // Pre Existing Issue - blank
+        '', // Boiler Age - blank
+        '', // Cancellation Notes - blank
+        '', // Renewal Date - blank
+        '', // Cancellation Fee - blank
+        '', // Date of renewal notification - blank
+        sale.agentName || sale.createdBy.email, // Lead Sales Agent - prefer agentName, fall back to email
+        createdAt.toLocaleDateString('en-GB'), // Date of Sale
+        sale.mailingStreet || '', // First Line Add
+        // Customer Package - determine based on what coverage is selected
+        sale.boilerCoverSelected && sale.applianceCoverSelected ? 'appliance + boiler' : 
+        sale.boilerCoverSelected ? 'boiler' : 
+        sale.applianceCoverSelected ? 'appliance' : '', // Customer Package
+        '', // Cancellation status - blank
+        '', // Type of renewal notification - blank
+        directDebitDate.toLocaleDateString('en-GB'), // First DD Date
+        `£${sale.totalPlanCost.toFixed(2)}`, // DD Amount
+        '', // Residential Status - blank
+        '', // Plan Reference Number - blank
+        '', // Brand - blank
+        'DD', // Processor - hardcoded to DD
+        '', // Appliance 2 Age - blank
+        '', // Appliance 1 Brand - blank (we only have appliance type, not brand)
+        sale.appliances[4]?.appliance || '', // Appliance 5 Type - using appliance name as type
+        sale.appliances[3]?.appliance || '', // Appliance 4 Type - using appliance name as type
+        sale.appliances[2]?.appliance || '', // Appliance 3 Type - using appliance name as type
+        '', // Appliance 1 Age - blank
+        '', // Appliance 5 Brand - blank (we only have appliance type, not brand)
+        '', // Appliance 4 Brand - blank (we only have appliance type, not brand)
+        '', // Appliance 3 Brand - blank (we only have appliance type, not brand)
+        '', // Appliance 5 Age - blank
+        '', // Appliance 4 Age - blank
+        sale.appliances[1]?.appliance || '', // Appliance 2 Type - using appliance name as type
+        sale.appliances[0]?.appliance || '', // Appliance 1 Type - using appliance name as type
+        '', // Appliance 2 Brand - blank (we only have appliance type, not brand)
+        '', // Appliance 3 Age - blank
+        '', // TV Value - blank
+        '', // TV Brand - blank
+        '', // TV Size - blank
+        '', // TV Age - blank
+        '', // Sales Office Name - blank
+        '', // Affiliate Reference - blank
+        '', // Free Offer Period_Months - blank
+        '', // Cancellation Agent - blank
+        '', // Remaining Payments Due - blank
+        '', // Cancellation Reason - blank
+        '', // Welcome Letter Sent Date - blank
+        '', // Date of CNR - blank
+        '', // Contact Attempts - blank
+        '', // Last Contact Date - blank
+        '', // Resend Welcome Pack - blank
+        '', // Resend Method - blank
+        '', // Cancelled Date - blank
+        '', // Call Notes - blank
+        '', // Product sold - blank
+        '', // Customer Upgraded - blank
+        '', // Preferred Payment Date - blank
+        '', // Last 2 Acc Number (Post Docs) - blank
+        '', // DD Originator Reference - blank
+        '', // Authorised Persons on Account - blank
+        '', // Customer Preferences - blank
+        '', // Details of Vulnerabilities (if any) - blank
+        '', // POA - blank
+        '', // Appliance 6 Age - blank
+        '', // Appliance 6 Type - blank
+        '', // Appliance 6 Brand - blank
+        '', // Appliance 7 Brand - blank
+        '', // Appliance 7 Type - blank
+        '', // Appliance 7 Age - blank
+        '', // Appliance 8 Type - blank
+        '', // Appliance 8 Brand - blank
+        '', // Appliance 8 Age - blank
+        '', // Reduced price exp date - blank
+        '', // Reduced Price - blank
+        '', // TV Model Number - blank
+        '', // Contacted for TV Information - blank
+        '', // Boiler 2 Age - blank
+        '', // Boiler 2 Make - blank
+        '', // TV 2 Value - blank
+        '', // TV 2 -Age - blank
+        '', // TV 2 Model Number - blank
+        '', // TV 2 Brand - blank
+        '', // TV 2 - Size - blank
+        boilerPrice > 0 ? `£${boilerPrice.toFixed(2)}` : '', // Boiler Package Price (Internal)
+        singleAppPrice > 0 ? `£${singleAppPrice.toFixed(2)}` : '', // Single App Price (Internal)
+        '', // App Bundle Price (Internal) - blank
+        '', // Landlord Boiler Package Price (Internal) - blank
+        '', // Appliance 9 Type - blank
+        '', // Appliance 9 Brand - blank
+        '', // Appliance 9 Age - blank
+        '', // Multi Package Discount - blank
+        '', // TV Monthly Premium - blank
+        '', // Boiler 3-Months Free - blank
+        '', // Appliance 5 Value - blank
+        '', // Appliance 6 Value - blank
+        '', // Appliance 4 Value - blank
+        '', // Appliance 2 Value - blank
+        '', // Appliance 3 Value - blank
+        '', // Appliance 1 Value - blank
+        '', // Appliance 9 Value - blank
+        '', // Appliance 7 Value - blank
+        '', // Appliance 8 Value - blank
+        '', // GC Mandate ID - blank
+        '', // Reinstated Date - blank
+        '', // Payment Status - blank
+        '', // Date of last payment status - blank
+        '', // Appliance 10 Type - blank
+        '', // Appliance 10 Brand - blank
+        '', // Appliance 10 Age - blank
+        '', // Appliance 10 Value - blank
+        '', // Plan Start Date - blank
+        '', // Months Free Provided - blank
+        '', // Sale Approved - blank
+        '', // GC Bank Account ID - blank
+        '', // GC Customer ID - blank
+        '', // Connected To.module - blank
+        '', // Connected To.id - blank
+        '', // GC Subscription Status - blank
+        '', // GC Subscription ID - blank
+        '', // GC API Status - blank
+        '', // GC Mandate Status - blank
+        '', // GC Payment Status Update - blank
+        '', // GC Payment ID - blank
+        '', // GC Last Event ID - blank
+        '', // GC Last Webhook ID - blank
+        '', // GC Last Cause - blank
+        '', // GC Last Description - blank
+        '', // GC Last Received At Date - blank
+        '', // GC Last Resource Type - blank
+        '', // GS Manual Update All Status - blank
+        '', // GC Payment ID Scheduled To Refund - blank
+        '', // GC Last Payment Refunded - blank
+        '' // Cancellation Fee Taken - blank
       ]
+
+      // Update appliance data in the correct positions if we have appliances
+      if (sale.appliances && sale.appliances.length > 0) {
+        // Map to correct CRM positions
+        sale.appliances.forEach((app: any, index: number) => {
+          if (index === 0) { // Appliance 1
+            row[73] = app.appliance // Appliance 1 Type
+            // row[62] = '' // Appliance 1 Brand - leave blank
+            row[66] = '' // Appliance 1 Age
+            row[138] = `£${app.coverLimit.toFixed(2)}` // Appliance 1 Value (from cover limit)
+          } else if (index === 1) { // Appliance 2
+            row[72] = app.appliance // Appliance 2 Type
+            // row[74] = '' // Appliance 2 Brand - leave blank
+            row[61] = '' // Appliance 2 Age
+            row[136] = `£${app.coverLimit.toFixed(2)}` // Appliance 2 Value
+          } else if (index === 2) { // Appliance 3
+            row[65] = app.appliance // Appliance 3 Type
+            // row[69] = '' // Appliance 3 Brand - leave blank
+            row[75] = '' // Appliance 3 Age
+            row[137] = `£${app.coverLimit.toFixed(2)}` // Appliance 3 Value
+          } else if (index === 3) { // Appliance 4
+            row[64] = app.appliance // Appliance 4 Type
+            // row[68] = '' // Appliance 4 Brand - leave blank
+            row[71] = '' // Appliance 4 Age
+            row[135] = `£${app.coverLimit.toFixed(2)}` // Appliance 4 Value
+          } else if (index === 4) { // Appliance 5
+            row[63] = app.appliance // Appliance 5 Type
+            // row[67] = '' // Appliance 5 Brand - leave blank
+            row[70] = '' // Appliance 5 Age
+            row[133] = `£${app.coverLimit.toFixed(2)}` // Appliance 5 Value
+          }
+        })
+      }
+
+      return row
     })
+
+    // Create CSV content
+    const csvRows = [headers, ...rows].map((row: any[]) => 
+      row.map((cell: any) => {
+        const cellStr = String(cell || '')
+        // Escape quotes and wrap in quotes if necessary
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n') || cellStr.includes('\r')) {
+          return `"${cellStr.replace(/"/g, '""')}"`
         }
         return cellStr
       }).join(',')
