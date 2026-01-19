@@ -11,6 +11,20 @@ import {
   detectXSS
 } from '@/lib/security'
 
+/**
+ * Check if user has admin role (case-insensitive)
+ */
+export function isAdminRole(role: string): boolean {
+  return ['admin', 'ADMIN'].includes(role);
+}
+
+/**
+ * Check if user has agent role (case-insensitive)  
+ */
+export function isAgentRole(role: string): boolean {
+  return ['agent', 'AGENT'].includes(role);
+}
+
 export interface SecureApiOptions {
   requireAuth?: boolean
   requireAdmin?: boolean
@@ -70,7 +84,7 @@ export function withSecurity(
           )
         }
 
-        if (requireAdmin && session.user.role !== 'ADMIN') {
+        if (requireAdmin && !isAdminRole(session.user.role)) {
           logSecurityEvent('UNAUTHORIZED_ADMIN_ACCESS', securityContext, {
             userId: session.user.id,
             userRole: session.user.role
