@@ -21,19 +21,65 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Initialize enhanced template service
-    const enhancedTemplateService = new EnhancedTemplateService();
+    // Use the perfect template from docs folder with sample data
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    try {
+      const templatePath = path.join(process.cwd(), 'docs', 'perfect-welcome-letter-template.html');
+      let html = await fs.readFile(templatePath, 'utf8');
+      
+      // Sample data for preview
+      const sampleData = {
+        customer: {
+          name: 'John Smith',
+          email: 'john.smith@example.com',
+          phone: '01234 567890',
+          address: '123 Main Street, City, Postcode'
+        },
+        coverage: {
+          startDate: '2024-01-15',
+          type: 'Comprehensive'
+        },
+        agreement: {
+          referenceNumber: 'TFT0123'
+        },
+        monthlyCost: '29.99',
+        applianceCount: 5,
+        boilerCover: true,
+        annualBoilerService: true
+      };
+      
+      // Simple variable replacement
+      html = html.replace(/\{\{([^}]+)\}\}/g, (match: string, key: string) => {
+        const cleanKey = key.trim();
+        const value = cleanKey.split('.').reduce((obj: any, prop: string) => {
+          return obj && obj[prop] !== undefined ? obj[prop] : undefined;
+        }, sampleData);
+        return value !== undefined ? String(value) : match;
+      });
+      
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html',
+          'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+        },
+      });
+      
+    } catch (error) {
+      console.error('Error loading perfect template, falling back:', error);
+      
+      // Fallback to enhanced template service
+      const enhancedTemplateService = new EnhancedTemplateService();
+      const result = await enhancedTemplateService.previewTemplate('welcome-letter');
 
-    // Use sample data for template preview
-    const result = await enhancedTemplateService.previewTemplate('welcome-letter');
-
-    // Return HTML preview
-    return new Response(result, {
-      headers: {
-        'Content-Type': 'text/html',
-        'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
-      },
-    });
+      return new Response(result, {
+        headers: {
+          'Content-Type': 'text/html',
+          'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+        },
+      });
+    }
 
   } catch (error) {
     console.error('Template preview error:', error);
@@ -121,16 +167,47 @@ export async function POST(request: NextRequest) {
       })
     };
 
-    // Generate the preview using enhanced template service
-    const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
-
-    // Return HTML preview (Enhanced Template Service returns HTML string)
-    return new Response(result, {
-      headers: {
-        'Content-Type': 'text/html',
-        'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
-      },
-    });
+    // Use the perfect template from docs folder for better styling
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    try {
+      const templatePath = path.join(process.cwd(), 'docs', 'perfect-welcome-letter-template.html');
+      let html = await fs.readFile(templatePath, 'utf8');
+      
+      // Simple variable replacement for the perfect template
+      html = html.replace(/\{\{([^}]+)\}\}/g, (match: string, key: string) => {
+        const cleanKey = key.trim();
+        
+        // Handle nested properties
+        const value = cleanKey.split('.').reduce((obj: any, prop: string) => {
+          return obj && obj[prop] !== undefined ? obj[prop] : undefined;
+        }, templateData);
+        
+        return value !== undefined ? String(value) : match;
+      });
+      
+      // Return the processed perfect template
+      return new Response(html, {
+        headers: {
+          'Content-Type': 'text/html',
+          'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+        },
+      });
+      
+    } catch (error) {
+      console.error('Error loading perfect template, falling back:', error);
+      
+      // Fallback to enhanced template service
+      const result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+      
+      return new Response(result, {
+        headers: {
+          'Content-Type': 'text/html',
+          'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+        },
+      });
+    }
 
   } catch (error) {
     console.error('Document preview error:', error);
