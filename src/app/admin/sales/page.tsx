@@ -405,43 +405,22 @@ export default function AdminSalesPage() {
     }
 
     try {
-      // If duplicate exclusions exist, send them as a POST request
-      let response
-      if (duplicateExclusions.length > 0) {
-        response = await fetch('/api/sales/export', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+      // Always use POST for selected exports to avoid URL length limits
+      const response = await fetch('/api/sales/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filters: {
+            dateFrom: filters.dateFrom,
+            dateTo: filters.dateTo,
+            agent: filters.agent
           },
-          body: JSON.stringify({
-            filters: {
-              dateFrom: filters.dateFrom,
-              dateTo: filters.dateTo,
-              agent: filters.agent
-            },
-            selectedIds: selectedSales,
-            excludeCustomers: duplicateExclusions
-          })
+          selectedIds: selectedSales,
+          excludeCustomers: duplicateExclusions
         })
-      } else {
-        const params = new URLSearchParams()
-        
-        // Add selected sale IDs
-        selectedSales.forEach(id => params.append('ids', id))
-        
-        // Add other filters if needed
-        if (filters.dateFrom) {
-          params.append('dateFrom', filters.dateFrom)
-        }
-        if (filters.dateTo) {
-          params.append('dateTo', filters.dateTo)
-        }
-        if (filters.agent) {
-          params.append('agent', filters.agent)
-        }
-
-        response = await fetch(`/api/sales/export?${params.toString()}`)
-      }
+      })
       
       if (!response.ok) {
         throw new Error('Export failed')
