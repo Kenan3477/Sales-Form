@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
           customerLastName: lastName,
           title: null,
           phoneNumber: saleData.contact.phone,
-          email: saleData.contact.email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@imported.com`,
+          email: saleData.contact.email || '', // Leave blank instead of generating fake email
           notes: saleData.notes || `Imported from Firebase: ${firebaseId}`,
           mailingStreet: saleData.contact.address || null,
           mailingCity: null,
