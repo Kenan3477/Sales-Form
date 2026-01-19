@@ -436,7 +436,7 @@ export class EnhancedTemplateService {
             <h1 class="main-title">The Flash Team's Protection Plan</h1>
             
             <div class="intro-text">
-                <strong>Dear {{customer.name}},</strong><br><br>
+                <strong>Dear {{customerName}},</strong><br><br>
                 Thank you for choosing Flash Team. This document confirms that your <strong>Protection Plan</strong> is now active, subject to the plan terms, conditions and exclusions.
             </div>
             
@@ -456,27 +456,27 @@ export class EnhancedTemplateService {
                     <div class="card-content">
                         <div class="detail-row">
                             <span class="detail-label">CUSTOMER</span>
-                            <span class="detail-value">{{customer.name}}</span>
+                            <span class="detail-value">{{customerName}}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">EMAIL</span>
-                            <span class="detail-value">{{customer.email}}</span>
+                            <span class="detail-value">{{email}}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">PHONE</span>
-                            <span class="detail-value">{{customer.phone}}</span>
+                            <span class="detail-value">{{phone}}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">ADDRESS</span>
-                            <span class="detail-value">{{customer.address}}</span>
+                            <span class="detail-value">{{address}}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">START DATE</span>
-                            <span class="detail-value">{{agreement.startDate}}</span>
+                            <span class="detail-value">{{coverageStartDate}}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">PLAN REF</span>
-                            <span class="detail-value">{{agreement.planNumber}}</span>
+                            <span class="detail-value">{{policyNumber}}</span>
                         </div>
                     </div>
                 </div>
@@ -486,7 +486,7 @@ export class EnhancedTemplateService {
                     <div class="card-content">
                         <div class="detail-row" style="border-bottom: 2px solid #ff6500; margin-bottom: 15px; padding-bottom: 15px;">
                             <span class="detail-label">Monthly Payment:</span>
-                            <span class="detail-value">£{{agreement.monthlyCost}}</span>
+                            <span class="detail-value">£{{monthlyCost}}</span>
                         </div>
                         
                         <div class="checklist-item">
@@ -522,7 +522,7 @@ export class EnhancedTemplateService {
                             <span>Call 0330 822 7695</span>
                         </div>
                         <div class="numbered-item">
-                            <span>Quote your plan reference {{agreement.planNumber}}</span>
+                            <span>Quote your plan reference {{policyNumber}}</span>
                         </div>
                         <div class="numbered-item">
                             <span>Describe the issue so we can assess eligibility</span>
