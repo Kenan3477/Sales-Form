@@ -94,6 +94,27 @@ export async function POST(request: NextRequest) {
       monthlyCost: sale.totalPlanCost.toFixed(2), // Monthly cost
       hasApplianceCover: sale.applianceCoverSelected,
       hasBoilerCover: sale.boilerCoverSelected,
+      // New coverage fields for template
+      applianceCount: sale.appliances.length,
+      boilerCover: sale.boilerCoverSelected,
+      annualBoilerService: sale.boilerCoverSelected, // Include service if boiler cover selected
+      // Customer data structure for new template
+      customer: {
+        name: `${sale.customerFirstName} ${sale.customerLastName}`,
+        email: sale.email,
+        phone: sale.phoneNumber,
+        address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`
+      },
+      coverage: {
+        startDate: new Date().toLocaleDateString('en-GB')
+      },
+      agreement: {
+        referenceNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+        coverage: {
+          hasBoilerCover: sale.boilerCoverSelected,
+          boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+        }
+      },
       appliances: sale.appliances.map(appliance => ({
         name: appliance.appliance + (appliance.otherText ? ` (${appliance.otherText})` : ''),
         coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
@@ -105,13 +126,6 @@ export async function POST(request: NextRequest) {
         month: 'long',
         year: 'numeric'
       }),
-      // Add agreement structure for backward compatibility with existing template
-      agreement: {
-        coverage: {
-          hasBoilerCover: sale.boilerCoverSelected,
-          boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
-        }
-      },
       metadata: {
         agentName: sale.agentName || sale.createdBy?.email || 'Flash Team Support'
       }
