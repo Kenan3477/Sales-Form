@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import TemplateEditor from '../../../components/paperwork/TemplateEditor';
+import { formatCurrency } from '@/lib/schemas';
 
 interface DocumentTemplate {
   id: string;
@@ -770,7 +771,7 @@ export default function AdminPaperworkPage() {
                             </div>
                           </div>
                           <div className="text-sm font-medium text-green-600">
-                            £{sale.totalPlanCost}/month
+                            {formatCurrency(sale.totalPlanCost)}/month
                           </div>
                         </label>
                       ))}
