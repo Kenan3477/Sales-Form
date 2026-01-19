@@ -243,9 +243,22 @@ export async function POST(request: NextRequest) {
           });
           
           if (existingTemplate) {
+            console.log(`📄 Using existing template for ${template.templateType}`);
             dbTemplate = existingTemplate;
           } else {
-            console.log(`📄 Creating database template for ${template.templateType}`);
+            console.log(`📄 Creating new template for ${template.templateType}`);
+            // Find the highest version for this template type to avoid conflicts
+            const latestTemplate = await prisma.documentTemplate.findFirst({
+              where: {
+                templateType: template.templateType
+              },
+              orderBy: {
+                version: 'desc'
+              }
+            });
+            
+            const nextVersion = latestTemplate ? latestTemplate.version + 1 : 1;
+            
             // Create a database template record for this EnhancedTemplateService template
             dbTemplate = await prisma.documentTemplate.create({
               data: {
@@ -254,7 +267,7 @@ export async function POST(request: NextRequest) {
                 htmlContent: documentContent, // Use the generated content as template
                 description: `Auto-created template for ${template.name}`,
                 isActive: true,
-                version: 1,
+                version: nextVersion,
                 createdById: 'cmkfyoun90000kk62g97wyhsx' // Default to admin user - this should be dynamic
               }
             });

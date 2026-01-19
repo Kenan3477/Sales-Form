@@ -137,17 +137,27 @@ export async function POST(request: NextRequest) {
     const { prisma } = await import('@/lib/prisma');
 
     // Check if template type already exists
-    const existingTemplate = await prisma.documentTemplate.findFirst({
+    // Check for existing templates and get next version number
+    const latestTemplate = await prisma.documentTemplate.findFirst({
       where: {
-        templateType: templateType,
-        isActive: true
+        templateType: templateType
+      },
+      orderBy: {
+        version: 'desc'
       }
     });
 
-    if (existingTemplate) {
-      return NextResponse.json({
-        error: `Template with type '${templateType}' already exists`
-      }, { status: 409 });
+    const nextVersion = latestTemplate ? latestTemplate.version + 1 : 1;
+
+    // Deactivate previous versions of this template type
+    if (latestTemplate) {
+      await prisma.documentTemplate.updateMany({
+        where: { 
+          templateType: templateType,
+          isActive: true,
+        },
+        data: { isActive: false },
+      });
     }
 
     // Create new template
@@ -158,7 +168,7 @@ export async function POST(request: NextRequest) {
         templateType: templateType.trim(),
         htmlContent: htmlContent.trim(),
         isActive: true,
-        version: 1,
+        version: nextVersion,
         createdById: session.user.id
       },
       include: {
