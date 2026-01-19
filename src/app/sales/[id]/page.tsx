@@ -512,20 +512,67 @@ export default function AgentSaleDetailPage() {
                 <dl className="sm:divide-y sm:divide-gray-200">
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Account Name</dt>
-                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{sale.accountName}</dd>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.accountName || ''}
+                          onChange={(e) => handleInputChange('accountName', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Account holder name"
+                        />
+                      ) : (
+                        sale.accountName
+                      )}
+                    </dd>
                   </div>
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Sort Code</dt>
-                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{sale.sortCode}</dd>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.sortCode || ''}
+                          onChange={(e) => handleInputChange('sortCode', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="12-34-56"
+                          pattern="[0-9]{2}-[0-9]{2}-[0-9]{2}"
+                        />
+                      ) : (
+                        sale.sortCode
+                      )}
+                    </dd>
                   </div>
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Account Number</dt>
-                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{sale.accountNumber}</dd>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.accountNumber || ''}
+                          onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="12345678"
+                          pattern="[0-9]{8}"
+                        />
+                      ) : (
+                        sale.accountNumber
+                      )}
+                    </dd>
                   </div>
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Direct Debit Date</dt>
                     <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                      {new Date(sale.directDebitDate).toLocaleDateString()}
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          value={editForm.directDebitDate ? new Date(editForm.directDebitDate).toISOString().split('T')[0] : ''}
+                          onChange={(e) => handleInputChange('directDebitDate', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      ) : (
+                        new Date(sale.directDebitDate).toLocaleDateString()
+                      )}
                     </dd>
                   </div>
                   <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
