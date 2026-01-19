@@ -300,9 +300,9 @@ export async function GET(request: NextRequest) {
         sale.mailingStreet || '', // First Line Add
         // Customer Package - determine based on what coverage is selected
         (() => {
-          if (sale.applianceCoverSelected && sale.boilerCoverSelected) return 'Both Appliance & Boiler Cover'
-          if (sale.boilerCoverSelected) return 'Boiler Cover Only'
-          if (sale.applianceCoverSelected) return 'Appliance Cover Only'
+          if (sale.applianceCoverSelected && sale.boilerCoverSelected) return 'Appliances + Boiler'
+          if (sale.boilerCoverSelected) return 'Boiler'
+          if (sale.applianceCoverSelected) return 'Appliances'
           return 'No Cover Selected'
         })(), // Customer Package
         '', // Cancellation status - blank
@@ -377,7 +377,7 @@ export async function GET(request: NextRequest) {
         '', // TV 2 - Size - blank
         sale.boilerCoverSelected && sale.boilerPriceSelected ? `£${Number(sale.boilerPriceSelected).toFixed(2)}` : '', // Boiler Package Price (Internal)
         sale.applianceCoverSelected ? `£${singleAppPrice.toFixed(2)}` : '', // Single App Price (Internal)
-        sale.applianceCoverSelected && sale.boilerCoverSelected ? `£${sale.totalPlanCost.toFixed(2)}` : '', // App Bundle Price (Internal) - total when both selected
+        '', // App Bundle Price (Internal) - blank as we don't collect this info
         '', // Landlord Boiler Package Price (Internal) - blank
         '', // Appliance 9 Type - blank
         '', // Appliance 9 Brand - blank
@@ -902,13 +902,13 @@ export async function POST(request: NextRequest) {
       let packageCost = 0
       
       if (sale.applianceCoverSelected && sale.boilerCoverSelected) {
-        customerPackage = 'Both Appliance & Boiler Cover'
+        customerPackage = 'Appliances + Boiler'
         packageCost = sale.totalPlanCost
       } else if (sale.applianceCoverSelected) {
-        customerPackage = 'Appliance Cover Only'
+        customerPackage = 'Appliances'
         packageCost = sale.appliances.reduce((sum, appliance) => sum + appliance.cost, 0)
       } else if (sale.boilerCoverSelected) {
-        customerPackage = 'Boiler Cover Only'
+        customerPackage = 'Boiler'
         packageCost = sale.boilerPriceSelected || 0
       } else {
         customerPackage = 'No Cover Selected'
