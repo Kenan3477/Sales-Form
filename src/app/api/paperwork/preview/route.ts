@@ -493,7 +493,7 @@ export async function GET(request: NextRequest) {
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (now for old wree ahere applicable), subject to availability.</span>
+                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability.</span>
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
@@ -534,10 +534,11 @@ export async function GET(request: NextRequest) {
                         If you pay by Direct Debit, payments will appear on your bank statement as Warmcare.
                     </div>
                     <ul class="guarantee-list">
-                        <li>Call 0330 822 7695</li>
-                        <li>Quote your plan reference {{planNumber}}</li>
-                        <li>Describe the issue so we can assess eligibility</li>
-                        <li>You may cancel your Direct Debit at any time via your bank or building society</li>
+                        <li>This Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits</li>
+                        <li>If there are any changes to the amount, date or frequency of your Direct Debit we will notify you at least 10 working days in advance</li>
+                        <li>If you request us to collect a payment, confirmation will be given at the time of the request</li>
+                        <li>If an error is made in the payment of your Direct Debit, by us or your bank or building society you are entitled to a full and immediate refund of the amount paid</li>
+                        <li>You can cancel your Direct Debit at any time via your bank or building society</li>
                     </ul>
                 </div>
             </div>
@@ -1155,7 +1156,7 @@ export async function POST(request: NextRequest) {
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (now for old wree ahere applicable), subject to availability.</span>
+                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability.</span>
                         </div>
                         <div class="checklist-item">
                             <div class="check-icon"></div>
@@ -1196,10 +1197,11 @@ export async function POST(request: NextRequest) {
                         If you pay by Direct Debit, payments will appear on your bank statement as Warmcare.
                     </div>
                     <ul class="guarantee-list">
-                        <li>Call 0330 822 7695</li>
-                        <li>Quote your plan reference {{planNumber}}</li>
-                        <li>Describe the issue so we can assess eligibility</li>
-                        <li>You may cancel your Direct Debit at any time via your bank or building society</li>
+                        <li>This Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits</li>
+                        <li>If there are any changes to the amount, date or frequency of your Direct Debit we will notify you at least 10 working days in advance</li>
+                        <li>If you request us to collect a payment, confirmation will be given at the time of the request</li>
+                        <li>If an error is made in the payment of your Direct Debit, by us or your bank or building society you are entitled to a full and immediate refund of the amount paid</li>
+                        <li>You can cancel your Direct Debit at any time via your bank or building society</li>
                     </ul>
                 </div>
             </div>
