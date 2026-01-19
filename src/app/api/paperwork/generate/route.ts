@@ -152,17 +152,39 @@ export async function POST(request: NextRequest) {
     // Generate the document using database template or enhanced service as fallback
     console.log('📝 Generating document with template data...');
     console.log('🧪 Template data being used:', JSON.stringify(templateData, null, 2));
+    console.log('📄 Template found:', {
+      id: template.id,
+      name: template.name,
+      contentLength: template.htmlContent.length,
+      containsFlashTeam: template.htmlContent.includes('Flash Team'),
+      containsCSS: template.htmlContent.includes('linear-gradient')
+    });
     
     let result;
     
     if (template.htmlContent && template.htmlContent.length > 100) {
       console.log('📄 Using database template content');
-      // Use database template with simple variable replacement
+      console.log('📄 First 500 chars of template:', template.htmlContent.substring(0, 500));
+      
+      // Use database template with comprehensive variable replacement
       result = template.htmlContent.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
         const cleanKey = key.trim();
-        const value = (templateData as any)[cleanKey];
-        return value !== undefined ? String(value) : match;
+        let value = (templateData as any)[cleanKey];
+        
+        // Handle nested properties like agreement.coverage.hasBoilerCover
+        if (value === undefined && cleanKey.includes('.')) {
+          const keyParts = cleanKey.split('.');
+          value = keyParts.reduce((obj: any, part: string) => obj && obj[part], templateData);
+        }
+        
+        const result = value !== undefined ? String(value) : match;
+        if (result === match) {
+          console.log(`⚠️  Variable not replaced: ${cleanKey}`);
+        }
+        return result;
       });
+      
+      console.log('📄 Variables replaced. Sample output:', result.substring(0, 500));
     } else {
       console.log('📄 Falling back to Enhanced Template Service');
       // Fallback to Enhanced Template Service
