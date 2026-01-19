@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -50,6 +50,7 @@ export default function AdminSalesPage() {
   const [selectedSales, setSelectedSales] = useState<string[]>([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteAction, setDeleteAction] = useState<'all' | 'selected' | null>(null)
+  const [availableAgents, setAvailableAgents] = useState<string[]>([])
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -76,13 +77,8 @@ export default function AdminSalesPage() {
     }
   }, [status, session, router])
 
-  useEffect(() => {
-    if (session?.user?.role === 'ADMIN') {
-      fetchSales()
-    }
-  }, [session])
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
+    setLoading(true)
     try {
       const params = new URLSearchParams()
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom)
@@ -107,7 +103,34 @@ export default function AdminSalesPage() {
       console.error('Error fetching sales:', error)
     }
     setLoading(false)
+  }, [filters])
+
+  useEffect(() => {
+    if (session?.user?.role === 'ADMIN') {
+      fetchSales()
+    }
+  }, [session, fetchSales])
+
+  // Separate function to fetch all agents for the dropdown
+  const fetchAllAgents = async () => {
+    try {
+      const response = await fetch('/api/sales')
+      if (response.ok) {
+        const allSales = await response.json()
+        const uniqueAgents = Array.from(new Set(allSales.map((sale: Sale) => sale.createdBy.email))) as string[]
+        setAvailableAgents(uniqueAgents.sort()) // Sort alphabetically
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error)
+    }
   }
+
+  // Load agents separately on component mount
+  useEffect(() => {
+    if (session?.user?.role === 'ADMIN') {
+      fetchAllAgents()
+    }
+  }, [session])
 
   const handleDuplicateCheckFile = async (file: File | null) => {
     setDuplicateCheckFile(file)
@@ -726,6 +749,24 @@ export default function AdminSalesPage() {
                   placeholder="Customer name, email..."
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
                 />
+              </div>
+              <div>
+                <label htmlFor="agent" className="block text-xs font-medium text-gray-700">
+                  Agent
+                </label>
+                <select
+                  id="agent"
+                  value={filters.agent}
+                  onChange={(e) => setFilters({...filters, agent: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                >
+                  <option value="">All Agents</option>
+                  {availableAgents.map((agentEmail) => (
+                    <option key={agentEmail} value={agentEmail}>
+                      {agentEmail}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label htmlFor="dateFrom" className="block text-xs font-medium text-gray-700">
