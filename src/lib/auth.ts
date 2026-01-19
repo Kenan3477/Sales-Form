@@ -7,6 +7,7 @@ import { isValidEmail, sanitizeInput, logSecurityEvent, createSecurityContext } 
 
 export const authOptions: NextAuthOptions = {
   debug: process.env.DEBUG_AUTH === 'true' || process.env.NODE_ENV === 'development',
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -32,9 +33,9 @@ export const authOptions: NextAuthOptions = {
         const ip = req?.headers?.['x-forwarded-for'] || req?.headers?.['x-real-ip'] || 'unknown'
         const userAgent = req?.headers?.['user-agent'] || 'unknown'
         
-        // Check for too many failed attempts (temporarily disabled for troubleshooting)
-        const failedAttempts = 0 // await getFailedLoginAttempts(email)
-        const ipFailedAttempts = 0 // await getFailedLoginAttempts(`ip:${ip}`)
+        // Check for too many failed attempts
+        const failedAttempts = await getFailedLoginAttempts(email)
+        const ipFailedAttempts = await getFailedLoginAttempts(`ip:${ip}`)
         
         // More lenient rate limiting - allow more attempts per IP for shared networks
         if (failedAttempts >= 5 || ipFailedAttempts >= 20) {
@@ -52,9 +53,9 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (!user) {
-          // Track failed attempt for both email and IP (temporarily disabled)
-          // await trackFailedLogin(email)
-          // await trackFailedLogin(`ip:${ip}`)
+          // Track failed attempt for both email and IP
+          await trackFailedLogin(email)
+          await trackFailedLogin(`ip:${ip}`)
           
           logSecurityEvent('LOGIN_FAILED_USER_NOT_FOUND', {
             ip: ip as string,
@@ -69,9 +70,9 @@ export const authOptions: NextAuthOptions = {
         const isValid = await compare(password, user.password)
 
         if (!isValid) {
-          // Track failed attempt for both email and IP (temporarily disabled)
-          // await trackFailedLogin(email)
-          // await trackFailedLogin(`ip:${ip}`)
+          // Track failed attempt for both email and IP
+          await trackFailedLogin(email)
+          await trackFailedLogin(`ip:${ip}`)
           
           logSecurityEvent('LOGIN_FAILED_INVALID_PASSWORD', {
             ip: ip as string,
@@ -83,9 +84,9 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Successful login - clear failed attempts (temporarily disabled)
-        // await clearFailedLoginAttempts(email)
-        // await clearFailedLoginAttempts(`ip:${ip}`)
+        // Successful login - clear failed attempts
+        await clearFailedLoginAttempts(email)
+        await clearFailedLoginAttempts(`ip:${ip}`)
         
         logSecurityEvent('LOGIN_SUCCESS', {
           ip: ip as string,
@@ -107,18 +108,19 @@ export const authOptions: NextAuthOptions = {
     maxAge: 4 * 60 * 60, // 4 hours
   },
   jwt: {
+    secret: process.env.NEXTAUTH_SECRET,
     maxAge: 4 * 60 * 60, // 4 hours
   },
   cookies: {
     sessionToken: {
-      name: 'next-auth.session-token',
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
       options: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL?.includes('localhost'),
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
         maxAge: 4 * 60 * 60, // 4 hours
-        domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let NextAuth handle domain automatically
+        domain: undefined, // Let NextAuth handle domain automatically
       }
     }
   },

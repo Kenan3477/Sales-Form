@@ -101,8 +101,34 @@ export async function middleware(req: NextRequest) {
     }
   }
   
-  // Authentication and authorization
-  const token = await getToken({ req })
+  // Authentication and authorization - v3 with proper cookie handling
+  const token = await getToken({ 
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    cookieName: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
+  })
+  
+  // Debug logging for dashboard access - v3
+  if (req.nextUrl.pathname.startsWith('/dashboard')) {
+    console.log('🎯 Dashboard access attempt:', {
+      path: req.nextUrl.pathname,
+      hasToken: !!token,
+      tokenDetails: token ? {
+        sub: token.sub,
+        email: token.email,
+        role: token.role,
+        exp: token.exp,
+        iat: token.iat
+      } : null,
+      userAgent: req.headers.get('user-agent')?.substring(0, 50),
+      cookies: req.cookies.getAll().map(c => ({ name: c.name, hasValue: !!c.value })),
+      environment: {
+        hasSecret: !!process.env.NEXTAUTH_SECRET,
+        hasUrl: !!process.env.NEXTAUTH_URL,
+        nodeEnv: process.env.NODE_ENV
+      }
+    })
+  }
   
   // Allow access to public pages and debug endpoints
   if (req.nextUrl.pathname === '/' || 
@@ -110,12 +136,17 @@ export async function middleware(req: NextRequest) {
       req.nextUrl.pathname.startsWith('/api/auth/') ||
       req.nextUrl.pathname.startsWith('/api/debug/') ||
       req.nextUrl.pathname.startsWith('/api/health/') ||
-      req.nextUrl.pathname.startsWith('/api/clear-all-rate-limits/')) {
+      req.nextUrl.pathname.startsWith('/api/clear-all-rate-limits/') ||
+      req.nextUrl.pathname.startsWith('/api/seed-production/')) {
     return response
   }
   
   // Require authentication for all other pages
   if (!token) {
+    console.log('❌ No token found, redirecting to login:', {
+      path: req.nextUrl.pathname,
+      cookies: req.cookies.getAll().map(c => ({ name: c.name, hasValue: !!c.value }))
+    })
     const loginUrl = new URL('/auth/login', req.url)
     return NextResponse.redirect(loginUrl)
   }

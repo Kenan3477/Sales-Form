@@ -993,6 +993,22 @@ export async function POST(request: NextRequest) {
       'Cancellation Fee Taken'
     ]
 
+    console.log('📧 EMAIL DEBUG - Starting CSV generation. Checking first 3 sales emails...')
+    
+    // Debug first 3 sales to check email values
+    const firstThreeSales = filteredSales.slice(0, 3)
+    firstThreeSales.forEach((sale, index) => {
+      console.log(`📧 EMAIL DEBUG - Sale ${index + 1}:`, {
+        saleId: sale.id,
+        customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+        emailFromDB: sale.email,
+        emailType: typeof sale.email,
+        emailIsPlaceholder: sale.email?.includes('placeholder') || sale.email?.includes('example') || sale.email?.includes('test'),
+        rawEmailJSON: JSON.stringify(sale.email),
+        createdAt: sale.createdAt
+      })
+    })
+
     const csvRows = filteredSales.map(sale => {
       const createdAt = new Date(sale.createdAt)
       
@@ -1012,6 +1028,16 @@ export async function POST(request: NextRequest) {
       } else {
         customerPackage = 'No Cover Selected'
         packageCost = 0
+      }
+
+      // Debug email field specifically for the first few sales
+      const debugThisSale = filteredSales.indexOf(sale) < 3
+      if (debugThisSale) {
+        console.log(`📧 EMAIL DEBUG - Building CSV row for sale ${sale.id}:`, {
+          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+          emailValue: sale.email,
+          emailWillBeInCSV: sale.email || '[EMPTY]'
+        })
       }
 
       return [

@@ -17,17 +17,35 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    })
+    try {
+      console.log('🔐 Attempting login for:', email)
+      
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
 
-    if (result?.error) {
-      setError('Invalid credentials')
-    } else {
-      router.push('/dashboard')
+      console.log('🔍 Login result:', result)
+
+      if (result?.error) {
+        console.error('❌ Login error:', result.error)
+        setError('Invalid credentials')
+      } else if (result?.ok) {
+        console.log('✅ Login successful!')
+        
+        // Force page reload to ensure session is properly loaded
+        console.log('🔄 Reloading page to refresh session...')
+        window.location.href = '/dashboard'
+      } else {
+        console.error('❌ Unexpected login result:', result)
+        setError('Login failed - please try again')
+      }
+    } catch (error) {
+      console.error('💥 Login exception:', error)
+      setError('Network error - please try again')
     }
+    
     setLoading(false)
   }
 
