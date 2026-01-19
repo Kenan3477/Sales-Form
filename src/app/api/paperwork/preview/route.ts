@@ -78,8 +78,17 @@ export async function GET(request: NextRequest) {
             width: 32px;
             height: 32px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
             box-shadow: 0 0 10px rgba(255,101,0,0.4);
+        }
+        
+        .lightning-icon::before {
+            content: '⚡';
         }
         
         .logo-text {
@@ -140,7 +149,12 @@ export async function GET(request: NextRequest) {
             width: 20px;
             height: 20px;
             background: white;
-            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
             display: inline-block;
             margin-right: 10px;
             vertical-align: middle;
@@ -741,8 +755,17 @@ export async function POST(request: NextRequest) {
             width: 32px;
             height: 32px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
             box-shadow: 0 0 10px rgba(255,101,0,0.4);
+        }
+        
+        .lightning-icon::before {
+            content: '⚡';
         }
         
         .logo-text {
@@ -803,7 +826,12 @@ export async function POST(request: NextRequest) {
             width: 20px;
             height: 20px;
             background: white;
-            clip-path: polygon(25% 0%, 75% 0%, 50% 45%, 85% 45%, 50% 100%, 15% 55%, 50% 55%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
             display: inline-block;
             margin-right: 10px;
             vertical-align: middle;
