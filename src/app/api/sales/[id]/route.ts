@@ -91,8 +91,30 @@ export async function PUT(
       })
 
       // Validate required fields
+      console.log('🔍 Validating sale update fields:', {
+        customerFirstName: body.customerFirstName,
+        customerLastName: body.customerLastName,
+        email: body.email,
+        phoneNumber: body.phoneNumber,
+        accountName: body.accountName,
+        sortCode: body.sortCode,
+        accountNumber: body.accountNumber
+      })
+
       if (!body.customerFirstName || !body.customerLastName || !body.email || !body.phoneNumber) {
-        throw new Error('Missing required customer fields')
+        throw new Error(`Missing required customer fields. Received: firstName=${body.customerFirstName}, lastName=${body.customerLastName}, email=${body.email}, phone=${body.phoneNumber}`)
+      }
+
+      if (!body.accountName && !existingSale.accountName) {
+        throw new Error('Account name is required')
+      }
+
+      if (!body.sortCode && !existingSale.sortCode) {
+        throw new Error('Sort code is required')
+      }
+
+      if (!body.accountNumber && !existingSale.accountNumber) {
+        throw new Error('Account number is required')
       }
 
       // Update the sale with new data
