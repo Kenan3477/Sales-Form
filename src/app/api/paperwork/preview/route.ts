@@ -29,21 +29,14 @@ export async function GET(request: NextRequest) {
       const templatePath = path.join(process.cwd(), 'docs', 'perfect-welcome-letter-template.html');
       let html = await fs.readFile(templatePath, 'utf8');
       
-      // Sample data for preview
+      // Sample data for preview - flat structure to match template variables
       const sampleData = {
-        customer: {
-          name: 'John Smith',
-          email: 'john.smith@example.com',
-          phone: '01234 567890',
-          address: '123 Main Street, City, Postcode'
-        },
-        coverage: {
-          startDate: '2024-01-15',
-          type: 'Comprehensive'
-        },
-        agreement: {
-          referenceNumber: 'TFT0123'
-        },
+        customerName: 'John Smith',
+        email: 'john.smith@example.com',
+        phoneNumber: '01234 567890',
+        address: '123 Main Street, City, Postcode',
+        coverageStartDate: '2024-01-15',
+        planNumber: 'TFT0123',
         monthlyCost: '29.99',
         applianceCount: 5,
         boilerCover: true,
@@ -148,18 +141,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Transform sale data for template
+    // Transform sale data for template - flat structure matching template variables
     const templateData = {
       customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
       email: sale.email,
-      phone: sale.phoneNumber,
+      phoneNumber: sale.phoneNumber,
       address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
       coverageStartDate: new Date().toLocaleDateString('en-GB'),
-      policyNumber: `FT-2025-${sale.id.slice(-6)}`,
-      totalCost: sale.totalPlanCost.toString(),
-      monthlyCost: (sale.totalPlanCost / 12).toFixed(2),
+      planNumber: `TFT${sale.id.toString().padStart(4, '0')}`, // Use TFT format
+      monthlyCost: sale.totalPlanCost.toFixed(2), // totalPlanCost is monthly
       hasApplianceCover: sale.applianceCoverSelected,
       hasBoilerCover: sale.boilerCoverSelected,
+      applianceCount: sale.appliances.length,
+      boilerCover: sale.boilerCoverSelected,
+      annualBoilerService: sale.boilerCoverSelected,
       currentDate: new Date().toLocaleDateString('en-GB', { 
         day: 'numeric',
         month: 'long',
