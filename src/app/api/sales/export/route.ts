@@ -542,49 +542,284 @@ export async function POST(request: NextRequest) {
     // Filter out duplicates if exclusion list provided
     let filteredSales = sales
     if (excludeCustomers && excludeCustomers.length > 0) {
-      console.log(`Filtering ${sales.length} sales against ${excludeCustomers.length} exclusion entries`)
+      console.log(`\n=== STARTING DEDUPLICATION ===`)
+      console.log(`Total sales: ${sales.length}`)
+      console.log(`Exclusion entries: ${excludeCustomers.length}`)
+      console.log(`Sample exclusions:`, excludeCustomers.slice(0, 5))
       
-      filteredSales = sales.filter(sale => {
-        // Normalize customer data for comparison
-        const customerEmail = sale.email?.toLowerCase().trim() || ''
-        const customerPhone = sale.phoneNumber?.replace(/[\s\-\(\)]/g, '') || '' // Remove formatting
-        const customerFullName = `${sale.customerFirstName} ${sale.customerLastName}`.toLowerCase().trim()
-        const customerAccountNumber = sale.accountNumber?.replace(/[\s\-]/g, '') || ''
-        
-        // Check if any identifier exactly matches the exclusion list
-        const isExcluded = excludeCustomers.some((exclude: string) => {
-          const excludeStr = exclude.toLowerCase().trim()
-          
-          // Parse the exclusion entry to extract identifiers
-          // Could be: email, phone, name, or account number
-          const excludePhone = excludeStr.replace(/[\s\-\(\)]/g, '')
-          const excludeAccountNumber = excludeStr.replace(/[\s\-]/g, '')
-          
-          // Exact matches only (no partial matching)
-          const emailMatch = customerEmail !== '' && customerEmail === excludeStr
-          const phoneMatch = customerPhone !== '' && customerPhone === excludePhone
-          const nameMatch = customerFullName === excludeStr
-          const accountMatch = customerAccountNumber !== '' && customerAccountNumber === excludeAccountNumber
-          
-          // Also check reversed name format (Last, First)
-          const reversedName = `${sale.customerLastName} ${sale.customerFirstName}`.toLowerCase().trim()
-          const reversedNameMatch = reversedName === excludeStr
-          
-          return emailMatch || phoneMatch || nameMatch || accountMatch || reversedNameMatch
+      try {
+        // Pre-process and normalize the exclusion list
+        const normalizedExclusions = excludeCustomers.map((exclude: string, index: number) => {
+          try {
+            const normalized = exclude?.toLowerCase().replace(/\s+/g, ' ').trim() || ''
+            return {
+              original: exclude || '',
+              normalized,
+              phone: normalized.replace(/[\s\-\(\)\+]/g, ''),
+              account: normalized.replace(/[\s\-]/g, ''),
+              isEmail: normalized.includes('@'),
+              isPhone: /\d{6,}/.test(normalized),
+              isAccount: /^\d{8,}$/.test(normalized.replace(/[\s\-]/g, ''))
+            }
+          } catch (error) {
+            console.error(`Error normalizing exclusion ${index}:`, error)
+            return {
+              original: exclude || '',
+              normalized: '',
+              phone: '',
+              account: '',
+              isEmail: false,
+              isPhone: false,
+              isAccount: false
+            }
+          }
         })
         
-        if (isExcluded) {
-          console.log(`Excluding customer: ${customerFullName} (${customerEmail}) - matched exclusion list`)
+        console.log(`Normalized exclusions sample:`, normalizedExclusions.slice(0, 3))
+        
+        // Debug: Check for Margot Maitland in exclusions
+        const margotExclusions = normalizedExclusions.filter((ex: any) => 
+          ex.normalized.includes('margot') || ex.normalized.includes('maitland')
+        )
+        if (margotExclusions.length > 0) {
+          console.log('*** FOUND MARGOT/MAITLAND EXCLUSIONS ***')
+          margotExclusions.forEach((ex: any, i: number) => {
+            console.log(`Exclusion ${i}:`, {
+              original: ex.original,
+              normalized: ex.normalized,
+              phone: ex.phone,
+              account: ex.account,
+              isEmail: ex.isEmail,
+              isPhone: ex.isPhone,
+              isAccount: ex.isAccount
+            })
+          })
+          console.log('*** END MARGOT/MAITLAND EXCLUSIONS ***')
+        } else {
+          console.log('*** NO MARGOT/MAITLAND FOUND IN EXCLUSIONS ***')
+          console.log('Sample exclusions for debugging:')
+          normalizedExclusions.slice(0, 10).forEach((ex: any, i: number) => {
+            console.log(`${i}: "${ex.original}" -> "${ex.normalized}"`)
+          })
         }
+        
+        // Performance safeguard - limit processing if dataset is too large
+        const maxProcessableCustomers = 10000 // Reasonable limit for serverless
+        const maxProcessableExclusions = 50000 // Reasonable limit for exclusions
+        
+        if (sales.length > maxProcessableCustomers) {
+          console.warn(`Dataset too large: ${sales.length} sales (max: ${maxProcessableCustomers}). Processing first ${maxProcessableCustomers} only.`)
+        }
+        
+        if (normalizedExclusions.length > maxProcessableExclusions) {
+          console.warn(`Exclusion list too large: ${normalizedExclusions.length} exclusions (max: ${maxProcessableExclusions}). Processing first ${maxProcessableExclusions} only.`)
+        }
+        
+        const processableSales = sales.slice(0, maxProcessableCustomers)
+        const processableExclusions = normalizedExclusions.slice(0, maxProcessableExclusions)
+      
+      filteredSales = processableSales.filter((sale, index) => {
+        try {
+          // Comprehensive customer data normalization
+          const customer = {
+            email: sale.email?.toLowerCase().trim() || '',
+            phone: sale.phoneNumber?.replace(/[\s\-\(\)\+]/g, '') || '',
+            fullName: `${sale.customerFirstName?.trim() || ''} ${sale.customerLastName?.trim() || ''}`.toLowerCase().replace(/\s+/g, ' ').trim(),
+            firstName: sale.customerFirstName?.toLowerCase().trim() || '',
+            lastName: sale.customerLastName?.toLowerCase().trim() || '',
+            reversedName: `${sale.customerLastName?.trim() || ''} ${sale.customerFirstName?.trim() || ''}`.toLowerCase().replace(/\s+/g, ' ').trim(),
+            account: sale.accountNumber?.replace(/[\s\-]/g, '') || ''
+          }
+          
+          // Progress logging every 10 customers
+          if (index % 10 === 0) {
+            console.log(`Processing customer ${index + 1}/${processableSales.length}: ${customer.fullName}`)
+          }
+          
+          // Debug specific customer - more comprehensive
+          const isTargetCustomer = customer.fullName.includes('margot') && customer.fullName.includes('maitland')
+          if (isTargetCustomer) {
+            console.log('*** DEBUGGING MARGOT MAITLAND ***')
+            console.log('Customer data:', customer)
+            console.log('Sale data:', {
+              id: sale.id,
+              email: sale.email,
+              phoneNumber: sale.phoneNumber,
+              accountNumber: sale.accountNumber,
+              customerFirstName: sale.customerFirstName,
+              customerLastName: sale.customerLastName
+            })
+            console.log('Will check against', processableExclusions.length, 'exclusions')
+          }
+          
+          // Check against every exclusion entry - use OR logic, not else-if
+          const isExcluded = processableExclusions.some((exclusion: any, excIndex: number) => {
+            try {
+              const matches: string[] = []
+              
+              if (isTargetCustomer && (excIndex < 5 || exclusion.normalized.includes('margot') || exclusion.normalized.includes('maitland'))) {
+                console.log(`Checking against exclusion ${excIndex}:`, exclusion)
+              }
+              
+              // CRITICAL: Add null/undefined checks for all comparisons
+              
+              // 1. Exact email match (highest priority)
+              if (customer.email && exclusion.isEmail && exclusion.normalized && customer.email === exclusion.normalized) {
+                matches.push('email-exact')
+              }
+              
+              // 2. Exact phone number match
+              if (customer.phone && exclusion.isPhone && exclusion.phone && customer.phone === exclusion.phone) {
+                matches.push('phone-exact')
+              }
+              
+              // 3. Partial phone match (last 8+ digits)
+              if (customer.phone && exclusion.phone && customer.phone.length >= 8 && exclusion.phone.length >= 8) {
+                const customerLast8 = customer.phone.slice(-8)
+                const exclusionLast8 = exclusion.phone.slice(-8)
+                if (customerLast8 === exclusionLast8) {
+                  matches.push('phone-partial-8')
+                }
+              }
+              
+              // 4. Account number match
+              if (customer.account && exclusion.isAccount && exclusion.account && customer.account === exclusion.account) {
+                matches.push('account-exact')
+              }
+              
+              // 5. Exact full name match
+              if (customer.fullName && exclusion.normalized && customer.fullName === exclusion.normalized) {
+                matches.push('name-full-exact')
+              }
+              
+              // 6. Reversed name match (Last, First format)
+              if (customer.reversedName && exclusion.normalized && customer.reversedName === exclusion.normalized) {
+                matches.push('name-reversed-exact')
+              }
+              
+              // 7. Name with comma format match
+              if (customer.fullName && exclusion.normalized) {
+                const cleanedExclusion = exclusion.normalized.replace(',', '').replace(/\s+/g, ' ').trim()
+                if (customer.fullName === cleanedExclusion) {
+                  matches.push('name-comma-cleaned')
+                }
+              }
+              
+              // 8. First and last name individual checks (for partial entries)
+              if (exclusion.normalized && exclusion.normalized.includes(' ')) {
+                const parts = exclusion.normalized.split(/\s+/)
+                if (parts.length === 2) {
+                  const [first, last] = parts
+                  if ((customer.firstName === first && customer.lastName === last) ||
+                      (customer.firstName === last && customer.lastName === first)) {
+                    matches.push('name-parts-exact')
+                  }
+                }
+              }
+              
+              // 9. Single name match (if exclusion is just first or last name)
+              if (exclusion.normalized && !exclusion.normalized.includes(' ') && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
+                if (customer.firstName === exclusion.normalized || customer.lastName === exclusion.normalized) {
+                  matches.push('name-single')
+                }
+              }
+              
+              // 10. Fuzzy name matching - comprehensive word-based matching
+              if (exclusion.normalized && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
+                try {
+                  const exclusionWords = exclusion.normalized.split(/\s+/).filter((word: string) => word && word.length > 1)
+                  const customerWords = [...customer.firstName.split(/\s+/), ...customer.lastName.split(/\s+/)].filter((word: string) => word && word.length > 1)
+                  
+                  // Check if all customer name parts are found in exclusion
+                  if (customerWords.length >= 2 && exclusionWords.length >= 2) {
+                    const customerWordsInExclusion = customerWords.every((word: string) => 
+                      exclusionWords.some((excWord: string) => excWord && (excWord.includes(word) || word.includes(excWord)))
+                    )
+                    if (customerWordsInExclusion) {
+                      matches.push('name-fuzzy')
+                    }
+                  }
+                } catch (fuzzyError) {
+                  console.error('Error in fuzzy matching:', fuzzyError)
+                }
+              }
+              
+              // 11. Substring matching - check if exclusion contains customer name as substring
+              if (exclusion.normalized && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
+                if (customer.fullName && exclusion.normalized.includes(customer.fullName)) {
+                  matches.push('name-substring-in-exclusion')
+                }
+                if (customer.fullName && customer.fullName.includes(exclusion.normalized)) {
+                  matches.push('name-exclusion-in-customer')
+                }
+              }
+              
+              // 12. Case-insensitive contains matching
+              if (exclusion.normalized && !exclusion.isEmail && !exclusion.isPhone && !exclusion.isAccount) {
+                const excLower = exclusion.normalized.toLowerCase()
+                const custLower = customer.fullName.toLowerCase()
+                if (customer.firstName && customer.lastName &&
+                    custLower.includes(customer.firstName.toLowerCase()) && 
+                    custLower.includes(customer.lastName.toLowerCase()) &&
+                    (excLower.includes(customer.firstName.toLowerCase()) && excLower.includes(customer.lastName.toLowerCase()))) {
+                  matches.push('name-contains-both-names')
+                }
+              }
+              
+              if (isTargetCustomer && (excIndex < 5 || exclusion.normalized.includes('margot') || exclusion.normalized.includes('maitland'))) {
+                console.log(`Exclusion ${excIndex} matches:`, matches)
+              }
+              
+              const hasMatch = matches.length > 0
+              if (hasMatch) {
+                console.log(`EXCLUDING: ${customer.fullName} (${customer.email}) - matched "${exclusion.original}" via: ${matches.join(', ')}`)
+              }
+              
+              return hasMatch
+              
+            } catch (exclusionError) {
+              console.error(`Error checking exclusion ${excIndex} for customer ${customer.fullName}:`, exclusionError)
+              return false // Don't exclude on error - be safe
+            }
+          })
+          
+          if (isTargetCustomer) {
+            console.log('*** MARGOT MAITLAND RESULT: isExcluded =', isExcluded, '***')
+          }
 
-        return !isExcluded
+          return !isExcluded
+          
+        } catch (customerError) {
+          console.error(`Error processing customer ${index} (${sale.customerFirstName} ${sale.customerLastName}):`, customerError)
+          return true // Include customer on error - be safe
+        }
       })
       
-      console.log(`Filtered result: ${filteredSales.length} sales remaining after exclusion (${sales.length - filteredSales.length} excluded)`)
+      console.log(`\n=== DEDUPLICATION COMPLETE ===`)
+      console.log(`Sales retained: ${filteredSales.length}`)
+      console.log(`Sales excluded: ${processableSales.length - filteredSales.length}`)
+      console.log(`Original sales count: ${sales.length}`)
+      console.log(`=== END DEDUPLICATION ===\n`)
+      
+      // If we had to truncate the original list, add remaining sales back
+      if (sales.length > processableSales.length) {
+        const remainingSales = sales.slice(processableSales.length)
+        filteredSales = [...filteredSales, ...remainingSales]
+        console.log(`Added ${remainingSales.length} unprocessed sales back to export (total: ${filteredSales.length})`)
+      }
+      
+      } catch (deduplicationError) {
+        console.error('Critical error during deduplication:', deduplicationError)
+        // Fall back to original sales list if deduplication fails
+        filteredSales = sales
+        console.log('Falling back to unfiltered sales due to deduplication error')
+      }
     }
 
-    // Generate CSV with same format as GET handler
+    // Generate CSV with complete header format matching CRM requirements
     const csvHeader = [
+      'Record Id',
+      'Customers Owner.id',
       'Customers Owner',
       'Lead Source',
       'First Name',
@@ -602,7 +837,7 @@ export async function POST(request: NextRequest) {
       'Last Activity Time',
       'Mailing Street',
       'Mailing City',
-      'Mailing Province/State',
+      'Mailing Province',
       'Mailing Postal Code',
       'Description',
       'Tag',
@@ -616,17 +851,146 @@ export async function POST(request: NextRequest) {
       'Status',
       'Created Date',
       'SortCode',
-      'Account Number',
-      'Account Name',
-      'DD Date',
+      'Acc Number',
+      'CVC',
+      'EXP Date',
+      'Card Number',
+      'LeadIdCPY',
+      'Plain Phone',
+      'Customer Premium',
+      'Package Excess',
+      'Last Service Date',
+      'Boiler Make',
+      'Pre Existing Issue',
+      'Boiler Age',
+      'Cancellation Notes',
+      'Renewal Date',
+      'Cancellation Fee',
+      'Date of renewal notification',
       'Lead Sales Agent',
       'Date of Sale',
       'First Line Add',
       'Customer Package',
-      'Customer Package Cost',
-      'Appliance Cover Selected',
-      'Boiler Cover Selected',
-      'Total Cost'
+      'Cancellation status',
+      'Type of renewal notification',
+      'First DD Date',
+      'DD Amount',
+      'Residential Status',
+      'Plan Reference Number',
+      'Brand',
+      'Processor',
+      'Appliance 2 Age',
+      'Appliance 1 Brand',
+      'Appliance 5 Type',
+      'Appliance 4 Type',
+      'Appliance 3 Type',
+      'Appliance 1 Age',
+      'Appliance 5 Brand',
+      'Appliance 4 Brand',
+      'Appliance 3 Brand',
+      'Appliance 5 Age',
+      'Appliance 4 Age',
+      'Appliance 2 Type',
+      'Appliance 1 Type',
+      'Appliance 2 Brand',
+      'Appliance 3 Age',
+      'TV Value',
+      'TV Brand',
+      'TV Size',
+      'TV Age',
+      'Sales Office Name',
+      'Affiliate Reference',
+      'Free Offer Period_Months',
+      'Cancellation Agent',
+      'Remaining Payments Due',
+      'Cancellation Reason',
+      'Welcome Letter Sent Date',
+      'Date of CNR',
+      'Contact Attempts',
+      'Last Contact Date',
+      'Resend Welcome Pack',
+      'Resend Method',
+      'Cancelled Date',
+      'Call Notes',
+      'Product sold',
+      'Customer Upgraded',
+      'Preferred Payment Date',
+      'Last 2 Acc Number (Post Docs)',
+      'DD Originator Reference',
+      'Authorised Persons on Account',
+      'Customer Preferences',
+      'Details of Vulnerabilities (if any)',
+      'POA',
+      'Appliance 6 Age',
+      'Appliance 6 Type',
+      'Appliance 6 Brand',
+      'Appliance 7 Brand',
+      'Appliance 7 Type',
+      'Appliance 7 Age',
+      'Appliance 8 Type',
+      'Appliance 8 Brand',
+      'Appliance 8 Age',
+      'Reduced price exp date',
+      'Reduced Price',
+      'TV Model Number',
+      'Contacted for TV Information',
+      'Boiler 2 Age',
+      'Boiler 2 Make',
+      'TV 2 Value',
+      'TV 2 -Age',
+      'TV 2 Model Number',
+      'TV 2 Brand',
+      'TV 2 - Size',
+      'Boiler Package Price (Internal)',
+      'Single App Price (Internal)',
+      'App Bundle Price (Internal)',
+      'Landlord Boiler Package Price (Internal)',
+      'Appliance 9 Type',
+      'Appliance 9 Brand',
+      'Appliance 9 Age',
+      'Multi Package Discount',
+      'TV Monthly Premium',
+      'Boiler 3-Months Free',
+      'Appliance 5 Value',
+      'Appliance 6 Value',
+      'Appliance 4 Value',
+      'Appliance 2 Value',
+      'Appliance 3 Value',
+      'Appliance 1 Value',
+      'Appliance 9 Value',
+      'Appliance 7 Value',
+      'Appliance 8 Value',
+      'GC Mandate ID',
+      'Reinstated Date',
+      'Payment Status',
+      'Date of last payment status',
+      'Appliance 10 Type',
+      'Appliance 10 Brand',
+      'Appliance 10 Age',
+      'Appliance 10 Value',
+      'Plan Start Date',
+      'Months Free Provided',
+      'Sale Approved',
+      'GC Bank Account ID',
+      'GC Customer ID',
+      'Connected To.module',
+      'Connected To.id',
+      'GC Subscription Status',
+      'GC Subscription ID',
+      'GC API Status',
+      'GC Mandate Status',
+      'GC Payment Status Update',
+      'GC Payment ID',
+      'GC Last Event ID',
+      'GC Last Webhook ID',
+      'GC Last Cause',
+      'GC Last Description',
+      'GC Last Received At Date',
+      'GC Last Resource Type',
+      'GS Manual Update All Status',
+      'GC Payment ID Scheduled To Refund',
+      'GC Last Payment Refunded',
+      'Cancellation Fee Taken'
     ]
 
     const csvRows = filteredSales.map(sale => {
@@ -651,48 +1015,168 @@ export async function POST(request: NextRequest) {
       }
 
       return [
-        'Kenan', // Customers Owner - hardcoded
-        'FE3', // Lead Source - hardcoded
+        sale.id || '', // Record Id
+        'Kenan', // Customers Owner
+        sale.createdBy?.id || '', // Customers Owner.id
+        'FE3', // Lead Source
         sale.customerFirstName, // First Name
         sale.customerLastName, // Last Name
         `${sale.customerFirstName} ${sale.customerLastName}`, // Customers Name
         sale.email, // Email
-        sale.title ? sale.title : '', // Title
+        sale.title || '', // Title
         sale.phoneNumber, // Phone
-        '', // Mobile - blank
-        '', // Date of Birth - blank
-        '', // Modified By.id - blank
-        '', // Modified By - blank
-        '', // Modified Time - blank
-        '', // Salutation - blank
-        '', // Last Activity Time - blank
-        sale.mailingStreet ? sale.mailingStreet : '', // Mailing Street
-        sale.mailingCity ? sale.mailingCity : 'London', // Mailing City - default to London
-        sale.mailingProvince ? sale.mailingProvince : '', // Mailing Province
-        sale.mailingPostalCode ? sale.mailingPostalCode : '', // Mailing Postal Code
-        '', // Description - blank
-        '', // Tag - blank
-        '', // Unsubscribed Mode - blank
-        '', // Unsubscribed Time - blank
-        '', // Change Log Time - blank
-        '', // Locked - blank
-        '', // Last Enriched Time - blank
-        '', // Enrich Status - blank
-        'DD', // Payment Method - hardcoded
-        'Process DD', // Status - hardcoded
+        '', // Mobile
+        '', // Date of Birth
+        '', // Modified By.id
+        '', // Modified By
+        '', // Modified Time
+        '', // Salutation
+        '', // Last Activity Time
+        sale.mailingStreet || '', // Mailing Street
+        sale.mailingCity || 'London', // Mailing City
+        sale.mailingProvince || '', // Mailing Province
+        sale.mailingPostalCode || '', // Mailing Postal Code
+        '', // Description
+        '', // Tag
+        '', // Unsubscribed Mode
+        '', // Unsubscribed Time
+        '', // Change Log Time
+        '', // Locked
+        '', // Last Enriched Time
+        '', // Enrich Status
+        'DD', // Payment Method
+        'Process DD', // Status
         createdAt.toLocaleDateString('en-GB'), // Created Date
-        sale.sortCode, // SortCode
-        sale.accountNumber, // Account Number
-        sale.accountName, // Account Name
-        new Date(sale.directDebitDate).toLocaleDateString('en-GB'), // DD Date
-        sale.createdBy.email, // Lead Sales Agent
+        sale.sortCode || '', // SortCode
+        sale.accountNumber || '', // Account Number
+        sale.accountName || '', // Account Name
+        sale.directDebitDate ? new Date(sale.directDebitDate).toLocaleDateString('en-GB') : '', // DD Date
+        sale.createdBy?.email || '', // Lead Sales Agent
         createdAt.toLocaleDateString('en-GB'), // Date of Sale
         sale.mailingStreet || '', // First Line Add
         customerPackage, // Customer Package
         packageCost.toString(), // Customer Package Cost
         sale.applianceCoverSelected ? 'Yes' : 'No', // Appliance Cover Selected
         sale.boilerCoverSelected ? 'Yes' : 'No', // Boiler Cover Selected
-        sale.totalPlanCost.toString() // Total Cost
+        sale.totalPlanCost?.toString() || '0', // Total Cost
+        '', // Boiler Make - not available in current schema
+        '', // Boiler Age - not available in current schema
+        '', // Brand Value
+        '', // Call Outcome
+        '', // Comments
+        '', // Renewal Date
+        '', // Quoted Cost
+        '', // Monthly Cost
+        '', // Commission Cost
+        '', // Plan Reference Number
+        '', // Brand
+        '', // Processor
+        '', // Appliance 2 Age - not available in current schema
+        sale.appliances && sale.appliances[0] ? sale.appliances[0].appliance : '', // Appliance 1 Brand
+        sale.appliances && sale.appliances[4] ? sale.appliances[4].appliance : '', // Appliance 5 Type
+        sale.appliances && sale.appliances[3] ? sale.appliances[3].appliance : '', // Appliance 4 Type
+        sale.appliances && sale.appliances[2] ? sale.appliances[2].appliance : '', // Appliance 3 Type
+        '', // Appliance 1 Age - not available in current schema
+        sale.appliances && sale.appliances[4] ? sale.appliances[4].appliance : '', // Appliance 5 Brand
+        sale.appliances && sale.appliances[3] ? sale.appliances[3].appliance : '', // Appliance 4 Brand
+        sale.appliances && sale.appliances[2] ? sale.appliances[2].appliance : '', // Appliance 3 Brand
+        '', // Appliance 5 Age - not available in current schema
+        '', // Appliance 4 Age - not available in current schema
+        sale.appliances && sale.appliances[1] ? sale.appliances[1].appliance : '', // Appliance 2 Type
+        sale.appliances && sale.appliances[0] ? sale.appliances[0].appliance : '', // Appliance 1 Type
+        sale.appliances && sale.appliances[1] ? sale.appliances[1].appliance : '', // Appliance 2 Brand
+        '', // Appliance 3 Age - not available in current schema
+        '', // TV Value - not available in current schema
+        '', // TV Brand - not available in current schema
+        '', // TV Size - not available in current schema
+        '', // TV Age - not available in current schema
+        '', // Sales Office Name
+        '', // Affiliate Reference
+        '', // Free Offer Period_Months
+        '', // Cancellation Agent
+        '', // Remaining Payments Due
+        '', // Cancellation Reason
+        '', // Welcome Letter Sent Date
+        '', // Date of CNR
+        '', // Contact Attempts
+        '', // Last Contact Date
+        '', // Resend Welcome Pack
+        '', // Resend Method
+        '', // Cancelled Date
+        '', // Call Notes
+        customerPackage, // Product sold
+        '', // Customer Upgraded
+        sale.directDebitDate ? new Date(sale.directDebitDate).toLocaleDateString('en-GB') : '', // Preferred Payment Date
+        sale.accountNumber ? sale.accountNumber.slice(-2) : '', // Last 2 Acc Number (Post Docs)
+        '', // DD Originator Reference
+        '', // Authorised Persons on Account
+        '', // Customer Preferences
+        '', // Details of Vulnerabilities (if any)
+        '', // POA
+        '', // Appliance 6 Age - not available in current schema
+        sale.appliances && sale.appliances[5] ? sale.appliances[5].appliance : '', // Appliance 6 Type
+        sale.appliances && sale.appliances[5] ? sale.appliances[5].appliance : '', // Appliance 6 Brand
+        sale.appliances && sale.appliances[6] ? sale.appliances[6].appliance : '', // Appliance 7 Brand
+        sale.appliances && sale.appliances[6] ? sale.appliances[6].appliance : '', // Appliance 7 Type
+        '', // Appliance 7 Age - not available in current schema
+        sale.appliances && sale.appliances[7] ? sale.appliances[7].appliance : '', // Appliance 8 Type
+        sale.appliances && sale.appliances[7] ? sale.appliances[7].appliance : '', // Appliance 8 Brand
+        '', // Appliance 8 Age - not available in current schema
+        '', // Reduced price exp date
+        '', // Reduced Price
+        '', // TV Model Number - not available in current schema
+        '', // Contacted for TV Information
+        '', // Boiler 2 Age
+        '', // Boiler 2 Make
+        '', // TV 2 Value
+        '', // TV 2 -Age
+        '', // TV 2 Model Number
+        '', // TV 2 Brand
+        '', // TV 2 - Size
+        '', // Boiler Package Price (Internal)
+        '', // Single App Price (Internal)
+        '', // App Bundle Price (Internal)
+        '', // Landlord Boiler Package Price (Internal)
+        sale.appliances && sale.appliances[8] ? sale.appliances[8].appliance : '', // Appliance 9 Type
+        sale.appliances && sale.appliances[8] ? sale.appliances[8].appliance : '', // Appliance 9 Brand
+        '', // Appliance 9 Age - not available in current schema
+        '', // Multi Package Discount
+        '', // TV Monthly Premium
+        '', // Boiler 3-Months Free
+        sale.appliances && sale.appliances[4] ? (sale.appliances[4].cost?.toString() || '') : '', // Appliance 5 Value
+        sale.appliances && sale.appliances[5] ? (sale.appliances[5].cost?.toString() || '') : '', // Appliance 6 Value
+        sale.appliances && sale.appliances[3] ? (sale.appliances[3].cost?.toString() || '') : '', // Appliance 4 Value
+        sale.appliances && sale.appliances[1] ? (sale.appliances[1].cost?.toString() || '') : '', // Appliance 2 Value
+        sale.appliances && sale.appliances[2] ? (sale.appliances[2].cost?.toString() || '') : '', // Appliance 3 Value
+        sale.appliances && sale.appliances[0] ? (sale.appliances[0].cost?.toString() || '') : '', // Appliance 1 Value
+        sale.appliances && sale.appliances[8] ? (sale.appliances[8].cost?.toString() || '') : '', // Appliance 9 Value
+        sale.appliances && sale.appliances[6] ? (sale.appliances[6].cost?.toString() || '') : '', // Appliance 7 Value
+        sale.appliances && sale.appliances[7] ? (sale.appliances[7].cost?.toString() || '') : '', // Appliance 8 Value
+        '', // GC Mandate ID
+        '', // Reinstated Date
+        '', // Payment Status
+        '', // Date of last payment status
+        sale.appliances && sale.appliances[9] ? sale.appliances[9].appliance : '', // Appliance 10 Type
+        sale.appliances && sale.appliances[9] ? sale.appliances[9].appliance : '', // Appliance 10 Brand
+        '', // Appliance 10 Age - not available in current schema
+        sale.appliances && sale.appliances[9] ? (sale.appliances[9].cost?.toString() || '') : '', // Appliance 10 Value
+        createdAt.toLocaleDateString('en-GB'), // Plan Start Date
+        '', // Months Free Provided
+        '', // Sale Approved
+        '', // GC Bank Account ID
+        '', // GC Customer ID
+        '', // Connected To.module
+        '', // Connected To.id
+        '', // GC Subscription Status
+        '', // GC Subscription ID
+        '', // GS Refund Date
+        '', // GS Refund Amount
+        '', // GC Payment Method ID  
+        '', // GC Last Resource Type
+        '', // GS Manual Update All Status
+        '', // GC Payment ID Scheduled To Refund
+        '', // GC Last Payment Refunded
+        '' // Cancellation Fee Taken
       ]
     })
 
