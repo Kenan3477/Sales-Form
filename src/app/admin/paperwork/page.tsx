@@ -32,6 +32,7 @@ interface GeneratedDocument {
       fullName: string;
       email: string;
     };
+    status: string;
   };
 }
 
@@ -51,6 +52,7 @@ export default function AdminPaperworkPage() {
   const [generating, setGenerating] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentFilter, setDocumentFilter] = useState<'all' | 'downloaded' | 'undownloaded'>('all');
+  const [customerStatusFilter, setCustomerStatusFilter] = useState<string>('all');
   const [bulkDownloading, setBulkDownloading] = useState(false);
 
   // Redirect if not admin
@@ -80,7 +82,11 @@ export default function AdminPaperworkPage() {
         setTemplates(data.templates || []);
       } else if (activeTab === 'documents') {
         console.log('📋 Fetching documents...');
-        const response = await fetch('/api/paperwork/documents');
+        const url = new URL('/api/paperwork/documents', window.location.origin);
+        if (customerStatusFilter !== 'all') {
+          url.searchParams.set('customerStatus', customerStatusFilter);
+        }
+        const response = await fetch(url.toString());
         if (!response.ok) throw new Error('Failed to fetch documents');
         const data = await response.json();
         console.log('📋 Documents response:', data);
@@ -120,7 +126,7 @@ export default function AdminPaperworkPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, session]);
+  }, [activeTab, customerStatusFilter, session]);
 
   useEffect(() => {
     // Only fetch data when properly authenticated
@@ -916,7 +922,24 @@ export default function AdminPaperworkPage() {
                   
                   {/* Filter and Bulk Actions */}
                   <div className="flex items-center space-x-4">
-                    {/* Filter Dropdown */}
+                    {/* Customer Status Filter Dropdown */}
+                    <select
+                      value={customerStatusFilter}
+                      onChange={(e) => {
+                        setCustomerStatusFilter(e.target.value);
+                        setSelectedDocuments([]); // Reset selection when filter changes
+                      }}
+                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="all">All Customers</option>
+                      <option value="active">Active</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="cancellation_notice_received">CNR</option>
+                      <option value="failed_payment">Failed Payment</option>
+                      <option value="process_dd">Process DD</option>
+                    </select>
+
+                    {/* Document Filter Dropdown */}
                     <select
                       value={documentFilter}
                       onChange={(e) => {
@@ -1009,6 +1032,9 @@ export default function AdminPaperworkPage() {
                             Customer
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Customer Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Template
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1043,6 +1069,23 @@ export default function AdminPaperworkPage() {
                               <div className="text-sm text-gray-500">
                                 {document.sale.customer.email}
                               </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                document.sale.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                                document.sale.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                                document.sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? 'bg-orange-100 text-orange-800' :
+                                document.sale.status === 'FAILED_PAYMENT' ? 'bg-yellow-100 text-yellow-800' :
+                                document.sale.status === 'PROCESS_DD' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {document.sale.status === 'ACTIVE' ? '✓ Active' :
+                                 document.sale.status === 'CANCELLED' ? '✗ Cancelled' :
+                                 document.sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? '⚠️ CNR' :
+                                 document.sale.status === 'FAILED_PAYMENT' ? '💳 Failed Payment' :
+                                 document.sale.status === 'PROCESS_DD' ? '🔄 Process DD' :
+                                 document.sale.status}
+                              </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">{document.templateName}</div>
