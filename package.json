@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^5.22.0",
     "@types/crypto-js": "^4.2.2",
     "@types/handlebars": "^4.0.40",
     "@types/jszip": "^3.4.0",
@@ -26,6 +26,7 @@
     "@upstash/redis": "^1.36.1",
     "bcryptjs": "^2.4.3",
     "crypto-js": "^4.2.0",
+    "csv-parse": "^6.1.0",
     "express-rate-limit": "^8.2.1",
     "file-type": "^21.3.0",
     "handlebars": "^4.7.8",

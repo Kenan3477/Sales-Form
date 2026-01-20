@@ -247,6 +247,18 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 Successfully created GeneratedDocument:', generatedDocument.id);
 
+    // Mark the sale as having documents generated
+    await prisma.sale.update({
+      where: { id: sale.id },
+      data: {
+        documentsGenerated: true,
+        documentsGeneratedAt: new Date(),
+        documentsGeneratedBy: session.user.id
+      }
+    });
+
+    console.log('✅ Sale marked as having documents generated:', sale.id);
+
     return NextResponse.json({
       success: true,
       document: {
