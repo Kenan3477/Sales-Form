@@ -2,30 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { withSecurity } from '@/lib/apiSecurity';
 import JSZip from 'jszip';
 
-async function handleBulkDownload(request: NextRequest, context: any) {
+export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Debug: Full context received:', JSON.stringify(context, null, 2));
-    
-    const { user } = context;
-    
-    if (!user) {
-      console.log('❌ No user in context');
-      return NextResponse.json({ error: 'User context missing' }, { status: 401 });
+    // Authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     console.log('📥 Bulk download request started:', { 
-      userId: user.id, 
-      userRole: user.role, 
-      userObject: JSON.stringify(user, null, 2) 
+      userId: session.user.id, 
+      userRole: session.user.role
     });
     
-    if (user.role !== 'ADMIN' && user.role !== 'AGENT') {
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'AGENT') {
       console.log('❌ Unauthorized bulk download attempt:', { 
-        userId: user.id, 
-        userRole: user.role,
+        userId: session.user.id, 
+        userRole: session.user.role,
         expectedRoles: ['ADMIN', 'AGENT']
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -41,9 +36,9 @@ async function handleBulkDownload(request: NextRequest, context: any) {
     };
 
     // If agent user, only allow access to their own sales' documents
-    if (user.role === 'AGENT') {
+    if (session.user.role === 'AGENT') {
       whereClause.sale = {
-        createdById: user.id
+        createdById: session.user.id
       };
     }
 
@@ -187,8 +182,3 @@ async function handleBulkDownload(request: NextRequest, context: any) {
     }, { status: 500 });
   }
 }
-
-export const POST = withSecurity(handleBulkDownload, {
-  requireAuth: true,
-  logAccess: true
-});
