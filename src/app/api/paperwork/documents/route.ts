@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const url = new URL(request.url);
     const saleId = url.searchParams.get('saleId');
+    const customerStatus = url.searchParams.get('customerStatus');
     const userId = session.user.role === 'AGENT' ? session.user.id : undefined;
 
     // Query generated documents from database
@@ -45,6 +46,14 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // If customer status filter is requested
+    if (customerStatus && customerStatus !== 'all') {
+      whereClause.sale = {
+        ...whereClause.sale,
+        status: customerStatus.toUpperCase()
+      };
+    }
+
     console.log('📋 Fetching documents with where clause:', JSON.stringify(whereClause, null, 2));
 
     const documents = await prisma.generatedDocument.findMany({
@@ -56,6 +65,7 @@ export async function GET(request: NextRequest) {
             customerFirstName: true,
             customerLastName: true,
             email: true,
+            status: true,
             createdBy: {
               select: {
                 email: true
@@ -81,20 +91,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform the data for frontend consumption
-    const transformedDocuments = documents.map(doc => ({
+    const transformedDocuments = documents.map((doc: any) => ({
       id: doc.id,
       saleId: doc.saleId,
       templateId: doc.templateId,
-      templateName: doc.template.name,
+      templateName: doc.template?.name || 'Unknown Template',
       fileName: doc.filename,
       downloadCount: doc.downloadCount,
       createdAt: doc.generatedAt.toISOString(),
       sale: {
-        id: doc.sale.id,
+        id: doc.sale?.id || '',
         customer: {
-          fullName: `${doc.sale.customerFirstName} ${doc.sale.customerLastName}`,
-          email: doc.sale.email
-        }
+          fullName: `${doc.sale?.customerFirstName || ''} ${doc.sale?.customerLastName || ''}`.trim(),
+          email: doc.sale?.email || ''
+        },
+        status: doc.sale?.status || 'ACTIVE'
       }
     }));
 
