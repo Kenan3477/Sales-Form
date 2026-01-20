@@ -4,9 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { leadWorkflowService } from '@/lib/leads/workflow'
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id: leadId } = params
+    const { id: leadId } = await params
 
     // Only agents can checkout leads, and only their assigned ones
     if (session.user.role !== 'AGENT') {
@@ -57,7 +57,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id: leadId } = params
+    const { id: leadId } = await params
 
     const released = await leadWorkflowService.releaseLead(leadId, session.user.id)
 
