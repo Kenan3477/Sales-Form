@@ -16,6 +16,7 @@ interface Sale {
   agentEmail: string
   agentName: string
   totalPlanCost: number
+  status: 'ACTIVE' | 'CANCELLED' | 'CANCELLATION_NOTICE_RECEIVED' | 'FAILED_PAYMENT' | 'PROCESS_DD'
   smsStatus: 'NOT_SENT' | 'SENDING' | 'SENT' | 'FAILED' | 'SKIPPED'
   smsSentAt?: string
   smsError?: string
@@ -60,6 +61,7 @@ export default function AdminSMSPage() {
   const [dateTo, setDateTo] = useState('')
   const [agentFilter, setAgentFilter] = useState('')
   const [smsStatusFilter, setSmsStatusFilter] = useState('')
+  const [customerStatusFilter, setCustomerStatusFilter] = useState('ACTIVE')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -79,10 +81,10 @@ export default function AdminSMSPage() {
   }, [session, status, router])
 
   useEffect(() => {
-    if (dateFrom || dateTo || agentFilter || smsStatusFilter) {
+    if (dateFrom || dateTo || agentFilter || smsStatusFilter || customerStatusFilter) {
       fetchSales()
     }
-  }, [dateFrom, dateTo, agentFilter, smsStatusFilter])
+  }, [dateFrom, dateTo, agentFilter, smsStatusFilter, customerStatusFilter])
 
   const fetchSales = async () => {
     try {
@@ -92,6 +94,7 @@ export default function AdminSMSPage() {
       if (dateTo) params.append('dateTo', dateTo)
       if (agentFilter) params.append('agent', agentFilter)
       if (smsStatusFilter) params.append('smsStatus', smsStatusFilter)
+      if (customerStatusFilter) params.append('customerStatus', customerStatusFilter)
 
       const response = await fetch(`/api/admin/sales/sms?${params}`)
       if (!response.ok) throw new Error('Failed to fetch sales')
@@ -197,6 +200,30 @@ export default function AdminSMSPage() {
     }).format(amount)
   }
 
+  const getCustomerStatusBadge = (status: string) => {
+    const badges = {
+      ACTIVE: 'bg-green-100 text-green-800',
+      CANCELLED: 'bg-red-100 text-red-800',
+      CANCELLATION_NOTICE_RECEIVED: 'bg-orange-100 text-orange-800',
+      FAILED_PAYMENT: 'bg-yellow-100 text-yellow-800',
+      PROCESS_DD: 'bg-blue-100 text-blue-800'
+    }
+    
+    return badges[status as keyof typeof badges] || badges.ACTIVE
+  }
+
+  const getCustomerStatusLabel = (status: string) => {
+    const labels = {
+      ACTIVE: 'Active',
+      CANCELLED: 'Cancelled',
+      CANCELLATION_NOTICE_RECEIVED: 'CNR',
+      FAILED_PAYMENT: 'Failed Payment',
+      PROCESS_DD: 'Process DD'
+    }
+    
+    return labels[status as keyof typeof labels] || status
+  }
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -245,7 +272,7 @@ export default function AdminSMSPage() {
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date From
@@ -298,6 +325,23 @@ export default function AdminSMSPage() {
                 <option value="FAILED">Failed</option>
                 <option value="SKIPPED">Skipped</option>
                 <option value="SENDING">Sending</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Customer Status
+              </label>
+              <select
+                value={customerStatusFilter}
+                onChange={(e) => setCustomerStatusFilter(e.target.value)}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              >
+                <option value="">All Customers</option>
+                <option value="ACTIVE">Active</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="CANCELLATION_NOTICE_RECEIVED">CNR</option>
+                <option value="FAILED_PAYMENT">Failed Payment</option>
+                <option value="PROCESS_DD">Process DD</option>
               </select>
             </div>
           </div>
@@ -405,6 +449,7 @@ export default function AdminSMSPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sale Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SMS Status</th>
@@ -433,6 +478,11 @@ export default function AdminSMSPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {sale.agentName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCustomerStatusBadge(sale.status)}`}>
+                        {getCustomerStatusLabel(sale.status)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {new Date(sale.createdAt).toLocaleDateString()}
