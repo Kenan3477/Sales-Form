@@ -7,12 +7,27 @@ import JSZip from 'jszip';
 
 async function handleBulkDownload(request: NextRequest, context: any) {
   try {
+    console.log('🔍 Debug: Full context received:', JSON.stringify(context, null, 2));
+    
     const { user } = context;
     
-    console.log('📥 Bulk download request started:', { userId: user.id, userRole: user.role });
+    if (!user) {
+      console.log('❌ No user in context');
+      return NextResponse.json({ error: 'User context missing' }, { status: 401 });
+    }
     
-    if (user.role !== 'admin' && user.role !== 'agent') {
-      console.log('❌ Unauthorized bulk download attempt:', { userId: user.id, userRole: user.role });
+    console.log('📥 Bulk download request started:', { 
+      userId: user.id, 
+      userRole: user.role, 
+      userObject: JSON.stringify(user, null, 2) 
+    });
+    
+    if (user.role !== 'ADMIN' && user.role !== 'AGENT') {
+      console.log('❌ Unauthorized bulk download attempt:', { 
+        userId: user.id, 
+        userRole: user.role,
+        expectedRoles: ['ADMIN', 'AGENT']
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
