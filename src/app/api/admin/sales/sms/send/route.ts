@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     for (const sale of sales) {
       const customerName = `${sale.customerFirstName} ${sale.customerLastName}`
       const phoneAnalysis = analyzePhoneNumber(sale.phoneNumber)
+      console.log(`📱 Analyzing phone for ${sale.customerFirstName}: ${sale.phoneNumber} -> ${JSON.stringify(phoneAnalysis)}`)
 
       // Check if SMS can be sent
       if (!sale.phoneNumber || sale.phoneNumber.trim() === '') {
@@ -101,11 +102,13 @@ export async function POST(request: NextRequest) {
 
       // Attempt to send SMS
       try {
+        console.log(`📤 Sending SMS to ${phoneAnalysis.normalized} for ${sale.customerFirstName}`)
         const smsResult = await sendSmsViaVoodoo({
-          to: sale.phoneNumber,
+          to: phoneAnalysis.normalized!, // Use normalized E.164 format
           msg: message,
           external_reference: `sale-${sale.id}`
         })
+        console.log(`📤 SMS Result for ${sale.customerFirstName}: ${JSON.stringify(smsResult)}`)
         
         if (smsResult.success) {
           // Log successful SMS
