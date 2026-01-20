@@ -25,6 +25,13 @@ async function handleBulkDownload(request: NextRequest, context: any) {
       isDeleted: false
     };
 
+    // If agent user, only allow access to their own sales' documents
+    if (user.role === 'AGENT') {
+      whereClause.sale = {
+        createdById: user.id
+      };
+    }
+
     // Apply filters
     if (filter === 'downloaded') {
       whereClause.downloadCount = { gt: 0 };
