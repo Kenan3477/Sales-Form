@@ -93,9 +93,14 @@ export default function AdminPaperworkPage() {
         setDocuments(data.documents || []);
       } else if (activeTab === 'generate') {
         // Fetch both templates and sales data
+        const salesUrl = new URL('/api/sales', window.location.origin);
+        if (customerStatusFilter !== 'all') {
+          salesUrl.searchParams.set('status', customerStatusFilter.toUpperCase());
+        }
+        
         const [templatesResponse, salesResponse] = await Promise.all([
           fetch('/api/paperwork/templates?activeOnly=true'),
-          fetch('/api/sales')
+          fetch(salesUrl.toString())
         ]);
         
         if (!templatesResponse.ok) throw new Error('Failed to fetch templates');
@@ -732,9 +737,31 @@ export default function AdminPaperworkPage() {
               </div>
             ) : activeTab === 'generate' ? (
               <div>
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Generate Documents</h2>
-                  <p className="text-gray-600">Select customers and templates to generate paperwork documents.</p>
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Generate Documents</h2>
+                    <p className="text-gray-600">Select customers and templates to generate paperwork documents.</p>
+                  </div>
+                  
+                  {/* Customer Status Filter */}
+                  <div className="flex items-center space-x-4">
+                    <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
+                    <select
+                      value={customerStatusFilter}
+                      onChange={(e) => {
+                        setCustomerStatusFilter(e.target.value);
+                        setSelectedSales([]); // Reset selection when filter changes
+                      }}
+                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="all">All Customers</option>
+                      <option value="active">Active</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="cancellation_notice_received">CNR</option>
+                      <option value="failed_payment">Failed Payment</option>
+                      <option value="process_dd">Process DD</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Import BulkOperations here or create inline interface */}
@@ -772,8 +799,24 @@ export default function AdminPaperworkPage() {
                             <div className="text-sm text-gray-500">
                               {sale.email} • Sale #{sale.id.slice(-6)}
                             </div>
-                            <div className="text-sm text-gray-400">
-                              {new Date(sale.createdAt).toLocaleDateString()}
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                              <span>{new Date(sale.createdAt).toLocaleDateString()}</span>
+                              •
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                                sale.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                                sale.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                                sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? 'bg-orange-100 text-orange-800' :
+                                sale.status === 'FAILED_PAYMENT' ? 'bg-yellow-100 text-yellow-800' :
+                                sale.status === 'PROCESS_DD' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {sale.status === 'ACTIVE' ? 'Active' :
+                                 sale.status === 'CANCELLED' ? 'Cancelled' :
+                                 sale.status === 'CANCELLATION_NOTICE_RECEIVED' ? 'CNR' :
+                                 sale.status === 'FAILED_PAYMENT' ? 'Failed Payment' :
+                                 sale.status === 'PROCESS_DD' ? 'Process DD' :
+                                 sale.status}
+                              </span>
                             </div>
                           </div>
                           <div className="text-sm font-medium text-green-600">
