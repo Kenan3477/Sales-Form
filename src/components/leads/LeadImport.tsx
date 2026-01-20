@@ -59,17 +59,29 @@ export default function LeadImport() {
     }
   }
 
-  const downloadTemplate = () => {
-    const template = `customer_first_name,customer_last_name,email,phone_number,title,mailing_street,mailing_city,mailing_province,mailing_postal_code,appliance_type,appliance_brand,appliance_price,boiler_cover,boiler_price,notes,assigned_agent_email
+  const downloadTemplate = (format: 'simple' | 'comprehensive' = 'simple') => {
+    let template = ''
+    let filename = ''
+
+    if (format === 'simple') {
+      template = `customer_first_name,customer_last_name,email,phone_number,title,mailing_street,mailing_city,mailing_province,mailing_postal_code,appliance_type,appliance_brand,appliance_price,boiler_cover,boiler_price,notes,assigned_agent_email
 John,Doe,john.doe@example.com,07700123456,Mr,123 High St,London,London,SW1A 1AA,Washing Machine,Bosch,25.99,true,15.00,Customer interested in full coverage,agent@company.com
 Jane,Smith,jane.smith@example.com,07700654321,Mrs,456 Oak Ave,Manchester,Greater Manchester,M1 1AA,Dishwasher,Siemens,22.50,false,,Existing customer referral,
 `
+      filename = 'lead_import_template_simple.csv'
+    } else {
+      template = `First Name,Last Name,Phone,Email Address,Appliance 1 Type,Appliance 1 Brand,Appliance 1 Age,Appliance 1 Value,Appliance 2 Type,Appliance 2 Brand,Appliance 2 Age,Appliance 2 Value,Boiler Cover Selected,Customer Premium,Boiler Price,Mailing Street,Mailing City,Mailing Province,Mailing Postal Code,Assigned Agent Email,Notes,Total Cost
+John,Smith,555-0123,john.smith@email.com,Refrigerator,Samsung,3,150,Dishwasher,LG,2,100,Yes,25.99,75.50,123 Main St,Toronto,Ontario,M1A 1A1,agent@salesportal.com,Customer interested in comprehensive coverage,251.49
+Jane,Doe,555-0456,jane.doe@email.com,Washer,Whirlpool,5,120,,,,,No,15.99,,456 Oak Ave,Vancouver,BC,V6B 1B1,,Basic appliance coverage only,135.99
+`
+      filename = 'lead_import_template_comprehensive.csv'
+    }
     
     const blob = new Blob([template], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'lead_import_template.csv'
+    a.download = filename
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -93,17 +105,27 @@ Jane,Smith,jane.smith@example.com,07700654321,Mrs,456 Oak Ave,Manchester,Greater
         <div className="text-blue-800 space-y-2">
           <p>• CSV files must include headers with customer and plan information</p>
           <p>• Maximum 5,000 rows per import</p>
-          <p>• Required fields: customer_first_name, customer_last_name, email, phone_number</p>
-          <p>• Optional: assigned_agent_email (if not provided, leads will be assigned via round-robin)</p>
-          <p>• Appliance info can be individual fields or JSON array in 'appliances' column</p>
+          <p>• <strong>Two formats supported:</strong> Simple format or Comprehensive format (matches sales export)</p>
+          <p>• Required fields: First Name/customer_first_name, Last Name/customer_last_name, Email/email, Phone/phone_number</p>
+          <p>• Optional: Assigned Agent Email (if not provided, leads assigned via round-robin)</p>
+          <p>• Supports up to 10 appliances per lead (Appliance 1-10 Type/Brand/Age/Value)</p>
+          <p>• Boiler cover: Use "Yes"/"No" or "true"/"false" for Boiler Cover Selected</p>
         </div>
         
-        <button
-          onClick={downloadTemplate}
-          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
-          📥 Download Template
-        </button>
+        <div className="mt-6 flex gap-4">
+          <button
+            onClick={() => downloadTemplate('simple')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            📥 Download Simple Template
+          </button>
+          <button
+            onClick={() => downloadTemplate('comprehensive')}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+          >
+            📥 Download Comprehensive Template
+          </button>
+        </div>
       </div>
 
       {/* File Upload */}
@@ -211,28 +233,67 @@ Jane,Smith,jane.smith@example.com,07700654321,Mrs,456 Oak Ave,Manchester,Greater
 
       {/* Sample Data Format */}
       <div className="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Supported CSV Columns</h2>
-        <div className="grid md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <h3 className="font-medium text-gray-800 mb-2">Required Fields:</h3>
-            <ul className="space-y-1 text-gray-600">
-              <li>• customer_first_name</li>
-              <li>• customer_last_name</li>
-              <li>• email</li>
-              <li>• phone_number</li>
-            </ul>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Supported CSV Formats</h2>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Simple Format */}
+          <div className="bg-white p-4 rounded border">
+            <h3 className="font-medium text-gray-800 mb-3">Simple Format</h3>
+            <div className="text-sm text-gray-600 mb-3">Traditional lead import format</div>
+            <div className="space-y-2 text-sm">
+              <div>
+                <strong className="text-gray-800">Required:</strong>
+                <ul className="ml-4 space-y-1 text-gray-600">
+                  <li>• customer_first_name</li>
+                  <li>• customer_last_name</li>
+                  <li>• email</li>
+                  <li>• phone_number</li>
+                </ul>
+              </div>
+              <div>
+                <strong className="text-gray-800">Optional:</strong>
+                <ul className="ml-4 space-y-1 text-gray-600">
+                  <li>• title, mailing_*, notes</li>
+                  <li>• appliance_type, appliance_brand</li>
+                  <li>• boiler_cover, boiler_price</li>
+                  <li>• assigned_agent_email</li>
+                </ul>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-800 mb-2">Optional Fields:</h3>
-            <ul className="space-y-1 text-gray-600">
-              <li>• title</li>
-              <li>• mailing_street, mailing_city, mailing_province, mailing_postal_code</li>
-              <li>• appliance_type, appliance_brand, appliance_price</li>
-              <li>• boiler_cover (true/false), boiler_price</li>
-              <li>• notes</li>
-              <li>• assigned_agent_email</li>
-            </ul>
+
+          {/* Comprehensive Format */}
+          <div className="bg-white p-4 rounded border">
+            <h3 className="font-medium text-gray-800 mb-3">Comprehensive Format</h3>
+            <div className="text-sm text-gray-600 mb-3">Matches sales export format</div>
+            <div className="space-y-2 text-sm">
+              <div>
+                <strong className="text-gray-800">Required:</strong>
+                <ul className="ml-4 space-y-1 text-gray-600">
+                  <li>• First Name, Last Name</li>
+                  <li>• Phone, Email Address</li>
+                </ul>
+              </div>
+              <div>
+                <strong className="text-gray-800">Optional:</strong>
+                <ul className="ml-4 space-y-1 text-gray-600">
+                  <li>• Appliance 1-10 Type/Brand/Age/Value</li>
+                  <li>• Boiler Cover Selected (Yes/No)</li>
+                  <li>• Customer Premium, Boiler Price</li>
+                  <li>• Total Cost, Mailing Address</li>
+                  <li>• Assigned Agent Email, Notes</li>
+                </ul>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+          <strong className="text-yellow-800">💡 Tip:</strong> 
+          <span className="text-yellow-700 ml-1">
+            You can export sales data and re-import as leads for follow-up campaigns. 
+            The comprehensive format accepts the exact same field names as the sales export.
+          </span>
         </div>
       </div>
     </div>
