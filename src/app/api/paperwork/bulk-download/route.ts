@@ -140,44 +140,66 @@ export async function POST(request: NextRequest) {
             margin: 1cm;
         }
         
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
         .page-break {
             page-break-before: always;
         }
         
         .customer-document {
             width: 100%;
-            min-height: 100vh;
+            min-height: 90vh;
             position: relative;
+            padding-bottom: 2cm;
         }
         
         .customer-header {
             background-color: #f8f9fa;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            margin-bottom: 20px;
-            border-radius: 5px;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            text-align: center;
         }
         
         .customer-name {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             color: #333;
+            margin-bottom: 8px;
         }
         
         .customer-info {
             font-size: 14px;
             color: #666;
-            margin-top: 5px;
         }
         
         .document-content {
-            line-height: 1.4;
+            /* Preserve the original document styling */
+            width: 100%;
+            overflow: visible;
         }
         
-        /* Override any inline styles that might interfere with printing */
-        .document-content * {
-            max-width: none !important;
-            box-sizing: border-box;
+        /* Ensure embedded styles in documents work properly */
+        .document-content table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
+        .document-content th,
+        .document-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .document-content th {
+            background-color: #f2f2f2;
+            font-weight: bold;
         }
         
         /* Print styles */
@@ -186,12 +208,17 @@ export async function POST(request: NextRequest) {
                 background-color: #f8f9fa !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                border: 2px solid #dee2e6 !important;
+            }
+            
+            .customer-document {
+                min-height: 90vh;
+                padding-bottom: 2cm;
             }
         }
     </style>
 </head>
-<body>
-`;
+<body>`;
 
     let processedCount = 0;
 
@@ -210,26 +237,38 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Extract content from the HTML (remove html, head, body tags to avoid conflicts)
-        let cleanContent = fileContent;
+        // The document content is a complete HTML document - we need to extract the styled content properly
+        let documentHtml = fileContent;
+        let documentStyles = '';
+        let documentBody = '';
         
-        // Remove DOCTYPE, html, head, and body tags
-        cleanContent = cleanContent.replace(/<!DOCTYPE[^>]*>/gi, '');
-        cleanContent = cleanContent.replace(/<html[^>]*>/gi, '');
-        cleanContent = cleanContent.replace(/<\/html>/gi, '');
-        cleanContent = cleanContent.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
-        cleanContent = cleanContent.replace(/<body[^>]*>/gi, '');
-        cleanContent = cleanContent.replace(/<\/body>/gi, '');
+        // Extract styles from the head section
+        const styleMatch = documentHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+        if (styleMatch) {
+          documentStyles = styleMatch.join('\n');
+        }
         
-        // Clean up any remaining whitespace
-        cleanContent = cleanContent.trim();
+        // Extract content from body, but if no body tags exist, use everything after head
+        const bodyMatch = documentHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if (bodyMatch) {
+          documentBody = bodyMatch[1].trim();
+        } else {
+          // Fallback: remove head and html wrapper tags but keep all content
+          documentBody = documentHtml
+            .replace(/<!DOCTYPE[^>]*>/gi, '')
+            .replace(/<html[^>]*>/gi, '')
+            .replace(/<\/html>/gi, '')
+            .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+            .trim();
+        }
 
         // Add page break for all documents except the first one
         const pageBreakClass = processedCount > 0 ? 'customer-document page-break' : 'customer-document';
         
-        // Create customer section
+        // Create customer section with embedded styles for this document
         combinedHtml += `
     <div class="${pageBreakClass}">
+        ${documentStyles ? `<style>${documentStyles.replace(/<\/?style[^>]*>/gi, '')}</style>` : ''}
         <div class="customer-header">
             <div class="customer-name">${doc.sale.customerFirstName} ${doc.sale.customerLastName}</div>
             <div class="customer-info">
@@ -239,7 +278,7 @@ export async function POST(request: NextRequest) {
             </div>
         </div>
         <div class="document-content">
-            ${cleanContent}
+            ${documentBody}
         </div>
     </div>
 `;
