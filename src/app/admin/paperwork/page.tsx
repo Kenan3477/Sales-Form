@@ -457,10 +457,10 @@ export default function AdminPaperworkPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create document archive');
+        throw new Error('Failed to create combined document file');
       }
 
-      // Download the zip file
+      // Download the combined HTML file
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -468,7 +468,7 @@ export default function AdminPaperworkPage() {
       
       // Get filename from response header or use default
       const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || 'documents.zip';
+      const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || 'customer-documents.html';
       a.download = filename;
       
       document.body.appendChild(a);
@@ -1137,7 +1137,7 @@ export default function AdminPaperworkPage() {
                                   Creating...
                                 </>
                               ) : (
-                                <>📦 Download Selected ({selectedDocuments.length})</>
+                                <>� Combine Selected ({selectedDocuments.length})</>
                               )}
                             </button>
                             
@@ -1146,7 +1146,7 @@ export default function AdminPaperworkPage() {
                               disabled={bulkDownloading}
                               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                             >
-                              📥 Download All {documentFilter !== 'all' ? `(${documentFilter})` : ''}
+                              � Combine All {documentFilter !== 'all' ? `(${documentFilter})` : ''}
                             </button>
                           </div>
                         )}

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import JSZip from 'jszip';
 
 export async function POST(request: NextRequest) {
   try {
@@ -126,10 +125,75 @@ export async function POST(request: NextRequest) {
 
     console.log(`📊 Processing ${customerDocuments.size} unique customers from ${documents.length} total documents`);
 
-    // Create ZIP file
-    const zip = new JSZip();
-    let addedFiles = 0;
+    // Create combined HTML file instead of ZIP
+    console.log('📄 Creating combined HTML document...');
     let skippedFiles = 0;
+    let combinedHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Documents - ${new Date().toLocaleDateString()}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .customer-document {
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .customer-header {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .customer-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .customer-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .document-content {
+            line-height: 1.4;
+        }
+        
+        /* Override any inline styles that might interfere with printing */
+        .document-content * {
+            max-width: none !important;
+            box-sizing: border-box;
+        }
+        
+        /* Print styles */
+        @media print {
+            .customer-header {
+                background-color: #f8f9fa !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+`;
+
+    let processedCount = 0;
 
     for (const doc of Array.from(customerDocuments.values())) {
       try {
@@ -145,23 +209,40 @@ export async function POST(request: NextRequest) {
           skippedFiles++;
           continue;
         }
+
+        // Extract content from the HTML (remove html, head, body tags to avoid conflicts)
+        let cleanContent = fileContent;
         
-        // Create simple filename: CustomerName.extension
-        const customerName = `${doc.sale.customerFirstName}_${doc.sale.customerLastName}`;
-        // Clean filename: remove special characters, replace spaces/dashes with underscores, limit length
-        const cleanCustomerName = customerName
-          .replace(/[^a-zA-Z0-9\s\-_]/g, '') // Remove special chars except spaces, dashes, underscores
-          .replace(/[\s\-]+/g, '_') // Replace spaces and dashes with underscores
-          .replace(/_+/g, '_') // Collapse multiple underscores
-          .trim()
-          .substring(0, 50); // Limit to 50 chars
+        // Remove DOCTYPE, html, head, and body tags
+        cleanContent = cleanContent.replace(/<!DOCTYPE[^>]*>/gi, '');
+        cleanContent = cleanContent.replace(/<html[^>]*>/gi, '');
+        cleanContent = cleanContent.replace(/<\/html>/gi, '');
+        cleanContent = cleanContent.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+        cleanContent = cleanContent.replace(/<body[^>]*>/gi, '');
+        cleanContent = cleanContent.replace(/<\/body>/gi, '');
         
-        const extension = doc.filename.split('.').pop() || 'html';
-        const fileName = `${cleanCustomerName}.${extension}`;
+        // Clean up any remaining whitespace
+        cleanContent = cleanContent.trim();
+
+        // Add page break for all documents except the first one
+        const pageBreakClass = processedCount > 0 ? 'customer-document page-break' : 'customer-document';
         
-        // Add file directly to ZIP root (no folders)
-        zip.file(fileName, fileContent);
-        addedFiles++;
+        // Create customer section
+        combinedHtml += `
+    <div class="${pageBreakClass}">
+        <div class="customer-header">
+            <div class="customer-name">${doc.sale.customerFirstName} ${doc.sale.customerLastName}</div>
+            <div class="customer-info">
+                Email: ${doc.sale.email} | 
+                Document: ${doc.template.name || 'Welcome Letter'} | 
+                Generated: ${new Date(doc.generatedAt).toLocaleDateString()}
+            </div>
+        </div>
+        <div class="document-content">
+            ${cleanContent}
+        </div>
+    </div>
+`;
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -172,7 +253,8 @@ export async function POST(request: NextRequest) {
           }
         });
         
-        console.log(`✅ Added file to archive: ${fileName} (${Math.round(fileContent.length/1024)}KB)`);
+        processedCount++;
+        console.log(`✅ Added customer ${processedCount}: ${doc.sale.customerFirstName} ${doc.sale.customerLastName}`);
       } catch (error) {
         console.error(`❌ Error processing file ${doc.filename}:`, error);
         skippedFiles++;
@@ -180,31 +262,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`📥 Bulk download processing complete: ${addedFiles} unique customers processed, ${skippedFiles} documents skipped`);
+    // Close the HTML
+    combinedHtml += `
+</body>
+</html>`;
 
-    if (addedFiles === 0) {
-      console.error('❌ No files could be added to archive');
+    console.log(`� Combined HTML document created: ${processedCount} customers processed, ${skippedFiles} documents skipped`);
+
+    if (processedCount === 0) {
+      console.error('❌ No documents could be processed');
       return NextResponse.json({ 
-        error: 'No files could be added to archive. Documents may have been generated before the serverless migration or no valid documents found.' 
+        error: 'No documents could be processed. Documents may have been generated before the serverless migration or no valid documents found.' 
       }, { status: 500 });
     }
 
-    // Generate ZIP file
-    console.log('📦 Generating ZIP archive...');
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-    
     // Generate filename
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
-    const zipFileName = `customer_documents_${addedFiles}_files_${timestamp}.zip`;
+    const htmlFileName = `all_customer_documents_${processedCount}_customers_${timestamp}.html`;
     
-    console.log(`✅ ZIP archive created: ${zipFileName} (${zipBuffer.length} bytes)`);
+    console.log(`✅ Combined HTML document ready: ${htmlFileName} (${Math.round(combinedHtml.length/1024)}KB)`);
 
-    return new NextResponse(new Uint8Array(zipBuffer), {
+    return new NextResponse(combinedHtml, {
       status: 200,
       headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${zipFileName}"`,
-        'Content-Length': zipBuffer.length.toString(),
+        'Content-Type': 'text/html',
+        'Content-Disposition': `attachment; filename="${htmlFileName}"`,
+        'Content-Length': Buffer.byteLength(combinedHtml, 'utf8').toString(),
       },
     });
 
