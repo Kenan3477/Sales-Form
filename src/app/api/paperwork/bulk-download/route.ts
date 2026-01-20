@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`📊 Processing ${customerDocuments.size} unique customers from ${documents.length} total documents`);
 
-    // Create combined HTML file instead of ZIP
+    // Create combined HTML file with proper print layout
     console.log('📄 Creating combined HTML document...');
     let skippedFiles = 0;
     let combinedHtml = `<!DOCTYPE html>
@@ -137,83 +137,98 @@ export async function POST(request: NextRequest) {
     <style>
         @page {
             size: A4;
-            margin: 1cm;
+            margin: 0;
+        }
+        
+        * {
+            box-sizing: border-box;
         }
         
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
+            background: white;
         }
         
-        .page-break {
-            page-break-before: always;
+        .customer-page {
+            page-break-after: always;
+            page-break-inside: avoid;
+            width: 100vw;
+            min-height: 100vh;
+            padding: 1cm;
+            display: flex;
+            flex-direction: column;
         }
         
-        .customer-document {
-            width: 100%;
-            min-height: 90vh;
-            position: relative;
-            padding-bottom: 2cm;
+        .customer-page:last-child {
+            page-break-after: auto;
         }
         
         .customer-header {
             background-color: #f8f9fa;
-            padding: 15px;
-            border: 2px solid #dee2e6;
-            margin-bottom: 30px;
-            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 15px;
+            border-radius: 4px;
             text-align: center;
+            flex-shrink: 0;
         }
         
         .customer-name {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             color: #333;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         
         .customer-info {
-            font-size: 14px;
+            font-size: 12px;
             color: #666;
         }
         
         .document-content {
-            /* Preserve the original document styling */
+            flex: 1;
             width: 100%;
-            overflow: visible;
+            overflow: hidden;
         }
         
-        /* Ensure embedded styles in documents work properly */
-        .document-content table {
-            border-collapse: collapse;
-            width: 100%;
+        /* Reset any conflicting styles from embedded documents */
+        .document-content * {
+            max-width: 100% !important;
         }
         
-        .document-content th,
-        .document-content td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+        .document-content img {
+            max-width: 100% !important;
+            height: auto !important;
         }
         
-        .document-content th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        
-        /* Print styles */
+        /* Print-specific styles */
         @media print {
-            .customer-header {
-                background-color: #f8f9fa !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                border: 2px solid #dee2e6 !important;
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
-            .customer-document {
-                min-height: 90vh;
-                padding-bottom: 2cm;
+            .customer-page {
+                width: 100% !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                padding: 1cm !important;
+            }
+            
+            .customer-header {
+                background-color: #f8f9fa !important;
+                border: 1px solid #dee2e6 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+        
+        /* Hide screen-only elements */
+        @media print {
+            .no-print {
+                display: none !important;
             }
         }
     </style>
@@ -262,13 +277,10 @@ export async function POST(request: NextRequest) {
             .trim();
         }
 
-        // Add page break for all documents except the first one
-        const pageBreakClass = processedCount > 0 ? 'customer-document page-break' : 'customer-document';
-        
-        // Create customer section with embedded styles for this document
+        // Create customer page with proper structure for printing
         combinedHtml += `
-    <div class="${pageBreakClass}">
-        ${documentStyles ? `<style>${documentStyles.replace(/<\/?style[^>]*>/gi, '')}</style>` : ''}
+    <div class="customer-page">
+        ${documentStyles ? `<style scoped>${documentStyles.replace(/<\/?style[^>]*>/gi, '')}</style>` : ''}
         <div class="customer-header">
             <div class="customer-name">${doc.sale.customerFirstName} ${doc.sale.customerLastName}</div>
             <div class="customer-info">
