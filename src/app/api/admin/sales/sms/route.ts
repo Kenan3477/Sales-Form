@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo')
     const agent = searchParams.get('agent')
     const smsStatus = searchParams.get('smsStatus')
+    const customerStatus = searchParams.get('customerStatus')
 
     const whereClause: any = {}
 
@@ -31,6 +32,10 @@ export async function GET(request: NextRequest) {
 
     if (agent) {
       whereClause.agentName = agent
+    }
+
+    if (customerStatus) {
+      whereClause.status = customerStatus
     }
 
     const sales = await prisma.sale.findMany({
@@ -85,6 +90,7 @@ export async function GET(request: NextRequest) {
         agentEmail: sale.createdBy?.email || 'Unknown',
         agentName: sale.agentName,
         totalPlanCost: sale.totalPlanCost,
+        status: sale.status,
         smsStatus,
         smsSentAt,
         smsError,
