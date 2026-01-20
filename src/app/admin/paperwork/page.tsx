@@ -55,6 +55,8 @@ export default function AdminPaperworkPage() {
   const [customerStatusFilter, setCustomerStatusFilter] = useState<string>('all');
   const [documentsGeneratedFilter, setDocumentsGeneratedFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
   const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [documentsViewMode, setDocumentsViewMode] = useState<'documents' | 'customers'>('documents');
+  const [customerDocumentFilter, setCustomerDocumentFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
 
   // Redirect if not admin
   if (status === 'loading') {
@@ -414,6 +416,20 @@ export default function AdminPaperworkPage() {
     return sales.filter(sale => {
       if (documentsGeneratedFilter === 'generated') return sale.documentsGenerated === true;
       if (documentsGeneratedFilter === 'not-generated') return !sale.documentsGenerated;
+      return true;
+    });
+  };
+
+  const getFilteredCustomersForDocuments = () => {
+    return sales.filter(sale => {
+      // Apply customer status filter
+      if (customerStatusFilter !== 'all' && sale.status !== customerStatusFilter) {
+        return false;
+      }
+      
+      // Apply documents generated filter
+      if (customerDocumentFilter === 'generated') return sale.documentsGenerated === true;
+      if (customerDocumentFilter === 'not-generated') return !sale.documentsGenerated;
       return true;
     });
   };
@@ -1009,75 +1025,260 @@ export default function AdminPaperworkPage() {
             ) : (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Generated Documents</h2>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Generated Documents</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      View documents or customer generation status
+                    </p>
+                  </div>
                   
-                  {/* Filter and Bulk Actions */}
+                  {/* View Toggle and Filters */}
                   <div className="flex items-center space-x-4">
-                    {/* Customer Status Filter Dropdown */}
-                    <select
-                      value={customerStatusFilter}
-                      onChange={(e) => {
-                        setCustomerStatusFilter(e.target.value);
-                        setSelectedDocuments([]); // Reset selection when filter changes
-                      }}
-                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="all">All Customers</option>
-                      <option value="active">Active</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="cancellation_notice_received">CNR</option>
-                      <option value="failed_payment">Failed Payment</option>
-                      <option value="process_dd">Process DD</option>
-                    </select>
+                    {/* View Mode Toggle */}
+                    <div className="flex bg-gray-100 rounded-lg p-1">
+                      <button
+                        onClick={() => setDocumentsViewMode('documents')}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                          documentsViewMode === 'documents'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        📄 Documents ({documents.length})
+                      </button>
+                      <button
+                        onClick={() => setDocumentsViewMode('customers')}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                          documentsViewMode === 'customers'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        👥 Customers ({sales.length})
+                      </button>
+                    </div>
 
-                    {/* Document Filter Dropdown */}
-                    <select
-                      value={documentFilter}
-                      onChange={(e) => {
-                        setDocumentFilter(e.target.value as 'all' | 'downloaded' | 'undownloaded');
-                        setSelectedDocuments([]); // Reset selection when filter changes
-                      }}
-                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="all">All Documents</option>
-                      <option value="downloaded">Downloaded</option>
-                      <option value="undownloaded">Not Downloaded</option>
-                    </select>
+                    {documentsViewMode === 'customers' ? (
+                      <>
+                        {/* Customer Status Filter */}
+                        <select
+                          value={customerStatusFilter}
+                          onChange={(e) => setCustomerStatusFilter(e.target.value)}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                          <option value="all">All Status</option>
+                          <option value="active">Active</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="cancellation_notice_received">CNR</option>
+                          <option value="failed_payment">Failed Payment</option>
+                          <option value="process_dd">Process DD</option>
+                        </select>
 
-                    {/* Bulk Download Buttons */}
-                    {getFilteredDocuments().length > 0 && (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleBulkDownload(false)}
-                          disabled={selectedDocuments.length === 0 || bulkDownloading}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                        {/* Documents Generated Filter */}
+                        <select
+                          value={customerDocumentFilter}
+                          onChange={(e) => {
+                            setCustomerDocumentFilter(e.target.value as 'all' | 'generated' | 'not-generated');
+                          }}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         >
-                          {bulkDownloading ? (
-                            <>
-                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Creating...
-                            </>
-                          ) : (
-                            <>📦 Download Selected ({selectedDocuments.length})</>
-                          )}
-                        </button>
-                        
-                        <button
-                          onClick={() => handleBulkDownload(true)}
-                          disabled={bulkDownloading}
-                          className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                          <option value="all">All Customers</option>
+                          <option value="not-generated">No Documents Generated</option>
+                          <option value="generated">Documents Generated</option>
+                        </select>
+                      </>
+                    ) : (
+                      <>
+                        {/* Customer Status Filter Dropdown */}
+                        <select
+                          value={customerStatusFilter}
+                          onChange={(e) => {
+                            setCustomerStatusFilter(e.target.value);
+                            setSelectedDocuments([]); // Reset selection when filter changes
+                          }}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         >
-                          📥 Download All {documentFilter !== 'all' ? `(${documentFilter})` : ''}
-                        </button>
-                      </div>
+                          <option value="all">All Customers</option>
+                          <option value="active">Active</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="cancellation_notice_received">CNR</option>
+                          <option value="failed_payment">Failed Payment</option>
+                          <option value="process_dd">Process DD</option>
+                        </select>
+
+                        {/* Document Filter Dropdown */}
+                        <select
+                          value={documentFilter}
+                          onChange={(e) => {
+                            setDocumentFilter(e.target.value as 'all' | 'downloaded' | 'undownloaded');
+                            setSelectedDocuments([]); // Reset selection when filter changes
+                          }}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                          <option value="all">All Documents</option>
+                          <option value="downloaded">Downloaded</option>
+                          <option value="undownloaded">Not Downloaded</option>
+                        </select>
+
+                        {/* Bulk Download Buttons */}
+                        {getFilteredDocuments().length > 0 && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleBulkDownload(false)}
+                              disabled={selectedDocuments.length === 0 || bulkDownloading}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                            >
+                              {bulkDownloading ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Creating...
+                                </>
+                              ) : (
+                                <>📦 Download Selected ({selectedDocuments.length})</>
+                              )}
+                            </button>
+                            
+                            <button
+                              onClick={() => handleBulkDownload(true)}
+                              disabled={bulkDownloading}
+                              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                            >
+                              📥 Download All {documentFilter !== 'all' ? `(${documentFilter})` : ''}
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
 
-                {getFilteredDocuments().length === 0 ? (
+                {documentsViewMode === 'customers' ? (
+                  // Customer View
+                  <div>
+                    {getFilteredCustomersForDocuments().length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-lg">
+                        <div className="text-gray-400 text-6xl mb-4">👥</div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          {customerDocumentFilter === 'all' ? 'No Customers Found' : 
+                           customerDocumentFilter === 'generated' ? 'No customers with generated documents' :
+                           'No customers without generated documents'}
+                        </h3>
+                        <p className="text-gray-500 mb-4">
+                          {customerDocumentFilter === 'all' ? 'Customer list will appear here' : 
+                           `No customers match the ${customerDocumentFilter === 'generated' ? 'documents generated' : 'no documents generated'} filter`}
+                        </p>
+                        {customerDocumentFilter !== 'all' && (
+                          <button 
+                            onClick={() => setCustomerDocumentFilter('all')}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                          >
+                            Show All Customers
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {getFilteredCustomersForDocuments().map((customer) => {
+                          const customerDocuments = documents.filter(doc => doc.saleId === customer.id);
+                          return (
+                            <div 
+                              key={customer.id} 
+                              className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                  <h3 className="text-lg font-medium text-gray-900">
+                                    {customer.customerFirstName} {customer.customerLastName}
+                                  </h3>
+                                  <p className="text-sm text-gray-500">{customer.email}</p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    Sale Date: {new Date(customer.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col items-end space-y-2">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    customer.status === 'active' ? 'bg-green-100 text-green-800' :
+                                    customer.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                    customer.status === 'cancellation_notice_received' ? 'bg-yellow-100 text-yellow-800' :
+                                    customer.status === 'failed_payment' ? 'bg-orange-100 text-orange-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {customer.status?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown'}
+                                  </span>
+                                  
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    customer.documentsGenerated ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-600'
+                                  }`} title={customer.documentsGenerated ? 
+                                    `Documents generated ${customer.documentsGeneratedAt ? 'on ' + new Date(customer.documentsGeneratedAt).toLocaleDateString() : ''}` : 
+                                    'No documents generated yet'}>
+                                    {customer.documentsGenerated ? '📄 Documents' : '📝 No Docs'}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="mb-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  Plan Cost: <span className="text-green-600">{formatCurrency(customer.totalPlanCost)}/month</span>
+                                </div>
+                              </div>
+
+                              {customerDocuments.length > 0 && (
+                                <div className="border-t border-gray-200 pt-4">
+                                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                                    Documents ({customerDocuments.length})
+                                  </h4>
+                                  <div className="space-y-2">
+                                    {customerDocuments.slice(0, 3).map((doc) => (
+                                      <div key={doc.id} className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600 truncate">{doc.templateName}</span>
+                                        <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                                          <span className="text-xs text-gray-500">
+                                            DL: {doc.downloadCount}
+                                          </span>
+                                          <button
+                                            onClick={() => window.open(`/api/paperwork/download/${doc.id}`, '_blank')}
+                                            className="text-blue-600 hover:text-blue-800"
+                                            title="Download document"
+                                          >
+                                            📥
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {customerDocuments.length > 3 && (
+                                      <p className="text-xs text-gray-500">
+                                        +{customerDocuments.length - 3} more documents
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {!customer.documentsGenerated && (
+                                <div className="border-t border-gray-200 pt-4">
+                                  <button
+                                    onClick={() => {
+                                      setActiveTab('generate');
+                                      setSelectedSales([customer.id]);
+                                    }}
+                                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+                                  >
+                                    Generate Documents
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Documents View (existing)
+                  getFilteredDocuments().length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg">
                     <div className="text-gray-400 text-6xl mb-4">📑</div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -1245,6 +1446,7 @@ export default function AdminPaperworkPage() {
                       </tbody>
                     </table>
                   </div>
+                )
                 )}
               </div>
             )}
