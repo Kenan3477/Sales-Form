@@ -71,6 +71,9 @@ export async function POST(request: NextRequest) {
       documents: []
     };
 
+    // Track which sales have been processed for document status
+    const processedSales = new Set<string>();
+
     // Generate documents for each sale and template combination
     for (const saleId of saleIds) {
       for (const templateId of templateIds) {
@@ -308,6 +311,20 @@ export async function POST(request: NextRequest) {
         results.documents.push(document);
         results.generated++;
         console.log(`✅ Successfully generated document for ${sale.customerFirstName} ${sale.customerLastName}`);
+        
+        // Mark the sale as having documents generated (only once per sale)
+        if (!processedSales.has(saleId)) {
+          await prisma.sale.update({
+            where: { id: sale.id },
+            data: {
+              documentsGenerated: true,
+              documentsGeneratedAt: new Date(),
+              documentsGeneratedBy: session.user.id
+            }
+          });
+          processedSales.add(saleId);
+          console.log(`✅ Sale ${sale.id} marked as having documents generated`);
+        }
         
       } catch (error) {
         results.failed++;

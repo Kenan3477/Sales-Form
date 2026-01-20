@@ -1,0 +1,4 @@
+firstName,lastName,email,phone,address1,city,postcode,applianceType,applianceBrand,applianceModel,boilerType,boilerAge
+John,Smith,john.smith@example.com,+44123456789,123 Test Street,London,SW1A 1AA,WASHING_MACHINE,Whirlpool,Model123,COMBI,5
+Jane,Doe,jane.doe@example.com,+44987654321,456 Sample Road,Manchester,M1 1AA,FRIDGE,Samsung,RF24,CONDENSING,3
+Bob,Johnson,bob.johnson@example.com,+44555123456,789 Example Ave,Birmingham,B1 1AA,DISHWASHER,Bosch,SMS25AW00G,SYSTEM,8

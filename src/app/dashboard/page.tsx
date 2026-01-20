@@ -123,6 +123,39 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Lead Workflow Card */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">🎯</span>
+                    </div>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Lead Workflow
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">
+                        Work on assigned leads
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-5 py-3">
+                <div className="text-sm">
+                  <Link
+                    href="/leads/workflow"
+                    className="font-medium text-primary-700 hover:text-primary-900"
+                  >
+                    Start working leads
+                  </Link>
+                </div>
+              </div>
+            </div>
+
             {/* Admin Cards */}
             {isAdmin && (
               <>
@@ -249,6 +282,38 @@ export default function DashboardPage() {
                         className="font-medium text-primary-700 hover:text-primary-900"
                       >
                         Manage templates
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">📥</span>
+                        </div>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Lead Import
+                          </dt>
+                          <dd className="text-lg font-medium text-gray-900">
+                            Import customer leads from CSV
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 px-5 py-3">
+                    <div className="text-sm">
+                      <Link
+                        href="/admin/leads/import"
+                        className="font-medium text-primary-700 hover:text-primary-900"
+                      >
+                        Import leads
                       </Link>
                     </div>
                   </div>

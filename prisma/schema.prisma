@@ -17,6 +17,16 @@ model User {
   updatedAt         DateTime           @updatedAt
   documentTemplates DocumentTemplate[]
   sales             Sale[]
+  documentsGenerated Sale[]            @relation("DocumentsGeneratedBy")
+  
+  // Lead relations
+  createdLeads      Lead[]             @relation("CreatedLeads")
+  assignedLeads     Lead[]             @relation("AssignedLeads")
+  disposedLeads     Lead[]             @relation("DisposedLeads")
+  checkedOutLeads   Lead[]             @relation("CheckedOutLeads")
+  convertedLeads    LeadToSaleLink[]   @relation("ConvertedLeads")
+  leadDispositions  LeadDispositionHistory[] @relation("LeadDispositions")
+  leadImportBatches LeadImportBatch[]  @relation("LeadImportBatches")
 
   @@map("users")
 }
@@ -46,11 +56,17 @@ model Sale {
   totalPlanCost          Float
   createdById            String
   agentName              String?
+  documentsGenerated     Boolean             @default(false)
+  documentsGeneratedAt   DateTime?
+  documentsGeneratedBy   String?
   appliances             Appliance[]
   generatedDocuments     GeneratedDocument[]
   createdBy              User                @relation(fields: [createdById], references: [id])
+  documentsGeneratedByUser User?             @relation("DocumentsGeneratedBy", fields: [documentsGeneratedBy], references: [id], onDelete: SetNull)
   smsLogs                SMSLog[]
+  leadLink               LeadToSaleLink?
 
+  @@index([documentsGenerated])
   @@map("sales")
 }
 
@@ -151,4 +167,138 @@ enum CustomerStatus {
   CANCELLATION_NOTICE_RECEIVED
   FAILED_PAYMENT
   PROCESS_DD
+}
+
+enum LeadStatus {
+  NEW
+  CALLED_NO_ANSWER
+  CALLBACK
+  SALE_MADE
+  CANCELLED
+  DO_NOT_CALL
+  CONVERSION_FAILED
+}
+
+model LeadImportBatch {
+  id                     String   @id @default(cuid())
+  filename               String
+  importedBy             String   @map("imported_by")
+  importedAt             DateTime @default(now()) @map("imported_at")
+  totalRows              Int      @default(0) @map("total_rows")
+  successfulRows         Int      @default(0) @map("successful_rows")
+  failedRows             Int      @default(0) @map("failed_rows")
+  errorReportLocation    String?  @map("error_report_location")
+  metadata               Json?
+  
+  // Relations
+  importedByUser         User     @relation("LeadImportBatches", fields: [importedBy], references: [id], onDelete: Restrict)
+  leads                  Lead[]
+
+  @@map("LeadImportBatch")
+}
+
+model Lead {
+  id                     String    @id @default(cuid())
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdBy              String    @map("created_by")
+  assignedAgentId        String?   @map("assigned_agent_id")
+  source                 String    @default("manual")
+  importBatchId          String?   @map("import_batch_id")
+  
+  // Customer fields (mirror Sale model)
+  customerFirstName      String    @map("customer_first_name")
+  customerLastName       String    @map("customer_last_name")
+  title                  String?
+  phoneNumber            String    @map("phone_number")
+  email                  String
+  mailingStreet          String?   @map("mailing_street")
+  mailingCity            String?   @map("mailing_city")
+  mailingProvince        String?   @map("mailing_province")
+  mailingPostalCode      String?   @map("mailing_postal_code")
+  notes                  String?
+  
+  // Plan fields (mirror Sale model)
+  applianceCoverSelected Boolean   @default(false) @map("appliance_cover_selected")
+  boilerCoverSelected    Boolean   @default(false) @map("boiler_cover_selected")
+  boilerPriceSelected    Float?    @map("boiler_price_selected")
+  totalPlanCost          Float     @map("total_plan_cost")
+  
+  // Lead-specific state fields
+  currentStatus          LeadStatus @default(NEW) @map("current_status")
+  lastDispositionAt      DateTime? @map("last_disposition_at")
+  lastDispositionBy      String?   @map("last_disposition_by")
+  doNotCall              Boolean   @default(false) @map("do_not_call")
+  callbackAt             DateTime? @map("callback_at")
+  timesContacted         Int       @default(0) @map("times_contacted")
+  lastContactAttemptAt   DateTime? @map("last_contact_attempt_at")
+  
+  // Concurrency control
+  checkedOutBy           String?   @map("checked_out_by")
+  checkedOutAt           DateTime? @map("checked_out_at")
+  
+  // Relations
+  createdByUser          User      @relation("CreatedLeads", fields: [createdBy], references: [id], onDelete: Restrict)
+  assignedAgent          User?     @relation("AssignedLeads", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  lastDispositionByUser  User?     @relation("DisposedLeads", fields: [lastDispositionBy], references: [id], onDelete: SetNull)
+  checkedOutByUser       User?     @relation("CheckedOutLeads", fields: [checkedOutBy], references: [id], onDelete: SetNull)
+  importBatch            LeadImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  
+  appliances             LeadAppliance[]
+  dispositionHistory     LeadDispositionHistory[]
+  saleLink               LeadToSaleLink?
+
+  @@index([assignedAgentId, currentStatus])
+  @@index([callbackAt])
+  @@index([createdAt])
+  @@index([checkedOutAt])
+  @@map("Lead")
+}
+
+model LeadAppliance {
+  id             String @id @default(cuid())
+  leadId         String @map("lead_id")
+  applianceType  String @map("appliance_type")
+  brand          String?
+  model          String?
+  age            Int?
+  price          Float
+  
+  // Relations
+  lead           Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("LeadAppliance")
+}
+
+model LeadDispositionHistory {
+  id        String     @id @default(cuid())
+  leadId    String     @map("lead_id")
+  agentId   String     @map("agent_id")
+  status    LeadStatus
+  notes     String?
+  createdAt DateTime   @default(now()) @map("created_at")
+  metadata  Json?
+  
+  // Relations
+  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent     User       @relation("LeadDispositions", fields: [agentId], references: [id], onDelete: Restrict)
+
+  @@index([leadId, createdAt])
+  @@map("LeadDispositionHistory")
+}
+
+model LeadToSaleLink {
+  id          String   @id @default(cuid())
+  leadId      String   @unique @map("lead_id")
+  saleId      String   @unique @map("sale_id")
+  convertedAt DateTime @default(now()) @map("converted_at")
+  convertedBy String   @map("converted_by")
+  
+  // Relations
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  convertedByUser User @relation("ConvertedLeads", fields: [convertedBy], references: [id], onDelete: Restrict)
+
+  @@map("LeadToSaleLink")
 }

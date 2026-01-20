@@ -53,6 +53,7 @@ export default function AdminPaperworkPage() {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documentFilter, setDocumentFilter] = useState<'all' | 'downloaded' | 'undownloaded'>('all');
   const [customerStatusFilter, setCustomerStatusFilter] = useState<string>('all');
+  const [documentsGeneratedFilter, setDocumentsGeneratedFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
   const [bulkDownloading, setBulkDownloading] = useState(false);
 
   // Redirect if not admin
@@ -131,7 +132,7 @@ export default function AdminPaperworkPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, customerStatusFilter, session]);
+  }, [activeTab, customerStatusFilter, documentsGeneratedFilter, session]);
 
   useEffect(() => {
     // Only fetch data when properly authenticated
@@ -298,10 +299,11 @@ export default function AdminPaperworkPage() {
   };
 
   const handleSelectAllSales = () => {
-    if (selectedSales.length === sales.length) {
+    const filteredSales = getFilteredSales();
+    if (selectedSales.length === filteredSales.length) {
       setSelectedSales([]);
     } else {
-      setSelectedSales(sales.map(sale => sale.id));
+      setSelectedSales(filteredSales.map(sale => sale.id));
     }
   };
 
@@ -404,6 +406,14 @@ export default function AdminPaperworkPage() {
     return documents.filter(doc => {
       if (documentFilter === 'downloaded') return doc.downloadCount > 0;
       if (documentFilter === 'undownloaded') return doc.downloadCount === 0;
+      return true;
+    });
+  };
+
+  const getFilteredSales = () => {
+    return sales.filter(sale => {
+      if (documentsGeneratedFilter === 'generated') return sale.documentsGenerated === true;
+      if (documentsGeneratedFilter === 'not-generated') return !sale.documentsGenerated;
       return true;
     });
   };
@@ -743,24 +753,42 @@ export default function AdminPaperworkPage() {
                     <p className="text-gray-600">Select customers and templates to generate paperwork documents.</p>
                   </div>
                   
-                  {/* Customer Status Filter */}
-                  <div className="flex items-center space-x-4">
-                    <label className="text-sm font-medium text-gray-700">Filter by Status:</label>
-                    <select
-                      value={customerStatusFilter}
-                      onChange={(e) => {
-                        setCustomerStatusFilter(e.target.value);
-                        setSelectedSales([]); // Reset selection when filter changes
-                      }}
-                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="all">All Customers</option>
-                      <option value="active">Active</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="cancellation_notice_received">CNR</option>
-                      <option value="failed_payment">Failed Payment</option>
-                      <option value="process_dd">Process DD</option>
-                    </select>
+                  {/* Filters */}
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <label className="text-sm font-medium text-gray-700">Status:</label>
+                      <select
+                        value={customerStatusFilter}
+                        onChange={(e) => {
+                          setCustomerStatusFilter(e.target.value);
+                          setSelectedSales([]); // Reset selection when filter changes
+                        }}
+                        className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      >
+                        <option value="all">All Customers</option>
+                        <option value="active">Active</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="cancellation_notice_received">CNR</option>
+                        <option value="failed_payment">Failed Payment</option>
+                        <option value="process_dd">Process DD</option>
+                      </select>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <label className="text-sm font-medium text-gray-700">Documents:</label>
+                      <select
+                        value={documentsGeneratedFilter}
+                        onChange={(e) => {
+                          setDocumentsGeneratedFilter(e.target.value as 'all' | 'generated' | 'not-generated');
+                          setSelectedSales([]); // Reset selection when filter changes
+                        }}
+                        className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      >
+                        <option value="all">All Customers</option>
+                        <option value="not-generated">No Documents Generated</option>
+                        <option value="generated">Documents Generated</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -772,19 +800,19 @@ export default function AdminPaperworkPage() {
                       <h3 className="text-lg font-semibold text-gray-900">Select Customers</h3>
                       <div className="flex items-center space-x-3">
                         <span className="text-sm text-gray-600">
-                          {selectedSales.length} of {sales.length} selected
+                          {selectedSales.length} of {getFilteredSales().length} selected
                         </span>
                         <button
                           onClick={handleSelectAllSales}
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                         >
-                          {selectedSales.length === sales.length ? 'Deselect All' : 'Select All'}
+                          {selectedSales.length === getFilteredSales().length ? 'Deselect All' : 'Select All'}
                         </button>
                       </div>
                     </div>
 
                     <div className="max-h-96 overflow-y-auto space-y-2">
-                      {sales.map((sale) => (
+                      {getFilteredSales().map((sale) => (
                         <label key={sale.id} className="flex items-center p-3 bg-white rounded-lg border hover:shadow-sm cursor-pointer">
                           <input
                             type="checkbox"
@@ -817,6 +845,14 @@ export default function AdminPaperworkPage() {
                                  sale.status === 'PROCESS_DD' ? 'Process DD' :
                                  sale.status}
                               </span>
+                              •
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                                sale.documentsGenerated ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-600'
+                              }`} title={sale.documentsGenerated ? 
+                                `Documents generated ${sale.documentsGeneratedAt ? 'on ' + new Date(sale.documentsGeneratedAt).toLocaleDateString() : ''}` : 
+                                'No documents generated yet'}>
+                                {sale.documentsGenerated ? '📄 Documents' : '📝 No Docs'}
+                              </span>
                             </div>
                           </div>
                           <div className="text-sm font-medium text-green-600">
@@ -826,10 +862,22 @@ export default function AdminPaperworkPage() {
                       ))}
                     </div>
 
-                    {sales.length === 0 && (
+                    {getFilteredSales().length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <div className="text-4xl mb-2">🏪</div>
-                        <p>No sales found</p>
+                        <p>
+                          {documentsGeneratedFilter === 'all' ? 'No sales found' : 
+                           documentsGeneratedFilter === 'generated' ? 'No sales with generated documents found' :
+                           'No sales without generated documents found'}
+                        </p>
+                        {documentsGeneratedFilter !== 'all' && (
+                          <button 
+                            onClick={() => setDocumentsGeneratedFilter('all')}
+                            className="mt-2 text-blue-600 hover:text-blue-800 text-sm underline"
+                          >
+                            Show all sales
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
