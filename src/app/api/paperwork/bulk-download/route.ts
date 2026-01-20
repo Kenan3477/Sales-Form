@@ -68,6 +68,9 @@ export async function POST(request: NextRequest) {
               templateType: true
             }
           }
+        },
+        orderBy: {
+          generatedAt: 'desc'
         }
       });
     } else {
@@ -90,6 +93,9 @@ export async function POST(request: NextRequest) {
               templateType: true
             }
           }
+        },
+        orderBy: {
+          generatedAt: 'desc'
         }
       });
     }
@@ -101,14 +107,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No documents found' }, { status: 404 });
     }
 
+    // Group documents by customer (saleId) and select the most recent one per customer
+    console.log('📋 Grouping documents by customer...');
+    const customerDocuments = new Map<string, typeof documents[0]>();
+    
+    for (const doc of documents) {
+      const customerKey = doc.saleId;
+      const existing = customerDocuments.get(customerKey);
+      
+      // If no existing document for this customer, or this document is newer, use it
+      if (!existing || new Date(doc.generatedAt) > new Date(existing.generatedAt)) {
+        customerDocuments.set(customerKey, doc);
+        console.log(`📄 Selected document for ${doc.sale.customerFirstName} ${doc.sale.customerLastName}: ${doc.filename} (${new Date(doc.generatedAt).toLocaleDateString()})`);
+      } else {
+        console.log(`� Skipping older document for ${doc.sale.customerFirstName} ${doc.sale.customerLastName}: ${doc.filename}`);
+      }
+    }
+
+    console.log(`📊 Processing ${customerDocuments.size} unique customers from ${documents.length} total documents`);
+
     // Create ZIP file
     const zip = new JSZip();
     let addedFiles = 0;
     let skippedFiles = 0;
 
-    for (const doc of documents) {
+    for (const doc of Array.from(customerDocuments.values())) {
       try {
-        // Get document content from metadata (stored there since we can't use filesystem on serverless platforms)
+        // Get document content from metadata
         let fileContent: string | undefined;
         
         if (doc.metadata && typeof doc.metadata === 'object' && 'documentContent' in doc.metadata) {
@@ -118,15 +143,24 @@ export async function POST(request: NextRequest) {
         if (!fileContent || typeof fileContent !== 'string') {
           console.error(`❌ Document content not found for ${doc.filename}. Document may have been generated before serverless migration.`);
           skippedFiles++;
-          continue; // Skip this document but continue with others
+          continue;
         }
         
-        // Create organized folder structure
+        // Create simple filename: CustomerName.extension
         const customerName = `${doc.sale.customerFirstName}_${doc.sale.customerLastName}`;
-        const folderName = customerName.replace(/[^a-zA-Z0-9]/g, '_');
-        const fileName = doc.filename;
+        // Clean filename: remove special characters, replace spaces/dashes with underscores, limit length
+        const cleanCustomerName = customerName
+          .replace(/[^a-zA-Z0-9\s\-_]/g, '') // Remove special chars except spaces, dashes, underscores
+          .replace(/[\s\-]+/g, '_') // Replace spaces and dashes with underscores
+          .replace(/_+/g, '_') // Collapse multiple underscores
+          .trim()
+          .substring(0, 50); // Limit to 50 chars
         
-        zip.file(`${folderName}/${fileName}`, fileContent);
+        const extension = doc.filename.split('.').pop() || 'html';
+        const fileName = `${cleanCustomerName}.${extension}`;
+        
+        // Add file directly to ZIP root (no folders)
+        zip.file(fileName, fileContent);
         addedFiles++;
 
         // Update download count
@@ -138,7 +172,7 @@ export async function POST(request: NextRequest) {
           }
         });
         
-        console.log(`✅ Added file to archive: ${folderName}/${fileName}`);
+        console.log(`✅ Added file to archive: ${fileName} (${Math.round(fileContent.length/1024)}KB)`);
       } catch (error) {
         console.error(`❌ Error processing file ${doc.filename}:`, error);
         skippedFiles++;
@@ -146,12 +180,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`📥 Bulk download processing complete: ${addedFiles} added, ${skippedFiles} skipped`);
+    console.log(`📥 Bulk download processing complete: ${addedFiles} unique customers processed, ${skippedFiles} documents skipped`);
 
     if (addedFiles === 0) {
       console.error('❌ No files could be added to archive');
       return NextResponse.json({ 
-        error: 'No files could be added to archive. Documents may have been generated before the serverless migration.' 
+        error: 'No files could be added to archive. Documents may have been generated before the serverless migration or no valid documents found.' 
       }, { status: 500 });
     }
 
@@ -161,7 +195,7 @@ export async function POST(request: NextRequest) {
     
     // Generate filename
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
-    const zipFileName = `documents_${timestamp}.zip`;
+    const zipFileName = `customer_documents_${addedFiles}_files_${timestamp}.zip`;
     
     console.log(`✅ ZIP archive created: ${zipFileName} (${zipBuffer.length} bytes)`);
 
