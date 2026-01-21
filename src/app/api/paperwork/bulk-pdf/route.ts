@@ -107,7 +107,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, inject smart layout CSS to fit naturally on one page
+        // For single documents, inject CSS to force everything into one page container
         const singleDocumentCSS = `
           <style>
             @media print {
@@ -117,115 +117,122 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 box-sizing: border-box !important;
               }
               
-              html, body {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+              html {
+                height: 297mm !important;
+                width: 210mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                width: 100% !important;
-                height: 100% !important;
-                font-size: 11px !important;
-                line-height: 1.3 !important;
-                font-family: Arial, sans-serif !important;
+                overflow: hidden !important;
               }
               
               body {
-                transform: scale(0.95) !important;
-                transform-origin: top left !important;
-                width: 105.26% !important;
-                height: 105.26% !important;
-              }
-              
-              /* Preserve header styling */
-              .header, [style*="background-color"], [style*="background"] {
-                background-color: inherit !important;
-                color: inherit !important;
-                padding: 8px !important;
-                margin: 2px 0 !important;
-              }
-              
-              /* Optimize two-column layout */
-              table {
+                height: 290mm !important;
+                width: 204mm !important;
+                margin: 3mm !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                font-size: 10px !important;
+                line-height: 1.2 !important;
+                font-family: Arial, sans-serif !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                border-collapse: collapse !important;
+              }
+              
+              /* Force all content into a single container */
+              body > * {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              /* Compact header */
+              .header, h1, [style*="Flash Team"] {
+                margin: 0 !important;
+                padding: 4px !important;
+                font-size: 14px !important;
+                background-color: inherit !important;
+                color: inherit !important;
+              }
+              
+              /* Compact sections */
+              .section, div[style*="background"] {
+                margin: 1px 0 !important;
+                padding: 3px !important;
+                background-color: inherit !important;
+                color: inherit !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              /* Optimize table layout */
+              table {
                 width: 100% !important;
-                margin: 3px 0 !important;
-                font-size: 10px !important;
+                border-collapse: collapse !important;
+                margin: 1px 0 !important;
+                font-size: 9px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
               }
               
               td, th {
-                padding: 3px !important;
+                padding: 2px !important;
                 vertical-align: top !important;
                 border: inherit !important;
               }
               
-              /* Preserve section styling */
-              .section, div[style*="background"] {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                margin: 2px 0 !important;
-                padding: 4px !important;
-                background-color: inherit !important;
-                color: inherit !important;
-              }
-              
-              /* Optimize paragraph spacing */
+              /* Compact text elements */
               p {
-                margin: 1px 0 !important;
+                margin: 0 !important;
                 padding: 1px 0 !important;
-                line-height: 1.2 !important;
-              }
-              
-              /* Preserve heading hierarchy */
-              h1 {
-                font-size: 16px !important;
-                margin: 3px 0 !important;
-                line-height: 1.2 !important;
-                font-weight: bold !important;
+                line-height: 1.1 !important;
               }
               
               h2 {
-                font-size: 13px !important;
-                margin: 2px 0 !important;
-                line-height: 1.2 !important;
-                font-weight: bold !important;
+                font-size: 11px !important;
+                margin: 1px 0 !important;
+                padding: 2px !important;
                 background-color: inherit !important;
                 color: inherit !important;
-                padding: 3px !important;
+                font-weight: bold !important;
               }
               
               h3, h4 {
-                font-size: 11px !important;
-                margin: 2px 0 !important;
-                line-height: 1.2 !important;
+                font-size: 10px !important;
+                margin: 1px 0 !important;
                 font-weight: bold !important;
               }
               
-              /* Optimize lists */
+              /* Compact lists */
               ul, ol {
-                margin: 1px 0 !important;
-                padding: 1px 0 1px 15px !important;
+                margin: 0 !important;
+                padding: 0 0 0 12px !important;
               }
               
               li {
                 margin: 0 !important;
                 padding: 0 !important;
-                line-height: 1.2 !important;
+                line-height: 1.1 !important;
               }
               
-              /* Preserve footer styling */
+              /* Force footer to bottom but within page */
               .footer, [style*="footer"] {
                 background-color: inherit !important;
                 color: inherit !important;
-                padding: 4px !important;
-                margin: 2px 0 !important;
-                text-align: center !important;
+                padding: 2px !important;
+                margin: 1px 0 !important;
+                font-size: 8px !important;
               }
               
               @page {
-                size: A4;
-                margin: 0.3cm !important;
+                size: A4 !important;
+                margin: 0 !important;
+              }
+              
+              /* Absolutely prevent page breaks */
+              * {
+                page-break-after: avoid !important;
+                page-break-before: avoid !important;
+                break-after: avoid !important;
+                break-before: avoid !important;
               }
             }
           </style>
@@ -236,7 +243,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
           ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
           : `${singleDocumentCSS}${fileContent}`;
 
-        console.log(`🎨 Added smart layout optimization CSS for natural single-page fit`);
+        console.log(`🎨 Added absolute single-page container CSS`);
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -247,14 +254,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
           }
         });
 
-        // Generate PDF with optimized margins for natural layout
+        // Generate PDF with no margins - CSS handles all spacing
         const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithCSS, {
           format: 'A4',
           margin: {
-            top: '0.3cm',
-            right: '0.3cm',
-            bottom: '0.3cm',
-            left: '0.3cm',
+            top: '0',
+            right: '0',
+            bottom: '0',
+            left: '0',
           },
           displayHeaderFooter: false,
           printBackground: true,
