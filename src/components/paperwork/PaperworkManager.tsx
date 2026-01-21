@@ -69,30 +69,72 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
     setIsDeleting(true)
     setError('')
 
-    try {
-      const deletePromises = Array.from(selectedDocuments).map(documentId =>
-        fetch('/api/paperwork/delete-document', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ documentId })
-        })
-      )
+    const deleteWithRetry = async (documentId: string, retries = 3): Promise<boolean> => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          const response = await fetch('/api/paperwork/delete-document', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ documentId })
+          })
 
-      const results = await Promise.all(deletePromises)
-      
-      // Check if all deletions were successful
-      const failedDeletions = results.filter(response => !response.ok)
-      
-      if (failedDeletions.length > 0) {
-        throw new Error(`Failed to delete ${failedDeletions.length} document(s)`)
+          if (response.ok) {
+            return true;
+          } else if (response.status === 429) {
+            // Rate limited - wait longer and retry
+            if (attempt < retries) {
+              await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+              continue;
+            }
+          }
+          return false;
+        } catch (err) {
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          return false;
+        }
+      }
+      return false;
+    };
+
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      const selectedArray = Array.from(selectedDocuments);
+      const successfullyDeleted: string[] = [];
+
+      // Delete documents one by one with longer delays
+      for (let i = 0; i < selectedArray.length; i++) {
+        const documentId = selectedArray[i];
+        
+        const success = await deleteWithRetry(documentId);
+        
+        if (success) {
+          successCount++;
+          successfullyDeleted.push(documentId);
+        } else {
+          errorCount++;
+        }
+
+        // Longer delay between deletions (1.5 seconds)
+        if (i < selectedArray.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
 
-      // Update documents state by removing deleted ones
-      setDocuments(prev => prev.filter(doc => !selectedDocuments.has(doc.id)))
+      // Update documents state by removing successfully deleted ones
+      setDocuments(prev => prev.filter(doc => !successfullyDeleted.includes(doc.id)))
       setSelectedDocuments(new Set())
-      setSuccess(`Successfully deleted ${selectedDocuments.size} document(s)`)
+      
+      if (errorCount === 0) {
+        setSuccess(`Successfully deleted all ${successCount} document(s)`)
+      } else {
+        setSuccess(`Deleted ${successCount} document(s). ${errorCount} failed due to rate limiting.`)
+      }
       
     } catch (error) {
       console.error('Error deleting documents:', error)

@@ -717,9 +717,8 @@ export default function AdminPaperworkPage() {
     let successCount = 0;
     let errorCount = 0;
 
-    try {
-      // Delete documents one by one with a small delay to respect rate limiting
-      for (const docId of selectedDocuments) {
+    const deleteWithRetry = async (docId: string, retries = 3): Promise<boolean> => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
         try {
           const response = await fetch('/api/paperwork/delete-document', {
             method: 'DELETE',
@@ -730,22 +729,61 @@ export default function AdminPaperworkPage() {
           });
 
           if (response.ok) {
-            successCount++;
-          } else {
-            errorCount++;
-            console.error(`Failed to delete document ${docId}`);
+            return true;
+          } else if (response.status === 429) {
+            // Rate limited - wait longer and retry
+            console.log(`Rate limited for ${docId}, attempt ${attempt}/${retries}`);
+            if (attempt < retries) {
+              await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // 2s, 4s, 6s
+              continue;
+            }
           }
-
-          // Add a small delay between deletions to respect rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100));
+          return false;
         } catch (err) {
+          console.error(`Error deleting document ${docId}, attempt ${attempt}:`, err);
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          return false;
+        }
+      }
+      return false;
+    };
+
+    try {
+      // Delete documents one by one with much longer delays
+      for (let i = 0; i < selectedDocuments.length; i++) {
+        const docId = selectedDocuments[i];
+        console.log(`Deleting document ${i + 1}/${selectedDocuments.length}: ${docId}`);
+        
+        const success = await deleteWithRetry(docId);
+        
+        if (success) {
+          successCount++;
+          console.log(`✅ Successfully deleted ${docId}`);
+        } else {
           errorCount++;
-          console.error(`Error deleting document ${docId}:`, err);
+          console.error(`❌ Failed to delete ${docId}`);
+        }
+
+        // Longer delay between deletions (1.5 seconds)
+        if (i < selectedDocuments.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
 
       // Update the UI by removing successfully deleted documents
-      setDocuments(docs => docs.filter(doc => !selectedDocuments.includes(doc.id)));
+      const successfullyDeleted: string[] = [];
+      let docIndex = 0;
+      for (const docId of selectedDocuments) {
+        if (docIndex < successCount) {
+          successfullyDeleted.push(docId);
+        }
+        docIndex++;
+      }
+      
+      setDocuments(docs => docs.filter(doc => !successfullyDeleted.includes(doc.id)));
       setSelectedDocuments([]);
 
       // Show result
