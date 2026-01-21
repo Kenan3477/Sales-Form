@@ -41,7 +41,7 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleteMode, setDeleteMode] = useState<'selected' | 'all'>('selected')
+  const [deleteMode, setDeleteMode] = useState<'selected'>('selected')
 
   // Document selection functions
   const toggleDocumentSelection = (documentId: string) => {
@@ -103,55 +103,11 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
     }
   }
 
-  const deleteAllDocuments = async () => {
-    if (documents.length === 0) return
-
-    setIsDeleting(true)
-    setError('')
-
-    try {
-      const deletePromises = documents.map(doc =>
-        fetch('/api/paperwork/delete-document', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ documentId: doc.id })
-        })
-      )
-
-      const results = await Promise.all(deletePromises)
-      
-      // Check if all deletions were successful
-      const failedDeletions = results.filter(response => !response.ok)
-      
-      if (failedDeletions.length > 0) {
-        throw new Error(`Failed to delete ${failedDeletions.length} document(s)`)
-      }
-
-      // Clear all documents
-      setDocuments([])
-      setSelectedDocuments(new Set())
-      setSuccess(`Successfully deleted all ${documents.length} document(s)`)
-      
-    } catch (error) {
-      console.error('Error deleting all documents:', error)
-      setError(error instanceof Error ? error.message : 'Failed to delete all documents')
-    } finally {
-      setIsDeleting(false)
-      setShowDeleteConfirm(false)
-    }
-  }
-
   const handleDeleteConfirm = () => {
-    if (deleteMode === 'all') {
-      deleteAllDocuments()
-    } else {
-      deleteSelectedDocuments()
-    }
+    deleteSelectedDocuments()
   }
 
-  const initiateDelete = (mode: 'selected' | 'all') => {
+  const initiateDelete = (mode: 'selected') => {
     setDeleteMode(mode)
     setShowDeleteConfirm(true)
   }
@@ -604,16 +560,6 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                       Delete Selected ({selectedDocuments.size})
                     </button>
                   )}
-                  {documents.length > 0 && (
-                    <button
-                      onClick={() => initiateDelete('all')}
-                      disabled={isDeleting}
-                      className="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Delete All ({documents.length})
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -689,14 +635,11 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                   <Trash2 className="h-6 w-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mt-4">
-                  {deleteMode === 'all' ? 'Delete All Documents' : 'Delete Selected Documents'}
+                  Delete Selected Documents
                 </h3>
                 <div className="mt-2 px-7 py-3">
                   <p className="text-sm text-gray-500">
-                    {deleteMode === 'all' 
-                      ? `Are you sure you want to delete all ${documents.length} documents? This action cannot be undone.`
-                      : `Are you sure you want to delete ${selectedDocuments.size} selected document(s)? This action cannot be undone.`
-                    }
+                    Are you sure you want to delete {selectedDocuments.size} selected document(s)? This action cannot be undone.
                   </p>
                 </div>
                 <div className="items-center px-4 py-3">

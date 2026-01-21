@@ -57,7 +57,6 @@ export default function AdminPaperworkPage() {
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [documentsViewMode, setDocumentsViewMode] = useState<'documents' | 'customers'>('documents');
   const [customerDocumentFilter, setCustomerDocumentFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
-  const [deletingAll, setDeletingAll] = useState(false);
 
   // Redirect if not admin
   if (status === 'loading') {
@@ -703,50 +702,64 @@ export default function AdminPaperworkPage() {
     }
   };
 
-  const handleDeleteAllDocuments = async () => {
-    if (!confirm(`Are you sure you want to delete ALL ${documents.length} documents? This action cannot be undone.`)) {
+  const handleDeleteSelectedDocuments = async () => {
+    if (selectedDocuments.length === 0) {
+      alert('Please select documents to delete');
       return;
     }
 
-    if (!confirm('This will permanently delete all generated documents. Are you absolutely sure?')) {
+    if (!confirm(`Are you sure you want to delete ${selectedDocuments.length} selected document(s)? This action cannot be undone.`)) {
       return;
     }
 
-    setDeletingAll(true);
+    setBulkDownloading(true);
     setError(null);
-    
-    try {
-      const deletePromises = documents.map(doc => 
-        fetch('/api/paperwork/delete-document', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ documentId: doc.id })
-        })
-      );
+    let successCount = 0;
+    let errorCount = 0;
 
-      const results = await Promise.all(deletePromises);
-      
-      // Check for any failed deletions
-      const failedDeletions = results.filter(response => !response.ok);
-      
-      if (failedDeletions.length > 0) {
-        throw new Error(`Failed to delete ${failedDeletions.length} document(s)`);
+    try {
+      // Delete documents one by one with a small delay to respect rate limiting
+      for (const docId of selectedDocuments) {
+        try {
+          const response = await fetch('/api/paperwork/delete-document', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ documentId: docId })
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            errorCount++;
+            console.error(`Failed to delete document ${docId}`);
+          }
+
+          // Add a small delay between deletions to respect rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (err) {
+          errorCount++;
+          console.error(`Error deleting document ${docId}:`, err);
+        }
       }
 
-      // Clear all documents from the local state
-      setDocuments([]);
+      // Update the UI by removing successfully deleted documents
+      setDocuments(docs => docs.filter(doc => !selectedDocuments.includes(doc.id)));
       setSelectedDocuments([]);
-      
-      // Show success message
-      alert(`Successfully deleted all ${documents.length} documents`);
+
+      // Show result
+      if (errorCount === 0) {
+        alert(`Successfully deleted all ${successCount} selected document(s)`);
+      } else {
+        alert(`Deleted ${successCount} document(s). ${errorCount} failed to delete.`);
+      }
+
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete documents';
-      setError(errorMessage);
-      alert(errorMessage);
+      console.error('Error in bulk delete:', err);
+      setError('Failed to delete documents');
     } finally {
-      setDeletingAll(false);
+      setBulkDownloading(false);
     }
   };
 
@@ -1422,20 +1435,20 @@ export default function AdminPaperworkPage() {
                             {/* Delete All Button - Danger Zone */}
                             <div className="border-l border-gray-300 pl-2 ml-2">
                               <button
-                                onClick={handleDeleteAllDocuments}
-                                disabled={documents.length === 0 || bulkDownloading || deletingAll}
+                                onClick={handleDeleteSelectedDocuments}
+                                disabled={selectedDocuments.length === 0 || bulkDownloading}
                                 className="bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-800 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center font-medium"
                               >
-                                {deletingAll ? (
+                                {bulkDownloading ? (
                                   <>
                                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    Deleting All...
+                                    Deleting Selected...
                                   </>
                                 ) : (
-                                  <>🗑️ Delete All ({documents.length})</>
+                                  <>🗑️ Delete Selected ({selectedDocuments.length})</>
                                 )}
                               </button>
                             </div>
@@ -1728,7 +1741,7 @@ export default function AdminPaperworkPage() {
                                       handleDeleteDocument(document.id);
                                     }
                                   }}
-                                  disabled={deletingAll}
+                                  disabled={false}
                                   className="inline-flex items-center p-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Delete Document"
                                 >
