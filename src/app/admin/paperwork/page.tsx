@@ -720,6 +720,13 @@ export default function AdminPaperworkPage() {
     const deleteWithRetry = async (docId: string, retries = 3): Promise<boolean> => {
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
+          // Minimal delay before retries since rate limiting is bypassed for admins
+          if (attempt > 1) {
+            const delay = 1000 * attempt; // 1s, 2s, 3s
+            console.log(`Waiting ${delay/1000}s before retry ${attempt}/${retries} for ${docId}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+
           const response = await fetch('/api/paperwork/delete-document', {
             method: 'DELETE',
             headers: {
@@ -731,12 +738,15 @@ export default function AdminPaperworkPage() {
           if (response.ok) {
             return true;
           } else if (response.status === 429) {
-            // Rate limited - wait longer and retry
-            console.log(`Rate limited for ${docId}, attempt ${attempt}/${retries}`);
+            // This shouldn't happen for admins anymore, but handle just in case
+            console.log(`Unexpected rate limit for admin ${docId}, attempt ${attempt}/${retries}`);
             if (attempt < retries) {
-              await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // 2s, 4s, 6s
+              await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
               continue;
             }
+          } else {
+            console.error(`HTTP error ${response.status} for ${docId}`);
+            return false;
           }
           return false;
         } catch (err) {
@@ -767,9 +777,10 @@ export default function AdminPaperworkPage() {
           console.error(`❌ Failed to delete ${docId}`);
         }
 
-        // Longer delay between deletions (1.5 seconds)
+        // Shorter delay between deletions now that rate limiting is bypassed (0.5 seconds)
         if (i < selectedDocuments.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          console.log(`Waiting 0.5s before next deletion...`);
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
