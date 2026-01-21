@@ -128,6 +128,58 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
     }
   }
 
+  const generateDirectPDF = async (templateType: string, templateId?: string) => {
+    console.log('🎯 Starting DIRECT PDF generation for:', templateType);
+    setGenerating(`${templateType}-pdf`)
+    setError('')
+    setSuccess('')
+
+    try {
+      const requestData = {
+        saleId,
+        templateType,
+        ...(templateId && { templateId }),
+      };
+
+      console.log('🎯 PDF Request data:', requestData);
+
+      const response = await fetch('/api/paperwork/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      })
+
+      console.log('🎯 PDF Response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ PDF Response error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate PDF')
+      }
+
+      // Handle PDF download
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${templateType}-${saleId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      setSuccess(`PDF "${templateType}" downloaded successfully!`)
+      setShowTemplateSelector(false)
+    } catch (error) {
+      console.error('❌ Error generating PDF:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate PDF')
+    } finally {
+      setGenerating(null)
+    }
+  }
+
   const previewDocument = async (templateType: string, format: 'html' | 'pdf' = 'html') => {
     try {
       const response = await fetch('/api/paperwork/preview', {
@@ -304,11 +356,12 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                 </h3>
                 <div className="mt-4 space-y-3">
                   {templates.map((template) => (
-                    <div key={template.id} className="relative">
+                    <div key={template.id} className="relative border border-gray-300 rounded-md overflow-hidden">
+                      {/* Generate HTML Document */}
                       <button
                         onClick={() => generateDocument(template.templateType, template.id)}
                         disabled={generating !== null}
-                        className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        className="w-full text-left p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 border-b border-gray-200"
                       >
                         <div className="flex items-center">
                           <span className="text-2xl mr-3">
@@ -318,15 +371,44 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                             <div className="text-sm font-medium text-gray-900">
                               {template.name}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {template.description}
+                            <div className="text-xs text-gray-500">
+                              Generate HTML Document
                             </div>
+                          </div>
+                          <div className="text-xs text-blue-600 font-medium">
+                            HTML
                           </div>
                         </div>
                       </button>
-                      {generating === template.templateType && (
+                      
+                      {/* Generate Direct PDF */}
+                      <button
+                        onClick={() => generateDirectPDF(template.templateType, template.id)}
+                        disabled={generating !== null}
+                        className="w-full text-left p-3 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 bg-red-50"
+                      >
+                        <div className="flex items-center">
+                          <span className="text-2xl mr-3">📄</span>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-red-900">
+                              Generate as PDF
+                            </div>
+                            <div className="text-xs text-red-600">
+                              Direct PDF download - exact template styling
+                            </div>
+                          </div>
+                          <div className="text-xs text-red-700 font-bold">
+                            PDF
+                          </div>
+                        </div>
+                      </button>
+                      
+                      {/* Loading overlay */}
+                      {(generating === template.templateType || generating === `${template.templateType}-pdf`) && (
                         <div className="absolute inset-0 bg-gray-50 bg-opacity-75 flex items-center justify-center rounded-md">
-                          <div className="text-sm text-gray-600">Generating...</div>
+                          <div className="text-sm text-gray-600">
+                            {generating?.includes('-pdf') ? 'Generating PDF...' : 'Generating...'}
+                          </div>
                         </div>
                       )}
                     </div>
