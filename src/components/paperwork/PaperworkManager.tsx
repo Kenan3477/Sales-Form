@@ -356,58 +356,61 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                 </h3>
                 <div className="mt-4 space-y-3">
                   {templates.map((template) => (
-                    <div key={template.id} className="relative border border-gray-300 rounded-md overflow-hidden">
-                      {/* Generate HTML Document */}
+                    <div key={template.id} className="relative border border-gray-300 rounded-lg overflow-hidden">
+                      {/* Generate Direct PDF - FEATURED */}
                       <button
-                        onClick={() => generateDocument(template.templateType, template.id)}
+                        onClick={() => generateDirectPDF(template.templateType, template.id)}
                         disabled={generating !== null}
-                        className="w-full text-left p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 border-b border-gray-200"
+                        className="w-full text-left p-4 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-gradient-to-r from-blue-50 to-blue-100 border-b-2 border-blue-200"
                       >
                         <div className="flex items-center">
-                          <span className="text-2xl mr-3">
-                            {getTemplateIcon(template.templateType)}
-                          </span>
+                          <span className="text-3xl mr-3">📄</span>
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-gray-900">
-                              {template.name}
+                            <div className="text-sm font-bold text-blue-900">
+                              📥 Generate & Download PDF
                             </div>
-                            <div className="text-xs text-gray-500">
-                              Generate HTML Document
+                            <div className="text-xs text-blue-700 font-medium">
+                              Professional PDF with Flash Team branding - Ready to print
                             </div>
                           </div>
-                          <div className="text-xs text-blue-600 font-medium">
-                            HTML
+                          <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                            RECOMMENDED
                           </div>
                         </div>
                       </button>
                       
-                      {/* Generate Direct PDF */}
+                      {/* Generate HTML Document - Secondary option */}
                       <button
-                        onClick={() => generateDirectPDF(template.templateType, template.id)}
+                        onClick={() => generateDocument(template.templateType, template.id)}
                         disabled={generating !== null}
-                        className="w-full text-left p-3 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 bg-red-50"
+                        className="w-full text-left p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50 bg-gray-50"
                       >
                         <div className="flex items-center">
-                          <span className="text-2xl mr-3">📄</span>
+                          <span className="text-2xl mr-3 opacity-60">
+                            {getTemplateIcon(template.templateType)}
+                          </span>
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-red-900">
-                              Generate as PDF
+                            <div className="text-sm font-medium text-gray-700">
+                              Generate HTML Document
                             </div>
-                            <div className="text-xs text-red-600">
-                              Direct PDF download - exact template styling
+                            <div className="text-xs text-gray-500">
+                              For system storage only - {template.description}
                             </div>
                           </div>
-                          <div className="text-xs text-red-700 font-bold">
-                            PDF
+                          <div className="text-xs text-gray-600 font-medium">
+                            HTML
                           </div>
                         </div>
                       </button>
                       
                       {/* Loading overlay */}
                       {(generating === template.templateType || generating === `${template.templateType}-pdf`) && (
-                        <div className="absolute inset-0 bg-gray-50 bg-opacity-75 flex items-center justify-center rounded-md">
-                          <div className="text-sm text-gray-600">
-                            {generating?.includes('-pdf') ? 'Generating PDF...' : 'Generating...'}
+                        <div className="absolute inset-0 bg-gray-50 bg-opacity-90 flex items-center justify-center rounded-lg">
+                          <div className="text-center">
+                            <div className="animate-spin text-2xl mb-2">⚙️</div>
+                            <div className="text-sm font-medium text-gray-700">
+                              {generating?.includes('-pdf') ? 'Generating Professional PDF...' : 'Generating HTML...'}
+                            </div>
                           </div>
                         </div>
                       )}
