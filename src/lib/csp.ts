@@ -22,23 +22,50 @@ export function createSecureCSP(nonce: string): string {
   const isDev = process.env.NODE_ENV === 'development'
   const isProduction = process.env.NODE_ENV === 'production'
   
-  // Balanced CSP - secure but compatible with Next.js/NextAuth
-  const cspDirectives = [
-    "default-src 'self'",
-    // Allow inline scripts for Next.js compatibility, but restrict sources
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.app`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: https: blob:",
-    "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' https: wss: https://*.upstash.io https://*.vercel.app",
-    "frame-src 'self'",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'"
-  ]
+  // Check if CSP should be disabled for troubleshooting
+  if (process.env.DISABLE_CSP === 'true') {
+    return "default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data:;"
+  }
+  
+  // Check if we should use strict CSP (for when functionality is working)
+  const useStrictCSP = process.env.CSP_STRICT === 'true'
+  
+  let cspDirectives: string[]
+  
+  if (useStrictCSP) {
+    // Strict CSP with nonce-based security
+    cspDirectives = [
+      "default-src 'self'",
+      `script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ''}`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: https: blob:",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "connect-src 'self' https: wss: https://*.upstash.io https://*.vercel.app",
+      "frame-src 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'"
+    ]
+  } else {
+    // Balanced CSP - secure but compatible with Next.js/NextAuth
+    cspDirectives = [
+      "default-src 'self'",
+      // Allow inline scripts for Next.js compatibility, but restrict sources
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.app`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: https: blob:",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "connect-src 'self' https: wss: https://*.upstash.io https://*.vercel.app",
+      "frame-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'"
+    ]
+  }
   
   // Only add strict policies in production that don't break functionality
-  if (isProduction) {
+  if (isProduction && !process.env.DISABLE_CSP) {
     cspDirectives.push("upgrade-insecure-requests")
   }
   
