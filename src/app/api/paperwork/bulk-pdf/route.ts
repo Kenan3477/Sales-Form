@@ -107,53 +107,67 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, inject aggressive CSS to force single page
+        // For single documents, inject CSS to optimize full page usage
         const singleDocumentCSS = `
           <style>
             @media print {
               * {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                box-sizing: border-box !important;
+              }
+              
+              html, body {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                font-size: 10px !important;
+                line-height: 1.2 !important;
               }
               
               body {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                font-size: 9px !important;
-                line-height: 1.1 !important;
-                margin: 0 !important;
-                padding: 3px !important;
-                transform: scale(0.85) !important;
+                transform: scale(0.95) !important;
                 transform-origin: top left !important;
+                width: 105.26% !important;
+                height: 105.26% !important;
               }
               
               .document-wrapper, .document-container, .content {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
               }
               
               table {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                font-size: 8px !important;
+                font-size: 9px !important;
                 border-collapse: collapse !important;
+                width: 100% !important;
+                margin: 0 !important;
               }
               
               .section, div, p {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                margin: 0px 0 !important;
+                margin: 0 !important;
                 padding: 1px 0 !important;
               }
               
               h1, h2, h3 {
-                font-size: 10px !important;
-                margin: 2px 0 !important;
+                font-size: 11px !important;
+                margin: 1px 0 !important;
+                font-weight: bold !important;
               }
               
               @page {
                 size: A4;
-                margin: 0.2cm;
+                margin: 0 !important;
               }
             }
           </style>
@@ -164,7 +178,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
           ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
           : `${singleDocumentCSS}${fileContent}`;
 
-        console.log(`🎨 Added aggressive single-page CSS with scaling to document`);
+        console.log(`🎨 Added full-page utilization CSS with optimized scaling`);
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -175,14 +189,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
           }
         });
 
-        // Generate PDF with minimal margins and scaling
+        // Generate PDF with zero margins for full page usage
         const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithCSS, {
           format: 'A4',
           margin: {
-            top: '0.2cm',
-            right: '0.2cm',
-            bottom: '0.2cm',
-            left: '0.2cm',
+            top: '0',
+            right: '0',
+            bottom: '0',
+            left: '0',
           },
           displayHeaderFooter: false,
           printBackground: true,
