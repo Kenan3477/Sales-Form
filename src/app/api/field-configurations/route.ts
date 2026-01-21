@@ -3,8 +3,15 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // SECURITY: Require authentication for field configuration access
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const fieldConfigurations = await prisma.fieldConfiguration.findMany({
       orderBy: {
         fieldName: 'asc'

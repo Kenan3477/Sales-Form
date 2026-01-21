@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export async function GET() {
+  // SECURITY: Only allow setup check in development or if explicitly enabled
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SETUP !== 'true') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     // Check database connection
     await prisma.$connect();
@@ -39,6 +44,11 @@ export async function GET() {
 }
 
 export async function POST() {
+  // SECURITY: Completely disable setup in production unless explicitly allowed
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SETUP !== 'true') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     // Check if already initialized
     const existingAdmin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });

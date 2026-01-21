@@ -3,16 +3,18 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Security check - only allow this in development or with a special key
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
-    
-    if (key !== 'seed-production-db-123') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // SECURITY: Disable production seeding entirely
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
-    console.log('🌱 Starting production database seed...');
+  // Only allow in development with environment variable
+  if (!process.env.ALLOW_PRODUCTION_SEED) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  try {
+    console.log('🌱 Starting development database seed...');
 
     // Check if admin already exists
     const existingAdmin = await prisma.user.findFirst({ 
