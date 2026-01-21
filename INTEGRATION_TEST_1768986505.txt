@@ -1,0 +1,4 @@
+# Vercel Integration Test
+Timestamp: Wed Jan 21 09:08:25 GMT 2026
+Commit: Testing private repo integration
+Expected: Should trigger Vercel deployment
