@@ -6,7 +6,7 @@ import { leadWorkflowService } from '@/lib/leads/workflow'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'AGENT') {
+    if (!session?.user || (session.user.role !== 'AGENT' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

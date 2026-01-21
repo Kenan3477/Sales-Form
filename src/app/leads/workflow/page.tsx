@@ -6,8 +6,13 @@ import LeadWorkflow from '@/components/leads/LeadWorkflow'
 export default async function LeadsWorkflowPage() {
   const session = await getServerSession(authOptions)
 
-  // Redirect non-agents
-  if (!session?.user || session.user.role !== 'AGENT') {
+  // Require authentication
+  if (!session?.user) {
+    redirect('/auth/login')
+  }
+
+  // Allow both agents and admins to access workflow
+  if (session.user.role !== 'AGENT' && session.user.role !== 'ADMIN') {
     redirect('/dashboard')
   }
 
