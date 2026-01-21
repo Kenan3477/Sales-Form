@@ -38,6 +38,115 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteMode, setDeleteMode] = useState<'selected' | 'all'>('selected')
+
+  // Document selection functions
+  const toggleDocumentSelection = (documentId: string) => {
+    const newSelection = new Set(selectedDocuments)
+    if (newSelection.has(documentId)) {
+      newSelection.delete(documentId)
+    } else {
+      newSelection.add(documentId)
+    }
+    setSelectedDocuments(newSelection)
+  }
+
+  const selectAllDocuments = () => {
+    setSelectedDocuments(new Set(documents.map(doc => doc.id)))
+  }
+
+  const clearSelection = () => {
+    setSelectedDocuments(new Set())
+  }
+
+  // Document deletion functions
+  const deleteSelectedDocuments = async () => {
+    if (selectedDocuments.size === 0) return
+
+    setIsDeleting(true)
+    setError('')
+
+    try {
+      const deletePromises = Array.from(selectedDocuments).map(documentId =>
+        fetch(`/api/paperwork/document/${documentId}`, {
+          method: 'DELETE'
+        })
+      )
+
+      const results = await Promise.all(deletePromises)
+      
+      // Check if all deletions were successful
+      const failedDeletions = results.filter(response => !response.ok)
+      
+      if (failedDeletions.length > 0) {
+        throw new Error(`Failed to delete ${failedDeletions.length} document(s)`)
+      }
+
+      // Update documents state by removing deleted ones
+      setDocuments(prev => prev.filter(doc => !selectedDocuments.has(doc.id)))
+      setSelectedDocuments(new Set())
+      setSuccess(`Successfully deleted ${selectedDocuments.size} document(s)`)
+      
+    } catch (error) {
+      console.error('Error deleting documents:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete documents')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
+  const deleteAllDocuments = async () => {
+    if (documents.length === 0) return
+
+    setIsDeleting(true)
+    setError('')
+
+    try {
+      const deletePromises = documents.map(doc =>
+        fetch(`/api/paperwork/document/${doc.id}`, {
+          method: 'DELETE'
+        })
+      )
+
+      const results = await Promise.all(deletePromises)
+      
+      // Check if all deletions were successful
+      const failedDeletions = results.filter(response => !response.ok)
+      
+      if (failedDeletions.length > 0) {
+        throw new Error(`Failed to delete ${failedDeletions.length} document(s)`)
+      }
+
+      // Clear all documents
+      setDocuments([])
+      setSelectedDocuments(new Set())
+      setSuccess(`Successfully deleted all ${documents.length} document(s)`)
+      
+    } catch (error) {
+      console.error('Error deleting all documents:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete all documents')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
+  const handleDeleteConfirm = () => {
+    if (deleteMode === 'all') {
+      deleteAllDocuments()
+    } else {
+      deleteSelectedDocuments()
+    }
+  }
+
+  const initiateDelete = (mode: 'selected' | 'all') => {
+    setDeleteMode(mode)
+    setShowDeleteConfirm(true)
+  }
 
   useEffect(() => {
     loadDocuments()
@@ -458,13 +567,66 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Bulk Actions Toolbar */}
+              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedDocuments.size === documents.length}
+                      onChange={selectedDocuments.size === documents.length ? clearSelection : selectAllDocuments}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      {selectedDocuments.size === 0 
+                        ? 'Select all' 
+                        : `${selectedDocuments.size} selected`
+                      }
+                    </span>
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {selectedDocuments.size > 0 && (
+                    <button
+                      onClick={() => initiateDelete('selected')}
+                      disabled={isDeleting}
+                      className="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Delete Selected ({selectedDocuments.size})
+                    </button>
+                  )}
+                  {documents.length > 0 && (
+                    <button
+                      onClick={() => initiateDelete('all')}
+                      disabled={isDeleting}
+                      className="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Delete All ({documents.length})
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Documents Grid */}
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                  className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${
+                    selectedDocuments.has(doc.id) 
+                      ? 'border-blue-300 bg-blue-50' 
+                      : 'border-gray-200'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedDocuments.has(doc.id)}
+                        onChange={() => toggleDocumentSelection(doc.id)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
                       <span className="text-2xl">
                         {getTemplateIcon(doc.metadata?.templateType || 'unknown')}
                       </span>
@@ -492,8 +654,12 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                         Download
                       </button>
                       <button
-                        onClick={() => deleteDocument(doc.id)}
-                        className="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        onClick={() => {
+                          setSelectedDocuments(new Set([doc.id]))
+                          initiateDelete('selected')
+                        }}
+                        disabled={isDeleting}
+                        className="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-3 h-3 mr-1" />
                         Delete
@@ -505,6 +671,55 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+            <div className="relative p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3 text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                  <Trash2 className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mt-4">
+                  {deleteMode === 'all' ? 'Delete All Documents' : 'Delete Selected Documents'}
+                </h3>
+                <div className="mt-2 px-7 py-3">
+                  <p className="text-sm text-gray-500">
+                    {deleteMode === 'all' 
+                      ? `Are you sure you want to delete all ${documents.length} documents? This action cannot be undone.`
+                      : `Are you sure you want to delete ${selectedDocuments.size} selected document(s)? This action cannot be undone.`
+                    }
+                  </p>
+                </div>
+                <div className="items-center px-4 py-3">
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleDeleteConfirm}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
+                      className="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
