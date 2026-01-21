@@ -107,7 +107,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, inject CSS to force everything into one page container
+        // For single documents, inject CSS to force everything into one page container with all content
         const singleDocumentCSS = `
           <style>
             @media print {
@@ -131,36 +131,48 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 margin: 3mm !important;
                 padding: 0 !important;
                 overflow: hidden !important;
-                font-size: 10px !important;
-                line-height: 1.2 !important;
+                font-size: 9px !important;
+                line-height: 1.1 !important;
                 font-family: Arial, sans-serif !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                display: flex !important;
+                flex-direction: column !important;
               }
               
               /* Force all content into a single container */
               body > * {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                flex-shrink: 1 !important;
               }
               
-              /* Compact header */
-              .header, h1, [style*="Flash Team"] {
+              /* Compact header with logo preservation */
+              .header, h1, [style*="Flash Team"], img, [style*="logo"] {
                 margin: 0 !important;
-                padding: 4px !important;
-                font-size: 14px !important;
+                padding: 2px !important;
+                font-size: 12px !important;
                 background-color: inherit !important;
                 color: inherit !important;
+                flex-shrink: 0 !important;
+              }
+              
+              /* Show images/logos */
+              img {
+                max-height: 20px !important;
+                width: auto !important;
+                display: inline-block !important;
               }
               
               /* Compact sections */
               .section, div[style*="background"] {
                 margin: 1px 0 !important;
-                padding: 3px !important;
+                padding: 2px !important;
                 background-color: inherit !important;
                 color: inherit !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                flex-shrink: 1 !important;
               }
               
               /* Optimize table layout */
@@ -168,58 +180,76 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 margin: 1px 0 !important;
-                font-size: 9px !important;
+                font-size: 8px !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+                flex-shrink: 1 !important;
               }
               
               td, th {
-                padding: 2px !important;
+                padding: 1px !important;
                 vertical-align: top !important;
                 border: inherit !important;
+                font-size: 8px !important;
               }
               
               /* Compact text elements */
               p {
                 margin: 0 !important;
-                padding: 1px 0 !important;
-                line-height: 1.1 !important;
+                padding: 0 !important;
+                line-height: 1.0 !important;
+                flex-shrink: 1 !important;
               }
               
               h2 {
-                font-size: 11px !important;
+                font-size: 10px !important;
                 margin: 1px 0 !important;
-                padding: 2px !important;
+                padding: 1px !important;
                 background-color: inherit !important;
                 color: inherit !important;
                 font-weight: bold !important;
+                flex-shrink: 0 !important;
               }
               
               h3, h4 {
-                font-size: 10px !important;
+                font-size: 9px !important;
                 margin: 1px 0 !important;
                 font-weight: bold !important;
+                flex-shrink: 0 !important;
               }
               
               /* Compact lists */
               ul, ol {
                 margin: 0 !important;
-                padding: 0 0 0 12px !important;
+                padding: 0 0 0 8px !important;
+                flex-shrink: 1 !important;
               }
               
               li {
                 margin: 0 !important;
                 padding: 0 !important;
-                line-height: 1.1 !important;
+                line-height: 1.0 !important;
+                font-size: 8px !important;
               }
               
-              /* Force footer to bottom but within page */
-              .footer, [style*="footer"] {
+              /* Ensure footer and all sections are visible */
+              .footer, [style*="footer"], .guarantee, [style*="guarantee"], .important {
                 background-color: inherit !important;
                 color: inherit !important;
-                padding: 2px !important;
+                padding: 1px !important;
                 margin: 1px 0 !important;
-                font-size: 8px !important;
+                font-size: 7px !important;
+                flex-shrink: 1 !important;
+                display: block !important;
+                visibility: visible !important;
+              }
+              
+              /* Force all content to be visible */
+              * {
+                max-height: none !important;
+                overflow: visible !important;
+                display: inherit !important;
+                visibility: visible !important;
               }
               
               @page {
@@ -243,7 +273,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
           ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
           : `${singleDocumentCSS}${fileContent}`;
 
-        console.log(`🎨 Added absolute single-page container CSS`);
+        console.log(`🎨 Added complete content preservation CSS with flexbox layout`);
 
         // Update download count
         await prisma.generatedDocument.update({
