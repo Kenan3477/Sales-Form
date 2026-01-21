@@ -8,7 +8,7 @@ import path from 'path';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { documentId: string } }
+  { params }: { params: Promise<{ documentId: string }> }
 ) {
   try {
     // Rate limiting
@@ -30,7 +30,7 @@ export async function DELETE(
       );
     }
 
-    const { documentId } = params;
+    const { documentId } = await params;
 
     // Find the document first
     const document = await prisma.generatedDocument.findUnique({
