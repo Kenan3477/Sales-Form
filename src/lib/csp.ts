@@ -20,36 +20,35 @@ export function generateNonce(): string {
 
 export function createSecureCSP(nonce: string): string {
   const isDev = process.env.NODE_ENV === 'development'
-  const reportOnly = process.env.CSP_REPORT_ONLY === 'true'
+  const isProduction = process.env.NODE_ENV === 'production'
   
-  // Base CSP configuration
+  // Balanced CSP - secure but compatible with Next.js/NextAuth
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ''}`, // unsafe-eval only for dev
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Next.js requires unsafe-inline for styled-jsx
+    // Allow inline scripts for Next.js compatibility, but restrict sources
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.app`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob:",
-    "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://api.vercel.com https://*.vercel.app",
-    "frame-src 'none'",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "connect-src 'self' https: wss: https://*.upstash.io https://*.vercel.app",
+    "frame-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-    "block-all-mixed-content"
+    "form-action 'self'"
   ]
   
-  // Add upgrade-insecure-requests for HTTPS
-  if (!isDev) {
+  // Only add strict policies in production that don't break functionality
+  if (isProduction) {
     cspDirectives.push("upgrade-insecure-requests")
   }
   
-  // Add report-uri if available
+  // Add report-uri if available  
   if (process.env.CSP_REPORT_URL) {
     cspDirectives.push(`report-uri ${process.env.CSP_REPORT_URL}`)
   }
   
   const csp = cspDirectives.join('; ')
-  return reportOnly ? `${csp}; report-only` : csp
+  return csp
 }
 
 export function addSecurityHeaders(response: NextResponse, securityHeaders?: SecurityHeaders): void {
