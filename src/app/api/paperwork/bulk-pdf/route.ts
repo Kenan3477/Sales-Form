@@ -107,7 +107,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, inject aggressive CSS to force single page while preserving styling
+        // For single documents, inject smart layout CSS to fit naturally on one page
         const singleDocumentCSS = `
           <style>
             @media print {
@@ -124,75 +124,108 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 padding: 0 !important;
                 width: 100% !important;
                 height: 100% !important;
-                font-size: 9px !important;
-                line-height: 1.1 !important;
+                font-size: 11px !important;
+                line-height: 1.3 !important;
+                font-family: Arial, sans-serif !important;
               }
               
               body {
-                transform: scale(0.85) !important;
+                transform: scale(0.95) !important;
                 transform-origin: top left !important;
-                width: 117.6% !important;
-                height: 117.6% !important;
+                width: 105.26% !important;
+                height: 105.26% !important;
               }
               
-              .document-wrapper, .document-container, .content {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
+              /* Preserve header styling */
+              .header, [style*="background-color"], [style*="background"] {
+                background-color: inherit !important;
+                color: inherit !important;
+                padding: 8px !important;
+                margin: 2px 0 !important;
               }
               
-              /* Aggressively compress spacing while preserving colors */
+              /* Optimize two-column layout */
               table {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 border-collapse: collapse !important;
                 width: 100% !important;
-                margin: 0 !important;
-                font-size: 8px !important;
-              }
-              
-              .section, div {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-              
-              p {
-                margin: 0 !important;
-                padding: 0 !important;
-                line-height: 1.0 !important;
-              }
-              
-              h1, h2, h3, h4 {
-                margin: 1px 0 !important;
-                line-height: 1.0 !important;
+                margin: 3px 0 !important;
                 font-size: 10px !important;
               }
               
-              /* Preserve background colors and styling */
-              .header, .section-header, [style*="background"] {
+              td, th {
+                padding: 3px !important;
+                vertical-align: top !important;
+                border: inherit !important;
+              }
+              
+              /* Preserve section styling */
+              .section, div[style*="background"] {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin: 2px 0 !important;
+                padding: 4px !important;
                 background-color: inherit !important;
                 color: inherit !important;
               }
               
-              /* Force very tight spacing */
+              /* Optimize paragraph spacing */
+              p {
+                margin: 1px 0 !important;
+                padding: 1px 0 !important;
+                line-height: 1.2 !important;
+              }
+              
+              /* Preserve heading hierarchy */
+              h1 {
+                font-size: 16px !important;
+                margin: 3px 0 !important;
+                line-height: 1.2 !important;
+                font-weight: bold !important;
+              }
+              
+              h2 {
+                font-size: 13px !important;
+                margin: 2px 0 !important;
+                line-height: 1.2 !important;
+                font-weight: bold !important;
+                background-color: inherit !important;
+                color: inherit !important;
+                padding: 3px !important;
+              }
+              
+              h3, h4 {
+                font-size: 11px !important;
+                margin: 2px 0 !important;
+                line-height: 1.2 !important;
+                font-weight: bold !important;
+              }
+              
+              /* Optimize lists */
               ul, ol {
-                margin: 0 !important;
-                padding: 0 0 0 10px !important;
+                margin: 1px 0 !important;
+                padding: 1px 0 1px 15px !important;
               }
               
               li {
                 margin: 0 !important;
                 padding: 0 !important;
-                line-height: 1.0 !important;
+                line-height: 1.2 !important;
+              }
+              
+              /* Preserve footer styling */
+              .footer, [style*="footer"] {
+                background-color: inherit !important;
+                color: inherit !important;
+                padding: 4px !important;
+                margin: 2px 0 !important;
+                text-align: center !important;
               }
               
               @page {
                 size: A4;
-                margin: 0 !important;
+                margin: 0.3cm !important;
               }
             }
           </style>
@@ -203,7 +236,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
           ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
           : `${singleDocumentCSS}${fileContent}`;
 
-        console.log(`🎨 Added aggressive single-page CSS while preserving branding`);
+        console.log(`🎨 Added smart layout optimization CSS for natural single-page fit`);
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -214,14 +247,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
           }
         });
 
-        // Generate PDF with zero margins for full page usage
+        // Generate PDF with optimized margins for natural layout
         const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithCSS, {
           format: 'A4',
           margin: {
-            top: '0',
-            right: '0',
-            bottom: '0',
-            left: '0',
+            top: '0.3cm',
+            right: '0.3cm',
+            bottom: '0.3cm',
+            left: '0.3cm',
           },
           displayHeaderFooter: false,
           printBackground: true,
