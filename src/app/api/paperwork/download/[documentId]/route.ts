@@ -74,16 +74,34 @@ export async function GET(
     const disposition = url.searchParams.get('inline') === 'true' ? 'inline' : 'attachment';
 
     // Return document content as response
-    return new Response(documentContent, {
-      headers: {
-        'Content-Type': document.mimeType,
-        'Content-Disposition': `${disposition}; filename="${document.filename}"`,
-        'Content-Length': Buffer.byteLength(documentContent, 'utf8').toString(),
-        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-        'Expires': '0',
-        'Pragma': 'no-cache',
-      },
-    });
+    if (document.mimeType === 'application/pdf') {
+      // For PDFs, the content is stored as base64, so decode it
+      const pdfBuffer = Buffer.from(documentContent, 'base64');
+      const responseContent = new Uint8Array(pdfBuffer);
+      
+      return new Response(responseContent, {
+        headers: {
+          'Content-Type': document.mimeType,
+          'Content-Disposition': `${disposition}; filename="${document.filename}"`,
+          'Content-Length': pdfBuffer.length.toString(),
+          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+          'Expires': '0',
+          'Pragma': 'no-cache',
+        },
+      });
+    } else {
+      // For other formats (HTML), use as string
+      return new Response(documentContent, {
+        headers: {
+          'Content-Type': document.mimeType,
+          'Content-Disposition': `${disposition}; filename="${document.filename}"`,
+          'Content-Length': Buffer.byteLength(documentContent, 'utf8').toString(),
+          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+          'Expires': '0',
+          'Pragma': 'no-cache',
+        },
+      });
+    }
 
   } catch (error) {
     console.error('Document download error:', error);
