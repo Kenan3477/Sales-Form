@@ -55,11 +55,11 @@ export async function GET(request: NextRequest) {
     }
 
     const estimatedTotalSize = totalDocuments * estimatedSizePerDoc;
-    const recommendedChunkSize = estimatedTotalSize > 50 * 1024 * 1024 ? 50 : 100; // 50 docs for large sets, 100 for smaller
+    const recommendedChunkSize = estimatedTotalSize > 50 * 1024 * 1024 ? 25 : 50; // Smaller chunks for Vercel limits
     const totalChunks = Math.ceil(totalDocuments / recommendedChunkSize);
 
     // Determine if chunking is recommended
-    const shouldChunk = totalDocuments > 200 || estimatedTotalSize > 30 * 1024 * 1024;
+    const shouldChunk = totalDocuments > 100 || estimatedTotalSize > 20 * 1024 * 1024;
 
     return NextResponse.json({
       totalDocuments,

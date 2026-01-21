@@ -394,19 +394,19 @@ export async function GET(request: NextRequest) {
 
     // Generate PDF
     try {
-      console.log(`🔧 Generating PDF for chunk ${chunk}...`);
+      console.log(`🔧 Generating PDF for chunk ${chunk} (${documents.length} documents)...`);
       
       const pdfBuffer = await PDFService.generatePDFBuffer(combinedHtml, {
         format: 'A4',
         margin: {
-          top: '1.5cm',
-          right: '1.5cm',
-          bottom: '1.5cm',
-          left: '1.5cm',
+          top: '1cm',
+          right: '1cm', 
+          bottom: '1cm',
+          left: '1cm',
         },
         displayHeaderFooter: false,
         printBackground: true,
-        timeout: 120000, // 2 minutes for chunk
+        timeout: 25000, // 25 seconds for Vercel limit
       });
 
       console.log(`✅ Chunk ${chunk} PDF generated! Size: ${Math.round(pdfBuffer.length/1024)}KB`);
