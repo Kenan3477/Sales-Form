@@ -104,7 +104,44 @@ async function handleBulkPDFDownload(request: NextRequest) {
           return NextResponse.json({ error: 'Document content not found' }, { status: 500 });
         }
 
-        console.log(`🔍 Single document: ${doc.filename}, using original HTML directly`);
+        console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
+        console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
+
+        // For single documents, inject CSS to prevent page breaks
+        const singleDocumentCSS = `
+          <style>
+            @media print {
+              * {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              body {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                max-height: 100vh !important;
+                overflow: hidden !important;
+              }
+              
+              .document-wrapper, .document-container, .content {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              
+              @page {
+                size: A4;
+                margin: 0.5cm;
+              }
+            }
+          </style>
+        `;
+
+        // Inject CSS into HTML
+        const htmlWithCSS = fileContent.includes('</head>') 
+          ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
+          : `${singleDocumentCSS}${fileContent}`;
+
+        console.log(`🎨 Added page-break prevention CSS to single document`);
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -115,14 +152,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
           }
         });
 
-        // Generate PDF directly from original HTML
-        const pdfBuffer = await PDFService.generatePDFBuffer(fileContent, {
+        // Generate PDF directly from enhanced HTML
+        const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithCSS, {
           format: 'A4',
           margin: {
-            top: '1.5cm',
-            right: '1.5cm',
-            bottom: '1.5cm',
-            left: '1.5cm',
+            top: '0.5cm',
+            right: '0.5cm',
+            bottom: '0.5cm',
+            left: '0.5cm',
           },
           displayHeaderFooter: false,
           printBackground: true,
