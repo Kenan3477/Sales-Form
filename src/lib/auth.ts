@@ -2,8 +2,9 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { trackFailedLogin, getFailedLoginAttempts, clearFailedLoginAttempts } from '@/lib/rateLimit'
-import { isValidEmail, sanitizeInput, logSecurityEvent, createSecurityContext } from '@/lib/security'
+import { checkLoginRateLimit } from '@/lib/rateLimit'
+import { logSecurityEvent, sanitizeErrorMessage } from '@/lib/securityHeaders'
+import { isValidEmail, sanitizeInput } from '@/lib/security'
 
 export const authOptions: NextAuthOptions = {
   debug: process.env.DEBUG_AUTH === 'true' || process.env.NODE_ENV === 'development',
@@ -29,76 +30,39 @@ export const authOptions: NextAuthOptions = {
         const email = sanitizeInput(credentials.email).toLowerCase()
         const password = sanitizeInput(credentials.password)
 
-        // Get client IP for rate limiting
+        // Get client IP for security logging
         const ip = req?.headers?.['x-forwarded-for'] || req?.headers?.['x-real-ip'] || 'unknown'
         const userAgent = req?.headers?.['user-agent'] || 'unknown'
-        
-        // Check for too many failed attempts
-        const failedAttempts = await getFailedLoginAttempts(email)
-        const ipFailedAttempts = await getFailedLoginAttempts(`ip:${ip}`)
-        
-        // More lenient rate limiting - allow more attempts per IP for shared networks
-        if (failedAttempts >= 5 || ipFailedAttempts >= 20) {
-          logSecurityEvent('LOGIN_BLOCKED_RATE_LIMIT', {
-            ip: ip as string,
-            userAgent: userAgent as string,
-            timestamp: Date.now(),
-            requestId: 'auth-' + Date.now()
-          }, { email, failedAttempts, ipFailedAttempts })
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: email }
+          })
+
+          if (!user) {
+            // Don't reveal that user doesn't exist
+            console.warn(`Login attempt for non-existent user: ${email} from IP: ${ip}`)
+            return null
+          }
+
+          const isValid = await compare(password, user.password)
+
+          if (!isValid) {
+            console.warn(`Invalid password attempt for user: ${email} from IP: ${ip}`)
+            return null
+          }
+
+          // Successful login
+          console.log(`Successful login for user: ${email} from IP: ${ip}`)
+
+          return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+          }
+        } catch (error) {
+          console.error('Auth error:', error)
           return null
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: email }
-        })
-
-        if (!user) {
-          // Track failed attempt for both email and IP
-          await trackFailedLogin(email)
-          await trackFailedLogin(`ip:${ip}`)
-          
-          logSecurityEvent('LOGIN_FAILED_USER_NOT_FOUND', {
-            ip: ip as string,
-            userAgent: userAgent as string,
-            timestamp: Date.now(),
-            requestId: 'auth-' + Date.now()
-          }, { email })
-          
-          return null
-        }
-
-        const isValid = await compare(password, user.password)
-
-        if (!isValid) {
-          // Track failed attempt for both email and IP
-          await trackFailedLogin(email)
-          await trackFailedLogin(`ip:${ip}`)
-          
-          logSecurityEvent('LOGIN_FAILED_INVALID_PASSWORD', {
-            ip: ip as string,
-            userAgent: userAgent as string,
-            timestamp: Date.now(),
-            requestId: 'auth-' + Date.now()
-          }, { email, userId: user.id })
-          
-          return null
-        }
-
-        // Successful login - clear failed attempts
-        await clearFailedLoginAttempts(email)
-        await clearFailedLoginAttempts(`ip:${ip}`)
-        
-        logSecurityEvent('LOGIN_SUCCESS', {
-          ip: ip as string,
-          userAgent: userAgent as string,
-          timestamp: Date.now(),
-          requestId: 'auth-' + Date.now()
-        }, { email, userId: user.id, role: user.role })
-
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role,
         }
       }
     })

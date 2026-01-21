@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
-import { checkApiRateLimit } from '@/lib/rateLimit'
+import { checkApiRateLimit, checkLoginRateLimit } from '@/lib/rateLimit'
+import { createSecureCSP, generateNonce } from '@/lib/csp'
+import { withCORS } from '@/lib/cors'
+import { addSecurityHeaders, logSecurityEvent } from '@/lib/securityHeaders'
 import { 
   getClientIP, 
   validateRequestSize, 
   validateOrigin, 
-  addSecurityHeaders, 
-  logSecurityEvent,
   createSecurityContext,
   isBot,
   detectSQLInjection,
@@ -16,38 +17,52 @@ import {
 export async function middleware(req: NextRequest) {
   const response = NextResponse.next()
   
-  // Add security headers to all responses
+  // Generate nonce for CSP
+  const nonce = generateNonce()
+  
+  // Add all security headers including CSP
   addSecurityHeaders(response)
+  response.headers.set('Content-Security-Policy', createSecureCSP(nonce))
+  
+  // Apply CORS for API routes
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    const allowedOrigins = ['https://sales-form-chi.vercel.app', 'http://localhost:3000']
+    const origin = req.headers.get('origin')
+    if (origin && allowedOrigins.includes(origin)) {
+      response.headers.set('Access-Control-Allow-Origin', origin)
+      response.headers.set('Access-Control-Allow-Credentials', 'true')
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    }
+  }
   
   const securityContext = createSecurityContext(req)
   
   // Validate request size
   if (!validateRequestSize(req)) {
-    logSecurityEvent('REQUEST_TOO_LARGE', securityContext)
+    logSecurityEvent('REQUEST_TOO_LARGE', req)
     return new NextResponse('Request too large', { status: 413 })
   }
   
-  // Validate origin for non-GET requests (more permissive for different browsers)
+  // Enhanced origin validation for non-GET requests
   if (req.method !== 'GET' && !validateOrigin(req)) {
-    // Log but don't block in most cases - different browsers/networks need flexibility
     const origin = req.headers.get('origin')
     const host = req.headers.get('host')
     const referer = req.headers.get('referer')
     
-    // Only block if it looks clearly malicious
+    // Block clearly malicious origins
     const isMalicious = origin && (
       !origin.includes(host || '') && 
       !origin.includes('localhost') &&
       !origin.includes('127.0.0.1') &&
-      origin.includes('evil') // Basic heuristic
+      (origin.includes('evil') || origin.includes('malicious'))
     )
     
     if (isMalicious) {
-      logSecurityEvent('BLOCKED_MALICIOUS_ORIGIN', securityContext, { origin, host, referer })
+      logSecurityEvent('BLOCKED_MALICIOUS_ORIGIN', req, { origin, host, referer })
       return new NextResponse('Invalid origin', { status: 403 })
     } else {
-      // Just log for monitoring
-      logSecurityEvent('ORIGIN_WARNING', securityContext, { origin, host, referer })
+      logSecurityEvent('ORIGIN_WARNING', req, { origin, host, referer })
     }
   }
   
@@ -58,7 +73,7 @@ export async function middleware(req: NextRequest) {
       // Allow bots from localhost in development
       console.log('Allowing bot from localhost in development mode')
     } else {
-      logSecurityEvent('BOT_API_ACCESS', securityContext)
+      logSecurityEvent('BOT_API_ACCESS', req)
       return new NextResponse('Bot access denied', { status: 403 })
     }
   }
@@ -68,7 +83,7 @@ export async function middleware(req: NextRequest) {
     const rateLimitResult = await checkApiRateLimit(securityContext.ip)
     
     if (rateLimitResult.blocked) {
-      logSecurityEvent('API_RATE_LIMIT_EXCEEDED', securityContext)
+      logSecurityEvent('API_RATE_LIMIT_EXCEEDED', req)
       return new NextResponse(
         JSON.stringify({ error: 'Rate limit exceeded', retryAfter: rateLimitResult.reset }),
         { 
@@ -92,7 +107,7 @@ export async function middleware(req: NextRequest) {
   
   for (const [key, value] of params) {
     if (detectSQLInjection(value) || detectXSS(value)) {
-      logSecurityEvent('POTENTIAL_ATTACK_DETECTED', securityContext, { 
+      logSecurityEvent('POTENTIAL_ATTACK_DETECTED', req, { 
         type: 'query_param', 
         key, 
         value: value.substring(0, 100) 

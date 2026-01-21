@@ -1,31 +1,70 @@
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
 
-// Initialize Redis for rate limiting (use Upstash Redis for Vercel)
-let redis: Redis | undefined
-let ratelimit: Ratelimit | undefined
+// Rate limiting configurations
+interface RateLimitConfig {
+  requests: number
+  window: string
+  blockDuration?: string
+}
 
-// Only initialize Redis if we have credentials
+const RATE_LIMIT_CONFIGS = {
+  login: { requests: 5, window: '15 m', blockDuration: '15 m' },
+  signup: { requests: 3, window: '1 h', blockDuration: '1 h' },
+  passwordReset: { requests: 3, window: '1 h', blockDuration: '1 h' },
+  api: { requests: 100, window: '1 h' },
+  adminActions: { requests: 10, window: '1 h', blockDuration: '1 h' }
+} as const
+
+// Parse time window strings into milliseconds
+function parseTimeWindow(window: string): number {
+  const match = window.match(/(\d+)\s*(m|h|d)/)
+  if (!match) return 3600000
+  
+  const value = parseInt(match[1])
+  const unit = match[2]
+  
+  switch (unit) {
+    case 'm': return value * 60 * 1000
+    case 'h': return value * 60 * 60 * 1000
+    case 'd': return value * 24 * 60 * 60 * 1000
+    default: return 3600000
+  }
+}
+
+// Initialize Redis for production rate limiting
+let redis: Redis | undefined
+let rateLimiters: Record<string, Ratelimit> = {}
+
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
   redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
   })
 
-  // Rate limiting configurations
-  ratelimit = new Ratelimit({
-    redis: redis,
-    limiter: Ratelimit.slidingWindow(10, '1 h'), // 10 requests per hour for login attempts
-    analytics: true,
+  Object.keys(RATE_LIMIT_CONFIGS).forEach((key) => {
+    const config = RATE_LIMIT_CONFIGS[key as keyof typeof RATE_LIMIT_CONFIGS]
+    rateLimiters[key] = new Ratelimit({
+      redis: redis!,
+      limiter: Ratelimit.slidingWindow(config.requests, config.window as any),
+      analytics: true,
+      prefix: `ratelimit_${key}`,
+    })
   })
 }
 
-// In-memory fallback for development (not recommended for production)
-const memoryStore = new Map<string, { count: number; resetTime: number }>()
+// Memory store fallback for development
+const memoryStore = new Map<string, { count: number; resetTime: number; blockedUntil?: number }>()
 
-// Clear cache for development
 if (process.env.NODE_ENV === 'development') {
-  memoryStore.clear()
+  setInterval(() => {
+    const now = Date.now()
+    for (const [key, value] of Array.from(memoryStore.entries())) {
+      if (value.resetTime < now && (!value.blockedUntil || value.blockedUntil < now)) {
+        memoryStore.delete(key)
+      }
+    }
+  }, 60000)
 }
 
 export interface RateLimitResult {
@@ -35,134 +74,70 @@ export interface RateLimitResult {
   blocked: boolean
 }
 
-export async function checkRateLimit(identifier: string, limit = 10, window = 3600000): Promise<RateLimitResult> {
+export type RateLimitType = keyof typeof RATE_LIMIT_CONFIGS
+
+export async function checkRateLimit(
+  identifier: string, 
+  type: RateLimitType = 'api'
+): Promise<RateLimitResult> {
   try {
-    if (ratelimit) {
-      // Use Redis-based rate limiting
-      const { success, remaining, reset } = await ratelimit.limit(identifier)
-      return {
-        success,
-        remaining,
-        reset: reset,
-        blocked: !success
-      }
+    const rateLimiter = rateLimiters[type]
+    
+    if (rateLimiter) {
+      const { success, remaining, reset } = await rateLimiter.limit(identifier)
+      return { success, remaining, reset, blocked: !success }
     } else {
-      // Fallback to memory-based rate limiting (development only)
-      console.warn('Redis not configured, using memory-based rate limiting (not suitable for production)')
+      console.warn('Redis not configured, using memory-based rate limiting')
+      
+      const config = RATE_LIMIT_CONFIGS[type]
+      const windowMs = parseTimeWindow(config.window)
+      const limit = config.requests
       
       const now = Date.now()
-      const key = identifier
+      const key = `${type}:${identifier}`
       const stored = memoryStore.get(key)
       
+      if (stored?.blockedUntil && now < stored.blockedUntil) {
+        return { success: false, remaining: 0, reset: stored.blockedUntil, blocked: true }
+      }
+      
       if (!stored || now > stored.resetTime) {
-        // Reset window
-        memoryStore.set(key, { count: 1, resetTime: now + window })
-        return {
-          success: true,
-          remaining: limit - 1,
-          reset: now + window,
-          blocked: false
-        }
+        memoryStore.set(key, { count: 1, resetTime: now + windowMs })
+        return { success: true, remaining: limit - 1, reset: now + windowMs, blocked: false }
       } else if (stored.count >= limit) {
-        // Rate limit exceeded
-        return {
-          success: false,
-          remaining: 0,
-          reset: stored.resetTime,
-          blocked: true
+        const blockDuration = (config as any).blockDuration ? parseTimeWindow((config as any).blockDuration) : 0
+        if (blockDuration > 0) {
+          stored.blockedUntil = now + blockDuration
         }
+        return { success: false, remaining: 0, reset: stored.resetTime, blocked: true }
       } else {
-        // Increment counter
         stored.count++
         memoryStore.set(key, stored)
-        return {
-          success: true,
-          remaining: limit - stored.count,
-          reset: stored.resetTime,
-          blocked: false
-        }
+        return { success: true, remaining: limit - stored.count, reset: stored.resetTime, blocked: false }
       }
     }
   } catch (error) {
-    console.error('Rate limiting error:', error)
-    // On error, allow the request (fail open)
-    return {
-      success: true,
-      remaining: limit - 1,
-      reset: Date.now() + window,
-      blocked: false
-    }
+    console.error('Rate limit check failed:', error)
+    return { success: true, remaining: 999, reset: Date.now() + 3600000, blocked: false }
   }
 }
 
 export async function checkLoginRateLimit(ip: string): Promise<RateLimitResult> {
-  return checkRateLimit(`login:${ip}`, 50, 3600000) // 50 attempts per hour per IP (increased for dev)
+  return checkRateLimit(ip, 'login')
 }
 
 export async function checkApiRateLimit(ip: string): Promise<RateLimitResult> {
-  return checkRateLimit(`api:${ip}`, 1000, 3600000) // 1000 API calls per hour per IP (increased for dev)
+  return checkRateLimit(ip, 'api')
 }
 
 export async function checkSMSRateLimit(userId: string): Promise<RateLimitResult> {
-  return checkRateLimit(`sms:${userId}`, 50, 86400000) // 50 SMS per day per user
+  return checkRateLimit(userId, 'adminActions')
 }
 
-// Track failed login attempts with exponential backoff
-export async function trackFailedLogin(identifier: string): Promise<void> {
-  try {
-    if (redis) {
-      const key = `failed_login:${identifier}`
-      const attempts = await redis.incr(key)
-      
-      // Set expiration - exponential backoff
-      const expiration = Math.min(300 * Math.pow(2, attempts - 1), 86400) // Max 24 hours
-      await redis.expire(key, expiration)
-    } else {
-      // Memory fallback
-      const key = `failed_login:${identifier}`
-      const stored = memoryStore.get(key) || { count: 0, resetTime: Date.now() }
-      stored.count++
-      
-      const expiration = Math.min(300 * Math.pow(2, stored.count - 1), 86400) * 1000
-      stored.resetTime = Date.now() + expiration
-      memoryStore.set(key, stored)
-    }
-  } catch (error) {
-    console.error('Failed to track failed login:', error)
-  }
+export async function checkPasswordResetRateLimit(ip: string): Promise<RateLimitResult> {
+  return checkRateLimit(ip, 'passwordReset')
 }
 
-export async function getFailedLoginAttempts(identifier: string): Promise<number> {
-  try {
-    if (redis) {
-      const key = `failed_login:${identifier}`
-      const attempts = await redis.get(key)
-      return typeof attempts === 'number' ? attempts : 0
-    } else {
-      // Memory fallback
-      const key = `failed_login:${identifier}`
-      const stored = memoryStore.get(key)
-      if (stored && Date.now() < stored.resetTime) {
-        return stored.count
-      }
-      return 0
-    }
-  } catch (error) {
-    console.error('Failed to get failed login attempts:', error)
-    return 0
-  }
-}
-
-export async function clearFailedLoginAttempts(identifier: string): Promise<void> {
-  try {
-    if (redis) {
-      const key = `failed_login:${identifier}`
-      await redis.del(key)
-    } else {
-      const key = `failed_login:${identifier}`
-      memoryStore.delete(key)
-    }
-  } catch (error) {
-    console.error('Failed to clear failed login attempts:', error)
-  }
+export async function checkSignupRateLimit(ip: string): Promise<RateLimitResult> {
+  return checkRateLimit(ip, 'signup')
 }

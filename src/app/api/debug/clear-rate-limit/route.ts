@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { clearFailedLoginAttempts } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,17 +8,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Identifier required' }, { status: 400 })
     }
 
-    // Clear failed attempts for the identifier
-    await clearFailedLoginAttempts(identifier)
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: `Rate limit cleared for ${identifier}` 
+    return NextResponse.json({
+      message: 'Rate limit clearing is now handled automatically by Redis-based system',
+      deprecated: true,
+      identifier,
+      timestamp: new Date().toISOString()
     })
   } catch (error) {
-    return NextResponse.json({ 
-      error: 'Failed to clear rate limit',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    console.error('Debug clear rate limit error:', error)
+    return NextResponse.json(
+      { error: 'Failed to clear rate limit' },
+      { status: 500 }
+    )
   }
 }
