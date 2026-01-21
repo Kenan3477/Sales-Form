@@ -50,7 +50,7 @@ export default function LeadWorkflow() {
 
   // Load stats on mount
   useEffect(() => {
-    if (session?.user?.role === 'AGENT') {
+    if (session?.user?.role === 'AGENT' || session?.user?.role === 'ADMIN') {
       loadStats()
     }
   }, [session])
@@ -181,8 +181,8 @@ export default function LeadWorkflow() {
     setSuccess('Copied to clipboard!')
   }
 
-  if (session?.user?.role !== 'AGENT') {
-    return <div className="p-6 text-center text-red-600">Access denied. Agents only.</div>
+  if (session?.user?.role !== 'AGENT' && session?.user?.role !== 'ADMIN') {
+    return <div className="p-6 text-center text-red-600">Access denied. Agents and Admins only.</div>
   }
 
   return (

@@ -10,9 +10,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Only agents can get their next lead
-    if (session.user.role !== 'AGENT') {
-      return NextResponse.json({ error: 'Only agents can access lead workflow' }, { status: 403 })
+    // Only agents and admins can get their next lead
+    if (session.user.role !== 'AGENT' && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Only agents and admins can access lead workflow' }, { status: 403 })
     }
 
     const url = new URL(request.url)

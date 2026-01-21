@@ -7,7 +7,7 @@ import { LeadStatus } from '@prisma/client'
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'AGENT') {
+    if (!session?.user || (session.user.role !== 'AGENT' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

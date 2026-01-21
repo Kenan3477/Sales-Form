@@ -147,7 +147,7 @@ export default function DashboardPage() {
               <div className="bg-gray-50 px-5 py-3">
                 <div className="text-sm">
                   <Link
-                    href="/leads/workflow"
+                    href="/leads"
                     className="font-medium text-primary-700 hover:text-primary-900"
                   >
                     Start working leads
