@@ -110,6 +110,8 @@ async function handleBulkPDFDownload(request: NextRequest) {
         // For single documents, use professional A4 single-page layout
         const singleDocumentCSS = `
           <style>
+            /* Professional A4 PDF Layout - Enhanced Version */
+            
             /* Reset and base styles */
             * {
               margin: 0;
@@ -117,177 +119,307 @@ async function handleBulkPDFDownload(request: NextRequest) {
               box-sizing: border-box;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
             
-            /* A4 page constraints */
+            /* A4 page setup */
             @page {
               size: A4 !important;
               margin: 0 !important;
-              orphans: 1;
-              widows: 1;
             }
             
-            /* A4 sheet container */
+            /* Document container */
             html, body {
               width: 210mm !important;
               height: 297mm !important;
               margin: 0 !important;
               padding: 0 !important;
-              font-family: Arial, Helvetica, sans-serif !important;
-              font-size: 12pt !important;
-              line-height: 1.3 !important;
+              font-family: 'Segoe UI', Arial, Helvetica, sans-serif !important;
               background: white !important;
               overflow: hidden !important;
             }
             
-            /* Main content container */
+            /* Main content wrapper */
             body {
+              padding: 15mm !important;
               display: flex !important;
               flex-direction: column !important;
-              padding: 12mm !important;
-              width: 210mm !important;
-              height: 297mm !important;
-              transform-origin: top left !important;
+              gap: 10pt !important;
             }
             
-            /* Auto-fit scaling calculation */
+            /* Content container */
             .document-content {
-              width: 186mm !important; /* 210mm - 24mm padding */
-              max-height: 273mm !important; /* 297mm - 24mm padding */
-              overflow: hidden !important;
-              flex: 1 !important;
+              width: 180mm !important;
+              max-height: 267mm !important;
               display: flex !important;
               flex-direction: column !important;
+              gap: 12pt !important;
             }
             
-            /* Absolute page break prevention */
-            * {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-              page-break-before: avoid !important;
-              page-break-after: avoid !important;
-              break-before: avoid !important;
-              break-after: avoid !important;
+            /* Flash Team Header */
+            .flash-team-header, [style*="background"] h1:first-child {
+              background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%) !important;
+              color: white !important;
+              padding: 16pt !important;
+              border-radius: 8pt !important;
+              text-align: center !important;
+              margin-bottom: 16pt !important;
+              box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
             }
             
-            /* Typography scaling */
-            h1 {
-              font-size: 16pt !important;
-              line-height: 1.2 !important;
-              margin: 0 0 6pt 0 !important;
+            .flash-team-header h1, [style*="background"] h1 {
+              color: white !important;
+              font-size: 20pt !important;
               font-weight: bold !important;
+              margin: 0 !important;
+              text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
             }
             
+            /* Document title */
+            h1:not(.flash-team-header h1) {
+              font-size: 18pt !important;
+              font-weight: bold !important;
+              color: #1e40af !important;
+              text-align: center !important;
+              margin-bottom: 16pt !important;
+              padding-bottom: 8pt !important;
+              border-bottom: 2px solid #e5e7eb !important;
+            }
+            
+            /* Section headers */
             h2 {
               font-size: 14pt !important;
-              line-height: 1.2 !important;
-              margin: 0 0 4pt 0 !important;
               font-weight: bold !important;
-              padding: 4pt !important;
+              color: #374151 !important;
+              margin: 12pt 0 8pt 0 !important;
+              padding: 8pt 12pt !important;
+              background: #f8fafc !important;
+              border-left: 4pt solid #2563eb !important;
+              border-radius: 4pt !important;
             }
             
-            h3, h4 {
+            h3 {
               font-size: 12pt !important;
-              line-height: 1.2 !important;
-              margin: 0 0 3pt 0 !important;
-              font-weight: bold !important;
+              font-weight: 600 !important;
+              color: #1e40af !important;
+              margin: 8pt 0 6pt 0 !important;
             }
             
-            p {
+            /* Body text */
+            p, div:not(.flash-team-header):not(.section):not(.two-column) {
               font-size: 10pt !important;
-              line-height: 1.2 !important;
-              margin: 0 0 3pt 0 !important;
+              line-height: 1.4 !important;
+              color: #374151 !important;
+              margin-bottom: 6pt !important;
             }
             
-            /* Table optimization */
+            /* Status badges */
+            .status-active, [style*="background"]:not(.flash-team-header) {
+              background: linear-gradient(135deg, #10b981, #059669) !important;
+              color: white !important;
+              padding: 6pt 12pt !important;
+              border-radius: 16pt !important;
+              font-weight: bold !important;
+              font-size: 10pt !important;
+              display: inline-block !important;
+              text-align: center !important;
+              box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+            }
+            
+            /* Two column layout */
+            .two-column {
+              display: grid !important;
+              grid-template-columns: 1fr 1fr !important;
+              gap: 16pt !important;
+              margin: 12pt 0 !important;
+            }
+            
+            .column {
+              background: #f9fafb !important;
+              padding: 12pt !important;
+              border-radius: 6pt !important;
+              border: 1px solid #e5e7eb !important;
+            }
+            
+            /* Tables */
             table {
               width: 100% !important;
               border-collapse: collapse !important;
-              margin: 2pt 0 !important;
-              font-size: 9pt !important;
+              margin: 8pt 0 !important;
+              background: white !important;
+              border-radius: 6pt !important;
+              overflow: hidden !important;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
             }
             
-            td, th {
-              padding: 2pt !important;
-              vertical-align: top !important;
-              border: inherit !important;
+            th {
+              background: #f3f4f6 !important;
+              font-weight: bold !important;
+              color: #374151 !important;
+              padding: 8pt 10pt !important;
               font-size: 9pt !important;
+              text-align: left !important;
+              border-bottom: 1px solid #d1d5db !important;
             }
             
-            /* List optimization */
+            td {
+              padding: 6pt 10pt !important;
+              font-size: 9pt !important;
+              color: #374151 !important;
+              border-bottom: 1px solid #f3f4f6 !important;
+            }
+            
+            tr:last-child td {
+              border-bottom: none !important;
+            }
+            
+            /* Lists */
             ul, ol {
-              margin: 0 0 3pt 12pt !important;
+              margin: 6pt 0 6pt 16pt !important;
               padding: 0 !important;
             }
             
             li {
               font-size: 9pt !important;
-              line-height: 1.2 !important;
-              margin: 0 0 1pt 0 !important;
+              line-height: 1.4 !important;
+              margin-bottom: 3pt !important;
+              color: #374151 !important;
             }
             
-            /* Section styling preservation */
-            .header, .section, div[style*="background"] {
-              background-color: inherit !important;
-              color: inherit !important;
-              margin: 2pt 0 !important;
-              padding: 3pt !important;
-              border-radius: inherit !important;
+            /* Plan benefits styling */
+            .plan-benefits, .benefits-list {
+              background: #f0f9ff !important;
+              padding: 10pt !important;
+              border-radius: 6pt !important;
+              border-left: 4pt solid #0ea5e9 !important;
+              margin: 8pt 0 !important;
             }
             
-            /* Image and logo handling */
+            .plan-benefits ul, .benefits-list ul {
+              list-style: none !important;
+              margin-left: 0 !important;
+            }
+            
+            .plan-benefits li, .benefits-list li {
+              position: relative !important;
+              padding-left: 16pt !important;
+            }
+            
+            .plan-benefits li:before, .benefits-list li:before {
+              content: "✓" !important;
+              position: absolute !important;
+              left: 0 !important;
+              color: #059669 !important;
+              font-weight: bold !important;
+              font-size: 10pt !important;
+            }
+            
+            /* Contact info section */
+            .contact-info {
+              display: grid !important;
+              grid-template-columns: repeat(3, 1fr) !important;
+              gap: 8pt !important;
+              margin-top: 12pt !important;
+              padding: 10pt !important;
+              background: #f9fafb !important;
+              border-radius: 6pt !important;
+              border-top: 2px solid #e5e7eb !important;
+            }
+            
+            .contact-item {
+              text-align: center !important;
+              padding: 6pt !important;
+              background: white !important;
+              border-radius: 4pt !important;
+              font-size: 8pt !important;
+            }
+            
+            .contact-item strong {
+              display: block !important;
+              color: #1e40af !important;
+              font-size: 9pt !important;
+              margin-bottom: 2pt !important;
+            }
+            
+            /* Price highlighting */
+            .price-highlight, [style*="color"][style*="font-weight"] {
+              background: #ecfdf5 !important;
+              color: #047857 !important;
+              font-weight: bold !important;
+              padding: 8pt 12pt !important;
+              border-radius: 6pt !important;
+              border: 2px solid #10b981 !important;
+              text-align: center !important;
+              font-size: 12pt !important;
+              margin: 6pt 0 !important;
+            }
+            
+            /* Auto-fit scaling for overflow content */
+            .scale-content {
+              transform-origin: top left !important;
+              width: 180mm !important;
+            }
+            
+            /* Images */
             img {
               max-width: 100% !important;
               height: auto !important;
-              display: inline-block !important;
-              image-rendering: -webkit-optimize-contrast !important;
               image-rendering: crisp-edges !important;
             }
             
-            /* Footer positioning */
-            .footer, .guarantee {
-              margin-top: auto !important;
-              font-size: 8pt !important;
-              padding: 2pt !important;
+            /* Ensure professional spacing */
+            .section {
+              margin-bottom: 10pt !important;
+              page-break-inside: avoid !important;
             }
             
-            /* Responsive scaling for content overflow */
+            /* Footer styling */
+            .footer {
+              margin-top: auto !important;
+              padding-top: 8pt !important;
+              border-top: 1px solid #e5e7eb !important;
+              font-size: 8pt !important;
+              color: #6b7280 !important;
+            }
+            
             @media print {
-              .auto-scale {
-                transform-origin: top left !important;
+              body { 
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
               }
             }
           </style>
-          
+        `;
+
+        // Add auto-fit scaling script
+        const autoFitScript = `
           <script>
-            // Auto-fit scaling function
-            function fitToPage() {
-              const content = document.querySelector('.document-content') || document.body;
-              const maxHeight = 273; // mm (297 - 24mm padding)
+            function autoFitContent() {
+              console.log('🔍 Auto-fit scaling: Starting...');
               
-              // Reset any previous scaling
-              content.style.transform = '';
+              const content = document.body;
+              const maxHeight = 267; // mm (A4 height - padding)
               
-              // Measure actual content height
-              const rect = content.getBoundingClientRect();
-              const heightMM = (rect.height * 25.4) / 96; // Convert px to mm (assuming 96 DPI)
+              // Measure content height in mm
+              const heightPx = content.scrollHeight;
+              const heightMM = heightPx * 0.264583; // Convert px to mm
               
               if (heightMM > maxHeight) {
-                const scale = maxHeight / heightMM;
-                content.style.transform = 'scale(' + scale + ')';
-                console.log('Auto-scaled content by factor:', scale.toFixed(3));
+                const scale = (maxHeight / heightMM) * 0.95;
+                content.style.transform = \`scale(\${scale})\`;
+                content.style.transformOrigin = 'top left';
+                console.log(\`📐 Scaled to \${(scale * 100).toFixed(1)}%\`);
+              } else {
+                console.log('✅ Content fits naturally');
               }
             }
             
-            // Apply scaling when DOM is ready
             if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', fitToPage);
+              document.addEventListener('DOMContentLoaded', autoFitContent);
             } else {
-              fitToPage();
+              autoFitContent();
             }
-            
-            // Apply before print (browser print)
-            window.addEventListener('beforeprint', fitToPage);
           </script>
         `;
 
@@ -296,9 +428,9 @@ async function handleBulkPDFDownload(request: NextRequest) {
         
         // Add CSS and JS to head
         if (htmlWithWrapper.includes('</head>')) {
-          htmlWithWrapper = htmlWithWrapper.replace('</head>', `${singleDocumentCSS}</head>`);
+          htmlWithWrapper = htmlWithWrapper.replace('</head>', `${singleDocumentCSS}${autoFitScript}</head>`);
         } else {
-          htmlWithWrapper = `${singleDocumentCSS}${htmlWithWrapper}`;
+          htmlWithWrapper = `${singleDocumentCSS}${autoFitScript}${htmlWithWrapper}`;
         }
         
         // Wrap body content in document-content container if not already wrapped
