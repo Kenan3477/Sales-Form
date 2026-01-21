@@ -493,7 +493,9 @@ export default function AdminPaperworkPage() {
     try {
       // First, check if we should use chunking
       console.log('📊 Checking document set size...');
-      const infoResponse = await fetch('/api/paperwork/bulk-pdf-info');
+      const infoResponse = await fetch('/api/paperwork/bulk-pdf-info', {
+        credentials: 'include'
+      });
       
       if (infoResponse.ok) {
         const info = await infoResponse.json();
@@ -517,7 +519,10 @@ export default function AdminPaperworkPage() {
                 setError(`Downloading chunk ${i} of ${info.totalChunks}...`);
                 
                 const chunkResponse = await fetch(
-                  `/api/paperwork/bulk-pdf-chunked?chunk=${i}&chunks=${info.totalChunks}&size=${info.recommendedChunkSize}`
+                  `/api/paperwork/bulk-pdf-chunked?chunk=${i}&chunks=${info.totalChunks}&size=${info.recommendedChunkSize}`,
+                  {
+                    credentials: 'include'
+                  }
                 );
                 
                 if (!chunkResponse.ok) {
@@ -567,6 +572,7 @@ export default function AdminPaperworkPage() {
       console.log('📄 Attempting single PDF download...');
       const response = await fetch('/api/paperwork/bulk-pdf', {
         method: 'GET',
+        credentials: 'include'
       });
 
       if (!response.ok) {
