@@ -107,7 +107,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, inject CSS to force everything into one page container with all content
+        // For single documents, use smart scaling to preserve template while fitting on one page
         const singleDocumentCSS = `
           <style>
             @media print {
@@ -117,144 +117,54 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 box-sizing: border-box !important;
               }
               
-              html {
-                height: 297mm !important;
-                width: 210mm !important;
+              html, body {
                 margin: 0 !important;
                 padding: 0 !important;
-                overflow: hidden !important;
-              }
-              
-              body {
-                height: 290mm !important;
-                width: 204mm !important;
-                margin: 3mm !important;
-                padding: 0 !important;
-                overflow: hidden !important;
-                font-size: 9px !important;
-                line-height: 1.1 !important;
+                width: 100% !important;
+                height: 100% !important;
                 font-family: Arial, sans-serif !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                display: flex !important;
-                flex-direction: column !important;
               }
               
-              /* Force all content into a single container */
-              body > * {
+              body {
+                transform: scale(0.75) !important;
+                transform-origin: top left !important;
+                width: 133.33% !important;
+                height: 133.33% !important;
+              }
+              
+              /* Preserve all original styling but ensure visibility */
+              .header, .section, div, p, h1, h2, h3, table, ul, ol, li {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                flex-shrink: 1 !important;
-              }
-              
-              /* Compact header with logo preservation */
-              .header, h1, [style*="Flash Team"], img, [style*="logo"] {
-                margin: 0 !important;
-                padding: 2px !important;
-                font-size: 12px !important;
-                background-color: inherit !important;
-                color: inherit !important;
-                flex-shrink: 0 !important;
-              }
-              
-              /* Show images/logos */
-              img {
-                max-height: 20px !important;
-                width: auto !important;
-                display: inline-block !important;
-              }
-              
-              /* Compact sections */
-              .section, div[style*="background"] {
-                margin: 1px 0 !important;
-                padding: 2px !important;
-                background-color: inherit !important;
-                color: inherit !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                flex-shrink: 1 !important;
-              }
-              
-              /* Optimize table layout */
-              table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-                margin: 1px 0 !important;
-                font-size: 8px !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                flex-shrink: 1 !important;
-              }
-              
-              td, th {
-                padding: 1px !important;
-                vertical-align: top !important;
-                border: inherit !important;
-                font-size: 8px !important;
-              }
-              
-              /* Compact text elements */
-              p {
-                margin: 0 !important;
-                padding: 0 !important;
-                line-height: 1.0 !important;
-                flex-shrink: 1 !important;
-              }
-              
-              h2 {
-                font-size: 10px !important;
-                margin: 1px 0 !important;
-                padding: 1px !important;
-                background-color: inherit !important;
-                color: inherit !important;
-                font-weight: bold !important;
-                flex-shrink: 0 !important;
-              }
-              
-              h3, h4 {
-                font-size: 9px !important;
-                margin: 1px 0 !important;
-                font-weight: bold !important;
-                flex-shrink: 0 !important;
-              }
-              
-              /* Compact lists */
-              ul, ol {
-                margin: 0 !important;
-                padding: 0 0 0 8px !important;
-                flex-shrink: 1 !important;
-              }
-              
-              li {
-                margin: 0 !important;
-                padding: 0 !important;
-                line-height: 1.0 !important;
-                font-size: 8px !important;
-              }
-              
-              /* Ensure footer and all sections are visible */
-              .footer, [style*="footer"], .guarantee, [style*="guarantee"], .important {
-                background-color: inherit !important;
-                color: inherit !important;
-                padding: 1px !important;
-                margin: 1px 0 !important;
-                font-size: 7px !important;
-                flex-shrink: 1 !important;
-                display: block !important;
                 visibility: visible !important;
-              }
-              
-              /* Force all content to be visible */
-              * {
-                max-height: none !important;
-                overflow: visible !important;
                 display: inherit !important;
+              }
+              
+              /* Ensure images and logos are visible */
+              img {
                 visibility: visible !important;
+                display: inline-block !important;
+                max-width: 100% !important;
+                height: auto !important;
+              }
+              
+              /* Preserve background colors and styling */
+              [style*="background"], [style*="color"] {
+                background-color: inherit !important;
+                color: inherit !important;
+              }
+              
+              /* Make sure all sections are shown */
+              .guarantee, .footer, .important, [class*="guarantee"], [class*="footer"] {
+                visibility: visible !important;
+                display: block !important;
               }
               
               @page {
                 size: A4 !important;
-                margin: 0 !important;
+                margin: 0.5cm !important;
               }
               
               /* Absolutely prevent page breaks */
@@ -273,7 +183,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
           ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
           : `${singleDocumentCSS}${fileContent}`;
 
-        console.log(`🎨 Added complete content preservation CSS with flexbox layout`);
+        console.log(`🎨 Added smart scaling CSS to preserve template structure`);
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -284,14 +194,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
           }
         });
 
-        // Generate PDF with no margins - CSS handles all spacing
+        // Generate PDF with small margins for the scaled content
         const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithCSS, {
           format: 'A4',
           margin: {
-            top: '0',
-            right: '0',
-            bottom: '0',
-            left: '0',
+            top: '0.5cm',
+            right: '0.5cm',
+            bottom: '0.5cm',
+            left: '0.5cm',
           },
           displayHeaderFooter: false,
           printBackground: true,
