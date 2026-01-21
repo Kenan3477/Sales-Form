@@ -519,14 +519,14 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                           </span>
                           <div className="flex-1">
                             <div className="text-sm font-medium text-gray-700">
-                              Generate HTML Document
+                              📄 Generate PDF Document
                             </div>
                             <div className="text-xs text-gray-500">
-                              For system storage only - {template.description}
+                              Creates professional PDF for storage and download - {template.description}
                             </div>
                           </div>
                           <div className="text-xs text-gray-600 font-medium">
-                            HTML
+                            PDF
                           </div>
                         </div>
                       </button>

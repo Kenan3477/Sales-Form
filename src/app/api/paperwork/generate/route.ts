@@ -174,14 +174,14 @@ export async function POST(request: NextRequest) {
       containsCSS: template.htmlContent.includes('linear-gradient')
     });
     
-    let result;
+    let htmlContent;
     
     if (template.htmlContent && template.htmlContent.length > 100) {
       console.log('📄 Using database template content');
       console.log('📄 First 500 chars of template:', template.htmlContent.substring(0, 500));
       
       // Use database template with comprehensive variable replacement
-      result = template.htmlContent.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+      htmlContent = template.htmlContent.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
         const cleanKey = key.trim();
         let value = (templateData as any)[cleanKey];
         
@@ -198,33 +198,51 @@ export async function POST(request: NextRequest) {
         return result;
       });
       
-      console.log('📄 Variables replaced. Sample output:', result.substring(0, 500));
+      console.log('📄 Variables replaced. Sample output:', htmlContent.substring(0, 500));
     } else {
       console.log('📄 Falling back to Enhanced Template Service');
       // Fallback to Enhanced Template Service
-      result = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
+      htmlContent = await enhancedTemplateService.generateDocument('welcome-letter', templateData);
     }
     
-    console.log('✅ Document generated, length:', result.length);
-    console.log('📄 Document preview (first 500 chars):', result.substring(0, 500));
-    console.log('📄 Document contains Flash Team:', result.includes('Flash Team'));
-    console.log('📄 Document contains CSS:', result.includes('linear-gradient'));
+    console.log('✅ HTML content generated, length:', htmlContent.length);
+
+    // Now generate PDF from the HTML content using Playwright
+    console.log('📄 Converting HTML to PDF...');
+    
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    
+    // Set the HTML content
+    await page.setContent(htmlContent, { waitUntil: 'networkidle' });
+    
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+      printBackground: true
+    });
+    
+    await browser.close();
+    
+    console.log('✅ PDF generated, size:', pdfBuffer.length, 'bytes');
 
     // Generate filename 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `welcome-letter-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.html`;
+    const fileName = `${validatedData.templateType}-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.pdf`;
     
     // Note: On Vercel/serverless platforms, we can't write to the local file system
     // So we store the document content directly in the database metadata instead
-    console.log(`📄 Storing document in database (serverless environment)`);
+    console.log(`📄 Storing PDF document in database (serverless environment)`);
 
     // Create GeneratedDocument record in database
     console.log('📝 Creating GeneratedDocument record with data:', {
       saleId: sale.id,
       templateId: template.id,
       filename: fileName,
-      fileSize: Buffer.byteLength(result, 'utf8'),
-      mimeType: 'text/html'
+      fileSize: pdfBuffer.length,
+      mimeType: 'application/pdf'
     });
 
     const generatedDocument = await prisma.generatedDocument.create({
@@ -233,14 +251,14 @@ export async function POST(request: NextRequest) {
         templateId: template.id,
         filename: fileName,
         filePath: `virtual://generated-documents/${fileName}`, // Virtual path since we can't write to filesystem
-        fileSize: Buffer.byteLength(result, 'utf8'),
-        mimeType: 'text/html',
+        fileSize: pdfBuffer.length,
+        mimeType: 'application/pdf',
         metadata: {
           templateType: validatedData.templateType,
           customerName: templateData.customerName,
-          generationMethod: 'enhanced-template-service',
-          // Store the actual content in metadata since we can't write to filesystem
-          documentContent: result
+          generationMethod: 'enhanced-template-service-pdf',
+          // Store the actual PDF content in metadata since we can't write to filesystem
+          documentContent: pdfBuffer.toString('base64')
         }
       }
     });
@@ -263,7 +281,7 @@ export async function POST(request: NextRequest) {
       success: true,
       document: {
         id: generatedDocument.id,
-        content: result,
+        content: `PDF generated successfully (${pdfBuffer.length} bytes)`,
         fileName: fileName,
         templateName: template.name,
         saleId: sale.id,
