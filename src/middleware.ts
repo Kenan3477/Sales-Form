@@ -91,22 +91,38 @@ export async function middleware(req: NextRequest) {
     }
   }
   
-  // Rate limiting for API endpoints
+  // Rate limiting for API endpoints (skip for admin document deletion)
   if (req.nextUrl.pathname.startsWith('/api/')) {
-    const rateLimitResult = await checkApiRateLimit(securityContext.ip)
+    // Check if this is an admin performing document deletion
+    const token = await getToken({ 
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
+    });
     
-    if (rateLimitResult.blocked) {
-      logSecurityEvent('API_RATE_LIMIT_EXCEEDED', req)
-      return new NextResponse(
-        JSON.stringify({ error: 'Rate limit exceeded', retryAfter: rateLimitResult.reset }),
-        { 
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString()
+    const isAdminDocumentDeletion = token?.role === 'ADMIN' && 
+                                   req.nextUrl.pathname === '/api/paperwork/delete-document';
+    
+    let rateLimitResult;
+    if (!isAdminDocumentDeletion) {
+      rateLimitResult = await checkApiRateLimit(securityContext.ip)
+      
+      if (rateLimitResult.blocked) {
+        logSecurityEvent('API_RATE_LIMIT_EXCEEDED', req)
+        return new NextResponse(
+          JSON.stringify({ error: 'Rate limit exceeded', retryAfter: rateLimitResult.reset }),
+          { 
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString()
+            }
           }
-        }
-      )
+        )
+      }
+    } else {
+      // For admin document deletion, create a mock rate limit result
+      rateLimitResult = { success: true, remaining: 999, reset: Date.now() + 3600000, blocked: false };
     }
     
     // Add rate limit headers
