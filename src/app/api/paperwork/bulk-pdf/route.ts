@@ -107,7 +107,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, inject CSS to prevent page breaks
+        // For single documents, inject aggressive CSS to force single page
         const singleDocumentCSS = `
           <style>
             @media print {
@@ -119,8 +119,12 @@ async function handleBulkPDFDownload(request: NextRequest) {
               body {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                max-height: 100vh !important;
-                overflow: hidden !important;
+                font-size: 9px !important;
+                line-height: 1.1 !important;
+                margin: 0 !important;
+                padding: 3px !important;
+                transform: scale(0.85) !important;
+                transform-origin: top left !important;
               }
               
               .document-wrapper, .document-container, .content {
@@ -128,9 +132,28 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 break-inside: avoid !important;
               }
               
+              table {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                font-size: 8px !important;
+                border-collapse: collapse !important;
+              }
+              
+              .section, div, p {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin: 0px 0 !important;
+                padding: 1px 0 !important;
+              }
+              
+              h1, h2, h3 {
+                font-size: 10px !important;
+                margin: 2px 0 !important;
+              }
+              
               @page {
                 size: A4;
-                margin: 0.5cm;
+                margin: 0.2cm;
               }
             }
           </style>
@@ -141,7 +164,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
           ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
           : `${singleDocumentCSS}${fileContent}`;
 
-        console.log(`🎨 Added page-break prevention CSS to single document`);
+        console.log(`🎨 Added aggressive single-page CSS with scaling to document`);
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -152,14 +175,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
           }
         });
 
-        // Generate PDF directly from enhanced HTML
+        // Generate PDF with minimal margins and scaling
         const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithCSS, {
           format: 'A4',
           margin: {
-            top: '0.5cm',
-            right: '0.5cm',
-            bottom: '0.5cm',
-            left: '0.5cm',
+            top: '0.2cm',
+            right: '0.2cm',
+            bottom: '0.2cm',
+            left: '0.2cm',
           },
           displayHeaderFooter: false,
           printBackground: true,
