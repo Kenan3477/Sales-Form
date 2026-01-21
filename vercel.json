@@ -4,6 +4,14 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
+  "functions": {
+    "src/app/api/paperwork/bulk-pdf-chunked/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/paperwork/bulk-pdf-info/route.ts": {
+      "maxDuration": 10
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

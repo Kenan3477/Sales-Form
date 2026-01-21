@@ -3,6 +3,16 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PDFGenerationOptions, DEFAULT_PDF_OPTIONS, DocumentGenerationError } from './types';
 
+// For Vercel serverless environments
+let chromium: any;
+if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+  try {
+    chromium = require('@sparticuz/chromium');
+  } catch (error) {
+    console.warn('⚠️ @sparticuz/chromium not available, falling back to system Chrome');
+  }
+}
+
 /**
  * PDF generation service using Puppeteer
  */
@@ -31,11 +41,36 @@ export class PDFService {
     this.isInitializing = true;
 
     try {
-      // Determine Chrome executable path based on platform
+      // Determine Chrome executable path based on environment
       let executablePath: string | undefined;
+      let args: string[] = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--max-old-space-size=4096',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-ipc-flooding-protection',
+      ];
       
-      if (process.platform === 'darwin') {
-        // macOS
+      // Vercel serverless environment
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        if (chromium) {
+          executablePath = await chromium.executablePath();
+          args = chromium.args.concat(args);
+          console.log('🚀 Using @sparticuz/chromium for Vercel serverless');
+        } else {
+          console.warn('⚠️ Running in production without @sparticuz/chromium');
+        }
+      } else if (process.platform === 'darwin') {
+        // macOS - development
         executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
       } else if (process.platform === 'linux') {
         // Linux - common paths
@@ -61,22 +96,7 @@ export class PDFService {
       const launchOptions = {
         headless: true,
         executablePath,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--max-old-space-size=4096', // Increase memory limit
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-ipc-flooding-protection',
-        ],
+        args,
         timeout: 30000,
       };
       
@@ -187,17 +207,15 @@ export class PDFService {
       }
 
       console.log('📝 Setting page content...');
-      // Set content with more lenient wait conditions for large documents
+      // Set content and wait for styles to load properly
       await page.setContent(htmlContent, {
         waitUntil: htmlContent.length > 10 * 1024 * 1024 ? 'domcontentloaded' : 'networkidle0',
         timeout: fullOptions.timeout,
       });
 
-      // Give extra time for large documents to stabilize
-      if (htmlContent.length > 10 * 1024 * 1024) {
-        console.log('⏳ Allowing extra time for large document to stabilize...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
+      // Give extra time for CSS to fully load and apply
+      console.log('⏳ Allowing time for CSS to fully render...');
+      await new Promise(resolve => setTimeout(resolve, htmlContent.length > 10 * 1024 * 1024 ? 3000 : 1500));
 
       console.log('🎨 Generating PDF buffer...');
       // Generate PDF buffer

@@ -38,11 +38,33 @@ async function handleBulkPDFDownload(request: NextRequest) {
     const { prisma } = await import('@/lib/prisma');
     console.log(`📋 Starting PDF bulk download for admin: ${session.user.email}`);
 
-    // Get all generated documents
+    // Handle POST request with specific document IDs
+    let documentIds: string[] = [];
+    if (request.method === 'POST') {
+      try {
+        const body = await request.json();
+        documentIds = body.documentIds || [];
+        console.log(`📋 POST request: filtering by ${documentIds.length} specific document IDs`);
+      } catch (error) {
+        console.error('Failed to parse POST body:', error);
+        return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      }
+    }
+
+    // Build where clause based on whether we're filtering specific documents
+    const whereClause: any = {
+      isDeleted: false,
+    };
+
+    if (documentIds.length > 0) {
+      whereClause.id = {
+        in: documentIds
+      };
+    }
+
+    // Get documents based on filter
     const documents = await prisma.generatedDocument.findMany({
-      where: {
-        isDeleted: false,
-      },
+      where: whereClause,
       include: {
         template: true,
         sale: true,
@@ -54,19 +76,89 @@ async function handleBulkPDFDownload(request: NextRequest) {
       ],
     });
 
-    console.log(`📋 Found ${documents.length} documents to process`);
+    const documentType = documentIds.length > 0 ? 'selected' : 'all';
+    console.log(`📋 Found ${documents.length} ${documentType} documents to process`);
 
     if (documents.length === 0) {
       return NextResponse.json({ 
-        error: 'No documents available for download' 
+        error: documentIds.length > 0 ? 'No matching documents found' : 'No documents available for download' 
       }, { status: 404 });
     }
 
     let processedCount = 0;
     let skippedFiles = 0;
 
-    // Create combined HTML with improved PDF-ready styling
-    let combinedHtml = `<!DOCTYPE html>
+    // For single document, use original HTML directly without any modification
+    if (documents.length === 1) {
+      const doc = documents[0];
+      
+      try {
+        let fileContent: string | undefined;
+        
+        if (doc.metadata && typeof doc.metadata === 'object' && 'documentContent' in doc.metadata) {
+          fileContent = doc.metadata.documentContent as string;
+        }
+        
+        if (!fileContent || typeof fileContent !== 'string') {
+          console.error(`❌ Document content not found for ${doc.filename}`);
+          return NextResponse.json({ error: 'Document content not found' }, { status: 500 });
+        }
+
+        console.log(`🔍 Single document: ${doc.filename}, using original HTML directly`);
+
+        // Update download count
+        await prisma.generatedDocument.update({
+          where: { id: doc.id },
+          data: { 
+            downloadCount: { increment: 1 },
+            lastDownloadAt: new Date()
+          }
+        });
+
+        // Generate PDF directly from original HTML
+        const pdfBuffer = await PDFService.generatePDFBuffer(fileContent, {
+          format: 'A4',
+          margin: {
+            top: '1.5cm',
+            right: '1.5cm',
+            bottom: '1.5cm',
+            left: '1.5cm',
+          },
+          displayHeaderFooter: false,
+          printBackground: true,
+          timeout: 300000,
+        });
+
+        console.log(`✅ Single PDF generated successfully! Size: ${Math.round(pdfBuffer.length/1024)}KB`);
+
+        // Generate filename
+        const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
+        const pdfFileName = `${doc.sale.customerFirstName}_${doc.sale.customerLastName}_${timestamp}.pdf`;
+        
+        return new Response(new Uint8Array(pdfBuffer), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${pdfFileName}"`,
+            'Content-Length': pdfBuffer.length.toString(),
+            'Cache-Control': 'no-cache',
+          },
+        });
+      } catch (error) {
+        console.error('❌ Single PDF generation failed:', error);
+        return NextResponse.json({
+          error: 'PDF generation failed',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 });
+      }
+    }
+
+    // For multiple documents, continue with existing logic
+    let allDocumentStyles = '';
+    let allDocumentContent = '';
+
+    // Start building the master HTML document for multiple documents
+    let combinedHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -75,144 +167,44 @@ async function handleBulkPDFDownload(request: NextRequest) {
     <style>
         @page {
             size: A4;
-            margin: 2cm;
-        }
-        
-        * {
-            box-sizing: border-box;
+            margin: 1.5cm;
         }
         
         body {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
             background: white;
-            line-height: 1.2;
-            color: #333;
-            font-size: 11px;
         }
         
         .customer-document {
-            page-break-before: always;
-            page-break-inside: avoid;
             page-break-after: always;
             width: 100%;
-            padding: 0;
-            margin: 0;
-            min-height: 95vh;
-            max-height: 95vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            background: white;
+            box-sizing: border-box;
         }
         
-        .customer-document:first-child {
-            page-break-before: auto;
-        }
-        
-        .document-content {
-            flex: 1;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-size: 11px;
-            line-height: 1.2;
-            max-height: 95vh;
-        }
-        
-        /* Ensure proper content flow and page breaks */
-        .document-content h1,
-        .document-content h2,
-        .document-content h3 {
-            page-break-after: avoid;
-            page-break-inside: avoid;
-            margin-top: 20px;
-            margin-bottom: 15px;
-        }
-        
-        .document-content p,
-        .document-content div {
-            page-break-inside: avoid;
-            margin-bottom: 10px;
-            orphans: 3;
-            widows: 3;
-        }
-        
-        .document-content table {
-            page-break-inside: auto;
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        
-        .document-content tr {
-            page-break-inside: avoid;
+        .customer-document:last-child {
             page-break-after: auto;
         }
         
-        .document-content thead {
-            display: table-header-group;
-        }
-        
-        .document-content tbody tr {
-            page-break-inside: avoid;
-        }
-        
-        /* Reset any conflicting styles from embedded documents */
-        .document-content * {
-            max-width: 100% !important;
-        }
-        
-        .document-content img {
-            max-width: 100% !important;
-            height: auto !important;
-            page-break-inside: avoid;
-        }
-        
-        /* Ensure content doesn't overflow */
-        .document-content {
-            overflow-wrap: break-word;
-            word-wrap: break-word;
-        }
-        
-        /* Print-specific optimizations */
-        @media print {
-            body {
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            .customer-document {
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            .customer-header {
-                background-color: #f8f9fa !important;
-                border: 2px solid #007bff !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            
-            .document-content {
-                width: 100% !important;
-            }
-        }
-        
-        /* Hide any screen-only elements */
-        .no-print {
-            display: none !important;
+        .customer-document .document-container {
+            max-width: none !important;
+            margin: 0 auto !important;
+            background: white !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+            page-break-inside: avoid !important;
         }
     </style>
+    <!-- All document styles will be inserted here -->
 </head>
 <body>`;
 
-    // Process each document
+    // Process each document and collect content with page breaks
     for (const doc of documents) {
       try {
-        // Get document content from metadata
+        // Get complete document content from metadata
         let fileContent: string | undefined;
         
         if (doc.metadata && typeof doc.metadata === 'object' && 'documentContent' in doc.metadata) {
@@ -225,41 +217,48 @@ async function handleBulkPDFDownload(request: NextRequest) {
           continue;
         }
 
-        // Extract and clean document content
-        let documentHtml = fileContent;
+        console.log(`🔍 Processing document: ${doc.filename}, Content length: ${fileContent.length}`);
+
+        // Extract the document body content and styles separately
         let documentStyles = '';
-        let documentBody = '';
+        let documentBodyContent = '';
         
-        // Extract styles from the head section
-        const styleMatch = documentHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-        if (styleMatch) {
-          documentStyles = styleMatch.join('\n');
+        // Extract styles from the original document
+        const styleMatches = fileContent.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || [];
+        if (styleMatches.length > 0) {
+          documentStyles = styleMatches
+            .map(styleBlock => styleBlock.replace(/<\/?style[^>]*>/gi, ''))
+            .join('\n');
+          
+          // Add to collected styles if not already present
+          if (documentStyles && !allDocumentStyles.includes(documentStyles)) {
+            allDocumentStyles += '\n' + documentStyles;
+          }
         }
         
-        // Extract content from body, but if no body tags exist, use everything after head
-        const bodyMatch = documentHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        // Extract body content
+        const bodyMatch = fileContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
-          documentBody = bodyMatch[1].trim();
+          documentBodyContent = bodyMatch[1];
         } else {
-          // Fallback: remove head and html wrapper tags but keep all content
-          documentBody = documentHtml
+          // Fallback: take everything after head
+          documentBodyContent = fileContent
             .replace(/<!DOCTYPE[^>]*>/gi, '')
             .replace(/<html[^>]*>/gi, '')
             .replace(/<\/html>/gi, '')
             .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+            .replace(/<body[^>]*>/gi, '')
+            .replace(/<\/body>/gi, '')
             .trim();
         }
 
-        // Create customer page with proper structure for PDF
-        combinedHtml += `
+        // Add this customer's content with proper page break wrapper
+        allDocumentContent += `
     <div class="customer-document">
-        ${documentStyles ? `<style scoped>${documentStyles.replace(/<\/?style[^>]*>/gi, '')}</style>` : ''}
-        <div class="document-content">
-            ${documentBody}
-        </div>
+        ${documentBodyContent}
     </div>
 `;
-
+        
         // Update download count
         await prisma.generatedDocument.update({
           where: { id: doc.id },
@@ -274,12 +273,16 @@ async function handleBulkPDFDownload(request: NextRequest) {
       } catch (error) {
         console.error(`❌ Error processing file ${doc.filename}:`, error);
         skippedFiles++;
-        // Continue with other files
       }
     }
 
-    // Close HTML
-    combinedHtml += `
+    // Complete the HTML document
+    combinedHTML = combinedHTML.replace(
+      '<!-- All document styles will be inserted here -->',
+      `<style>${allDocumentStyles}</style>`
+    );
+    
+    combinedHTML += allDocumentContent + `
 </body>
 </html>`;
 
@@ -290,17 +293,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`✅ Combined HTML document ready for PDF generation (${Math.round(combinedHtml.length/1024)}KB)`);
-    console.log(`📄 Starting PDF generation for ${processedCount} customers...`);
+    console.log(`📊 Processing complete: ${processedCount} documents, ${skippedFiles} skipped`);
+    console.log(`📋 Starting PDF generation for combined content...`);
 
-    // For very large documents, we need to optimize the PDF generation
-    if (combinedHtml.length > 10 * 1024 * 1024) { // > 10MB
-      console.log('⚠️ Large document detected, applying optimizations...');
-    }
+    console.log(`📄 Total combined HTML size: ${Math.round(combinedHTML.length/1024)}KB`);
 
-    // Generate PDF using PDFService with optimized settings for large documents
+    // Generate PDF using PDFService with optimized settings
     try {
-      const pdfBuffer = await PDFService.generatePDFBuffer(combinedHtml, {
+      const pdfBuffer = await PDFService.generatePDFBuffer(combinedHTML, {
         format: 'A4',
         margin: {
           top: '1.5cm',
@@ -315,9 +315,11 @@ async function handleBulkPDFDownload(request: NextRequest) {
 
       console.log(`✅ PDF generated successfully! Size: ${Math.round(pdfBuffer.length/1024)}KB`);
 
-      // Generate filename
+      // Generate filename based on document type
       const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
-      const pdfFileName = `all_customer_documents_${processedCount}_customers_${timestamp}.pdf`;
+      const filePrefix = documentIds.length > 0 ? 'selected_documents' : 'all_customer_documents';
+      const countSuffix = documentIds.length > 0 ? `${documentIds.length}_documents` : `${processedCount}_customers`;
+      const pdfFileName = `${filePrefix}_${countSuffix}_${timestamp}.pdf`;
       
       return new Response(new Uint8Array(pdfBuffer), {
         status: 200,
@@ -333,40 +335,26 @@ async function handleBulkPDFDownload(request: NextRequest) {
       console.error('Error details:', {
         message: pdfError instanceof Error ? pdfError.message : String(pdfError),
         stack: pdfError instanceof Error ? pdfError.stack?.split('\n').slice(0, 5).join('\n') : undefined,
-        htmlSize: Math.round(combinedHtml.length/1024) + 'KB',
+        htmlSize: Math.round(combinedHTML.length/1024) + 'KB',
         processedCount,
         errorType: pdfError instanceof Error ? pdfError.constructor.name : typeof pdfError,
       });
-      
-      // If PDF generation fails due to size, offer alternative
-      if (pdfError instanceof Error && (
-        pdfError.message.includes('timeout') || 
-        pdfError.message.includes('memory') ||
-        pdfError.message.includes('Protocol error')
-      )) {
-        console.log('💡 Suggesting chunked download due to size limitations...');
-        return NextResponse.json({
-          error: 'Document set too large for single PDF generation',
-          suggestion: 'Try downloading in smaller batches or use the HTML bulk download option',
-          details: `Processing ${processedCount} customers (${Math.round(combinedHtml.length/1024)}KB) exceeded system limits`,
-          processedCount,
-          alternativeUrl: '/api/paperwork/bulk-download'
-        }, { status: 413 }); // 413 Payload Too Large
-      }
-      
+
+      // Return more helpful error message
       return NextResponse.json({
         error: 'PDF generation failed',
-        details: pdfError instanceof Error ? pdfError.message : String(pdfError),
-        processedCount,
-        htmlSize: Math.round(combinedHtml.length/1024) + 'KB'
+        message: pdfError instanceof Error ? pdfError.message : 'Unknown error occurred during PDF generation',
+        suggestion: 'The document set may be too large. Try downloading fewer documents or use the chunked download option.',
+        htmlSizeKB: Math.round(combinedHTML.length/1024),
+        documentCount: processedCount,
       }, { status: 500 });
     }
 
   } catch (error) {
     console.error('❌ Bulk PDF download error:', error);
-    return NextResponse.json({ 
-      error: 'Failed to create PDF document archive',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'An unexpected error occurred'
     }, { status: 500 });
   }
 }

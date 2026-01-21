@@ -18,6 +18,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.22.0",
+    "@sparticuz/chromium": "^143.0.4",
     "@types/crypto-js": "^4.2.2",
     "@types/handlebars": "^4.0.40",
     "@types/jszip": "^3.4.0",
