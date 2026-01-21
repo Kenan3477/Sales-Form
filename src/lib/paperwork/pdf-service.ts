@@ -31,8 +31,36 @@ export class PDFService {
     this.isInitializing = true;
 
     try {
-      this.browser = await puppeteer.launch({
+      // Determine Chrome executable path based on platform
+      let executablePath: string | undefined;
+      
+      if (process.platform === 'darwin') {
+        // macOS
+        executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+      } else if (process.platform === 'linux') {
+        // Linux - common paths
+        const commonPaths = [
+          '/usr/bin/google-chrome',
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          '/snap/bin/chromium',
+        ];
+        for (const path of commonPaths) {
+          try {
+            await import('fs/promises').then(fs => fs.access(path));
+            executablePath = path;
+            break;
+          } catch (e) {
+            // Continue checking
+          }
+        }
+      }
+      
+      console.log('🚀 Launching Puppeteer with executable:', executablePath || 'bundled');
+      
+      const launchOptions = {
         headless: true,
+        executablePath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -41,9 +69,23 @@ export class PDFService {
           '--no-first-run',
           '--no-zygote',
           '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--max-old-space-size=4096', // Increase memory limit
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-ipc-flooding-protection',
         ],
         timeout: 30000,
+      };
+      
+      console.log('🔧 Puppeteer launch options:', {
+        ...launchOptions,
+        args: launchOptions.args.length + ' arguments',
       });
+      
+      this.browser = await puppeteer.launch(launchOptions);
 
       // Handle browser disconnect
       this.browser.on('disconnected', () => {
@@ -127,17 +169,37 @@ export class PDFService {
   ): Promise<Buffer> {
     const fullOptions = { ...DEFAULT_PDF_OPTIONS, ...options };
     let page: Page | null = null;
+    
+    console.log(`🔄 Starting PDF generation for ${Math.round(htmlContent.length/1024)}KB HTML content`);
 
     try {
       const browser = await this.getBrowser();
       page = await browser.newPage();
+      
+      // Optimize for large documents
+      await page.setViewport({ width: 1920, height: 1080 });
+      
+      // For very large documents, disable some features that can cause memory issues
+      if (htmlContent.length > 5 * 1024 * 1024) { // > 5MB
+        console.log('📊 Large document detected, applying memory optimizations...');
+        await page.setJavaScriptEnabled(false);
+        await page.setCacheEnabled(false);
+      }
 
-      // Set content and wait for network to be idle
+      console.log('📝 Setting page content...');
+      // Set content with more lenient wait conditions for large documents
       await page.setContent(htmlContent, {
-        waitUntil: 'networkidle0',
+        waitUntil: htmlContent.length > 10 * 1024 * 1024 ? 'domcontentloaded' : 'networkidle0',
         timeout: fullOptions.timeout,
       });
 
+      // Give extra time for large documents to stabilize
+      if (htmlContent.length > 10 * 1024 * 1024) {
+        console.log('⏳ Allowing extra time for large document to stabilize...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      console.log('🎨 Generating PDF buffer...');
       // Generate PDF buffer
       const pdfBuffer = await page.pdf({
         format: fullOptions.format,
