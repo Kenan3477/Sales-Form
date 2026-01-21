@@ -196,11 +196,11 @@ export class PDFService {
       const browser = await this.getBrowser();
       page = await browser.newPage();
       
-      // Optimize for high-quality PDF output
+      // Set viewport for template matching
       await page.setViewport({ 
         width: 794,  // A4 width at 96 DPI (210mm)
         height: 1123, // A4 height at 96 DPI (297mm)
-        deviceScaleFactor: 2, // Higher DPI for crisp text
+        deviceScaleFactor: 1, // Normal scale for exact template matching
       });
       
       // For very large documents, disable some features that can cause memory issues
@@ -210,31 +210,19 @@ export class PDFService {
         await page.setCacheEnabled(false);
       }
 
-      console.log('📝 Setting page content...');
+      console.log('📝 Setting page content for template matching...');
       // Set content and wait for styles to load properly
       await page.setContent(htmlContent, {
         waitUntil: htmlContent.length > 10 * 1024 * 1024 ? 'domcontentloaded' : 'networkidle0',
         timeout: fullOptions.timeout,
       });
 
-      // Give extra time for CSS to fully load, auto-scaling, and fonts
-      console.log('⏳ Allowing time for CSS, auto-scaling, and font loading...');
-      await new Promise(resolve => setTimeout(resolve, htmlContent.length > 10 * 1024 * 1024 ? 4000 : 2500));
+      // Reduced wait time - let template flow naturally
+      console.log('⏳ Allowing time for template styling...');
+      await new Promise(resolve => setTimeout(resolve, htmlContent.length > 10 * 1024 * 1024 ? 2000 : 1000));
 
-      // Execute auto-fit scaling if present
-      try {
-        await page.evaluate(() => {
-          if (typeof (window as any).fitToPage === 'function') {
-            (window as any).fitToPage();
-          }
-        });
-        console.log('✅ Auto-fit scaling applied');
-      } catch (error) {
-        console.log('ℹ️ No auto-fit scaling function found, proceeding without it');
-      }
-
-      console.log('🎨 Generating high-quality A4 PDF buffer...');
-      // Generate PDF buffer with enhanced settings
+      console.log('🎨 Generating template-matched PDF buffer...');
+      // Generate PDF buffer with template-friendly settings
       const pdfBuffer = await page.pdf({
         format: fullOptions.format,
         margin: fullOptions.margin,
@@ -244,7 +232,6 @@ export class PDFService {
         printBackground: fullOptions.printBackground,
         timeout: fullOptions.timeout,
         preferCSSPageSize: true,
-        tagged: true,
         scale: 1,
         landscape: false,
       });
