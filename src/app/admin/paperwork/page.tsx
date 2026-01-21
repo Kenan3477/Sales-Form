@@ -486,6 +486,133 @@ export default function AdminPaperworkPage() {
     }
   };
 
+  const handleBulkPDFDownload = async () => {
+    setBulkDownloading(true);
+    setError(null);
+
+    try {
+      // First, check if we should use chunking
+      console.log('📊 Checking document set size...');
+      const infoResponse = await fetch('/api/paperwork/bulk-pdf-info');
+      
+      if (infoResponse.ok) {
+        const info = await infoResponse.json();
+        console.log('📋 Document info:', info);
+        
+        if (info.shouldUseChunking) {
+          // Ask user if they want to download in chunks or try single PDF
+          const useChunking = window.confirm(
+            `Large document set detected (${info.totalDocuments} documents, ${info.estimatedTotalSize}).\n\n` +
+            `${info.reasoning}\n\n` +
+            `Click OK to download in ${info.totalChunks} smaller PDFs (recommended), or Cancel to try single large PDF.`
+          );
+          
+          if (useChunking) {
+            setError(`Starting chunked download: ${info.totalChunks} PDFs will be downloaded...`);
+            
+            // Download each chunk sequentially
+            for (let i = 1; i <= info.totalChunks; i++) {
+              try {
+                console.log(`📄 Downloading chunk ${i}/${info.totalChunks}...`);
+                setError(`Downloading chunk ${i} of ${info.totalChunks}...`);
+                
+                const chunkResponse = await fetch(
+                  `/api/paperwork/bulk-pdf-chunked?chunk=${i}&chunks=${info.totalChunks}&size=${info.recommendedChunkSize}`
+                );
+                
+                if (!chunkResponse.ok) {
+                  const errorData = await chunkResponse.json().catch(() => ({}));
+                  throw new Error(`Chunk ${i} failed: ${errorData.error || 'Unknown error'}`);
+                }
+                
+                // Download the chunk
+                const blob = await chunkResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const contentDisposition = chunkResponse.headers.get('content-disposition');
+                const filename = contentDisposition
+                  ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+                  : `customer_documents_chunk_${i}_of_${info.totalChunks}.pdf`;
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                // Small delay between chunks to prevent overwhelming
+                if (i < info.totalChunks) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+              } catch (chunkError) {
+                console.error(`Chunk ${i} error:`, chunkError);
+                setError(`Failed on chunk ${i}: ${chunkError instanceof Error ? chunkError.message : 'Unknown error'}`);
+                break;
+              }
+            }
+            
+            setError(null);
+            setSelectedDocuments([]);
+            await fetchData();
+            setBulkDownloading(false);
+            return;
+          }
+          // If user chose Cancel, continue with single PDF attempt
+        }
+      }
+
+      // Original single PDF download logic
+      console.log('📄 Attempting single PDF download...');
+      const response = await fetch('/api/paperwork/bulk-pdf', {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // If it failed due to size, suggest chunking
+        if (response.status === 413 || (errorData.error && errorData.error.includes('too large'))) {
+          setError(
+            `PDF generation failed: ${errorData.error || 'Document set too large'}. ` +
+            `Suggestion: ${errorData.suggestion || 'Try using smaller batches.'}`
+          );
+          setBulkDownloading(false);
+          return;
+        }
+        
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+
+      // Download the PDF file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Get filename from response header or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `customer_documents_${new Date().toISOString().slice(0, 10)}.pdf`;
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setSelectedDocuments([]);
+      await fetchData();
+    } catch (err) {
+      console.error('PDF download error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate PDF');
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
+
   const handleDeleteDocument = async (documentId: string) => {
     try {
       setError(null);
@@ -1147,6 +1274,24 @@ export default function AdminPaperworkPage() {
                               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                             >
                               � Combine All {documentFilter !== 'all' ? `(${documentFilter})` : ''}
+                            </button>
+
+                            <button
+                              onClick={handleBulkPDFDownload}
+                              disabled={bulkDownloading}
+                              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                            >
+                              {bulkDownloading ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Generating PDF...
+                                </>
+                              ) : (
+                                <>📄 Download All as PDF</>
+                              )}
                             </button>
                           </div>
                         )}

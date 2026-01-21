@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     <style>
         @page {
             size: A4;
-            margin: 0;
+            margin: 2cm 2cm 2cm 2cm;
         }
         
         * {
@@ -149,58 +149,107 @@ export async function POST(request: NextRequest) {
             padding: 0;
             font-family: Arial, sans-serif;
             background: white;
+            line-height: 1.6;
         }
         
-        .customer-page {
-            page-break-after: always;
-            page-break-inside: avoid;
-            width: 100vw;
-            min-height: 100vh;
-            padding: 1cm;
-            display: flex;
-            flex-direction: column;
+        .customer-document {
+            page-break-before: always;
+            page-break-inside: auto;
+            width: 100%;
+            padding: 0;
+            margin: 0;
         }
         
-        .customer-page:last-child {
-            page-break-after: auto;
+        .customer-document:first-child {
+            page-break-before: auto;
         }
         
         .customer-header {
             background-color: #f8f9fa;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            margin-bottom: 15px;
-            border-radius: 4px;
+            padding: 15px;
+            border: 2px solid #007bff;
+            margin-bottom: 20px;
+            border-radius: 8px;
             text-align: center;
-            flex-shrink: 0;
+            page-break-inside: avoid;
         }
         
         .customer-name {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             color: #333;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
         
         .customer-info {
             font-size: 12px;
             color: #666;
+            line-height: 1.4;
         }
         
         .document-content {
-            flex: 1;
             width: 100%;
-            overflow: hidden;
+            margin: 0;
+            padding: 0;
         }
         
-        /* Reset any conflicting styles from embedded documents */
-        .document-content * {
-            max-width: 100% !important;
+        /* Ensure proper content flow and page breaks */
+        .document-content > * {
+            page-break-inside: avoid;
+            margin-bottom: 1em;
         }
         
-        .document-content img {
-            max-width: 100% !important;
-            height: auto !important;
+        .document-content h1,
+        .document-content h2,
+        .document-content h3,
+        .document-content h4,
+        .document-content h5,
+        .document-content h6 {
+            page-break-after: avoid;
+            page-break-inside: avoid;
+        }
+        
+        .document-content table {
+            page-break-inside: auto;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .document-content tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        .document-content thead {
+            display: table-header-group;
+        }
+        
+        .document-content tfoot {
+            display: table-footer-group;
+        }
+        
+        /* Override any embedded styles that could cause layout issues */
+        .document-content h1 { font-size: 24px !important; margin: 20px 0 15px 0 !important; }
+        .document-content h2 { font-size: 20px !important; margin: 18px 0 12px 0 !important; }
+        .document-content h3 { font-size: 18px !important; margin: 16px 0 10px 0 !important; }
+        .document-content p { font-size: 14px !important; margin: 0 0 10px 0 !important; }
+        
+        /* Ensure tables display properly */
+        .document-content table { 
+          width: 100% !important; 
+          margin-bottom: 20px !important; 
+          border-collapse: collapse !important; 
+        }
+        .document-content td, .document-content th { 
+          padding: 8px !important; 
+          border: 1px solid #ddd !important; 
+          font-size: 12px !important; 
+        }
+        
+        /* Handle long text and prevent overflow */
+        .document-content {
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
         }
         
         /* Print-specific styles */
@@ -210,18 +259,21 @@ export async function POST(request: NextRequest) {
                 padding: 0 !important;
             }
             
-            .customer-page {
+            .customer-document {
                 width: 100% !important;
-                height: 100vh !important;
                 margin: 0 !important;
-                padding: 1cm !important;
+                padding: 0 !important;
             }
             
             .customer-header {
                 background-color: #f8f9fa !important;
-                border: 1px solid #dee2e6 !important;
+                border: 2px solid #007bff !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+            }
+            
+            .document-content {
+                width: 100% !important;
             }
         }
         
@@ -279,7 +331,7 @@ export async function POST(request: NextRequest) {
 
         // Create customer page with proper structure for printing
         combinedHtml += `
-    <div class="customer-page">
+    <div class="customer-document">
         ${documentStyles ? `<style scoped>${documentStyles.replace(/<\/?style[^>]*>/gi, '')}</style>` : ''}
         <div class="customer-header">
             <div class="customer-name">${doc.sale.customerFirstName} ${doc.sale.customerLastName}</div>
