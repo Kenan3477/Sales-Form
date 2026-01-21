@@ -315,6 +315,8 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
+        console.log(`🔍 Processing document: ${doc.filename}, Content length: ${fileContent.length}`);
+
         // Extract and clean document content
         let documentHtml = fileContent;
         let documentStyles = '';
@@ -324,12 +326,14 @@ export async function GET(request: NextRequest) {
         const styleMatch = documentHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
         if (styleMatch) {
           documentStyles = styleMatch.join('\n');
+          console.log(`📝 Found ${styleMatch.length} style blocks`);
         }
         
         // Extract content from body
         const bodyMatch = documentHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
           documentBody = bodyMatch[1].trim();
+          console.log(`📄 Extracted body content: ${documentBody.length} chars`);
         } else {
           documentBody = documentHtml
             .replace(/<!DOCTYPE[^>]*>/gi, '')
@@ -337,6 +341,7 @@ export async function GET(request: NextRequest) {
             .replace(/<\/html>/gi, '')
             .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
             .trim();
+          console.log(`📄 Fallback content extraction: ${documentBody.length} chars`);
         }
 
         // Create customer page
@@ -344,7 +349,7 @@ export async function GET(request: NextRequest) {
     <div class="customer-document">
         ${documentStyles ? `<style scoped>${documentStyles.replace(/<\/?style[^>]*>/gi, '')}</style>` : ''}
         <div class="document-content">
-            ${documentBody}
+            ${documentBody || '<p>No document content available</p>'}
         </div>
     </div>
 `;
@@ -372,6 +377,8 @@ export async function GET(request: NextRequest) {
 
     // Generate PDF
     try {
+      console.log(`🔧 Generating PDF for chunk ${chunk}...`);
+      
       const pdfBuffer = await PDFService.generatePDFBuffer(combinedHtml, {
         format: 'A4',
         margin: {
