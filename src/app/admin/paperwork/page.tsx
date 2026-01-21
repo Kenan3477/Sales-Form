@@ -486,6 +486,59 @@ export default function AdminPaperworkPage() {
     }
   };
 
+  const handleSelectedPDFDownload = async () => {
+    if (selectedDocuments.length === 0) {
+      setError('No documents selected');
+      return;
+    }
+
+    setBulkDownloading(true);
+    setError(null);
+
+    try {
+      console.log(`📄 Generating PDF for ${selectedDocuments.length} selected documents...`);
+      const response = await fetch('/api/paperwork/bulk-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ documentIds: selectedDocuments })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+
+      // Download the PDF file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Get filename from response header or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `selected_documents_${selectedDocuments.length}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setSelectedDocuments([]);
+      await fetchData();
+    } catch (err) {
+      console.error('Selected PDF download error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate PDF for selected documents');
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
+
   const handleBulkPDFDownload = async () => {
     setBulkDownloading(true);
     setError(null);
@@ -1270,7 +1323,25 @@ export default function AdminPaperworkPage() {
                                   Creating...
                                 </>
                               ) : (
-                                <>� Combine Selected ({selectedDocuments.length})</>
+                                <>🗂 Combine Selected ({selectedDocuments.length})</>
+                              )}
+                            </button>
+
+                            <button
+                              onClick={() => handleSelectedPDFDownload()}
+                              disabled={selectedDocuments.length === 0 || bulkDownloading}
+                              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                            >
+                              {bulkDownloading ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Generating PDF...
+                                </>
+                              ) : (
+                                <>📄 Download Selected as PDF ({selectedDocuments.length})</>
                               )}
                             </button>
                             
@@ -1279,7 +1350,7 @@ export default function AdminPaperworkPage() {
                               disabled={bulkDownloading}
                               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                             >
-                              � Combine All {documentFilter !== 'all' ? `(${documentFilter})` : ''}
+                              🗂 Combine All {documentFilter !== 'all' ? `(${documentFilter})` : ''}
                             </button>
 
                             <button
