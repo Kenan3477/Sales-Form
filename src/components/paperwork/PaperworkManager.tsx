@@ -71,8 +71,12 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
 
     try {
       const deletePromises = Array.from(selectedDocuments).map(documentId =>
-        fetch(`/api/paperwork/document/${documentId}`, {
-          method: 'DELETE'
+        fetch('/api/paperwork/delete-document', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ documentId })
         })
       )
 
@@ -107,8 +111,12 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
 
     try {
       const deletePromises = documents.map(doc =>
-        fetch(`/api/paperwork/document/${doc.id}`, {
-          method: 'DELETE'
+        fetch('/api/paperwork/delete-document', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ documentId: doc.id })
         })
       )
 
