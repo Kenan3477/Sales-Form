@@ -107,83 +107,209 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, use smart scaling to preserve template while fitting on one page
+        // For single documents, use professional A4 single-page layout
         const singleDocumentCSS = `
           <style>
+            /* Reset and base styles */
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            /* A4 page constraints */
+            @page {
+              size: A4 !important;
+              margin: 0 !important;
+              orphans: 1;
+              widows: 1;
+            }
+            
+            /* A4 sheet container */
+            html, body {
+              width: 210mm !important;
+              height: 297mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: Arial, Helvetica, sans-serif !important;
+              font-size: 12pt !important;
+              line-height: 1.3 !important;
+              background: white !important;
+              overflow: hidden !important;
+            }
+            
+            /* Main content container */
+            body {
+              display: flex !important;
+              flex-direction: column !important;
+              padding: 12mm !important;
+              width: 210mm !important;
+              height: 297mm !important;
+              transform-origin: top left !important;
+            }
+            
+            /* Auto-fit scaling calculation */
+            .document-content {
+              width: 186mm !important; /* 210mm - 24mm padding */
+              max-height: 273mm !important; /* 297mm - 24mm padding */
+              overflow: hidden !important;
+              flex: 1 !important;
+              display: flex !important;
+              flex-direction: column !important;
+            }
+            
+            /* Absolute page break prevention */
+            * {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              page-break-before: avoid !important;
+              page-break-after: avoid !important;
+              break-before: avoid !important;
+              break-after: avoid !important;
+            }
+            
+            /* Typography scaling */
+            h1 {
+              font-size: 16pt !important;
+              line-height: 1.2 !important;
+              margin: 0 0 6pt 0 !important;
+              font-weight: bold !important;
+            }
+            
+            h2 {
+              font-size: 14pt !important;
+              line-height: 1.2 !important;
+              margin: 0 0 4pt 0 !important;
+              font-weight: bold !important;
+              padding: 4pt !important;
+            }
+            
+            h3, h4 {
+              font-size: 12pt !important;
+              line-height: 1.2 !important;
+              margin: 0 0 3pt 0 !important;
+              font-weight: bold !important;
+            }
+            
+            p {
+              font-size: 10pt !important;
+              line-height: 1.2 !important;
+              margin: 0 0 3pt 0 !important;
+            }
+            
+            /* Table optimization */
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              margin: 2pt 0 !important;
+              font-size: 9pt !important;
+            }
+            
+            td, th {
+              padding: 2pt !important;
+              vertical-align: top !important;
+              border: inherit !important;
+              font-size: 9pt !important;
+            }
+            
+            /* List optimization */
+            ul, ol {
+              margin: 0 0 3pt 12pt !important;
+              padding: 0 !important;
+            }
+            
+            li {
+              font-size: 9pt !important;
+              line-height: 1.2 !important;
+              margin: 0 0 1pt 0 !important;
+            }
+            
+            /* Section styling preservation */
+            .header, .section, div[style*="background"] {
+              background-color: inherit !important;
+              color: inherit !important;
+              margin: 2pt 0 !important;
+              padding: 3pt !important;
+              border-radius: inherit !important;
+            }
+            
+            /* Image and logo handling */
+            img {
+              max-width: 100% !important;
+              height: auto !important;
+              display: inline-block !important;
+              image-rendering: -webkit-optimize-contrast !important;
+              image-rendering: crisp-edges !important;
+            }
+            
+            /* Footer positioning */
+            .footer, .guarantee {
+              margin-top: auto !important;
+              font-size: 8pt !important;
+              padding: 2pt !important;
+            }
+            
+            /* Responsive scaling for content overflow */
             @media print {
-              * {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                box-sizing: border-box !important;
-              }
-              
-              html, body {
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-                height: 100% !important;
-                font-family: Arial, sans-serif !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-              }
-              
-              body {
-                transform: scale(0.75) !important;
+              .auto-scale {
                 transform-origin: top left !important;
-                width: 133.33% !important;
-                height: 133.33% !important;
-              }
-              
-              /* Preserve all original styling but ensure visibility */
-              .header, .section, div, p, h1, h2, h3, table, ul, ol, li {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                visibility: visible !important;
-                display: inherit !important;
-              }
-              
-              /* Ensure images and logos are visible */
-              img {
-                visibility: visible !important;
-                display: inline-block !important;
-                max-width: 100% !important;
-                height: auto !important;
-              }
-              
-              /* Preserve background colors and styling */
-              [style*="background"], [style*="color"] {
-                background-color: inherit !important;
-                color: inherit !important;
-              }
-              
-              /* Make sure all sections are shown */
-              .guarantee, .footer, .important, [class*="guarantee"], [class*="footer"] {
-                visibility: visible !important;
-                display: block !important;
-              }
-              
-              @page {
-                size: A4 !important;
-                margin: 0.5cm !important;
-              }
-              
-              /* Absolutely prevent page breaks */
-              * {
-                page-break-after: avoid !important;
-                page-break-before: avoid !important;
-                break-after: avoid !important;
-                break-before: avoid !important;
               }
             }
           </style>
+          
+          <script>
+            // Auto-fit scaling function
+            function fitToPage() {
+              const content = document.querySelector('.document-content') || document.body;
+              const maxHeight = 273; // mm (297 - 24mm padding)
+              
+              // Reset any previous scaling
+              content.style.transform = '';
+              
+              // Measure actual content height
+              const rect = content.getBoundingClientRect();
+              const heightMM = (rect.height * 25.4) / 96; // Convert px to mm (assuming 96 DPI)
+              
+              if (heightMM > maxHeight) {
+                const scale = maxHeight / heightMM;
+                content.style.transform = 'scale(' + scale + ')';
+                console.log('Auto-scaled content by factor:', scale.toFixed(3));
+              }
+            }
+            
+            // Apply scaling when DOM is ready
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', fitToPage);
+            } else {
+              fitToPage();
+            }
+            
+            // Apply before print (browser print)
+            window.addEventListener('beforeprint', fitToPage);
+          </script>
         `;
 
-        // Inject CSS into HTML
-        const htmlWithCSS = fileContent.includes('</head>') 
-          ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
-          : `${singleDocumentCSS}${fileContent}`;
+        // Wrap content in A4 container and inject CSS/JS
+        let htmlWithWrapper = fileContent;
+        
+        // Add CSS and JS to head
+        if (htmlWithWrapper.includes('</head>')) {
+          htmlWithWrapper = htmlWithWrapper.replace('</head>', `${singleDocumentCSS}</head>`);
+        } else {
+          htmlWithWrapper = `${singleDocumentCSS}${htmlWithWrapper}`;
+        }
+        
+        // Wrap body content in document-content container if not already wrapped
+        if (!htmlWithWrapper.includes('document-content')) {
+          htmlWithWrapper = htmlWithWrapper.replace(
+            /<body[^>]*>/i,
+            '$&<div class="document-content">'
+          ).replace('</body>', '</div></body>');
+        }
 
-        console.log(`🎨 Added smart scaling CSS to preserve template structure`);
+        console.log(`🎨 Added professional A4 single-page layout with auto-fit scaling`);
 
         // Update download count
         await prisma.generatedDocument.update({
@@ -194,14 +320,14 @@ async function handleBulkPDFDownload(request: NextRequest) {
           }
         });
 
-        // Generate PDF with small margins for the scaled content
-        const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithCSS, {
+        // Generate PDF with optimal A4 single-page settings
+        const pdfBuffer = await PDFService.generatePDFBuffer(htmlWithWrapper, {
           format: 'A4',
           margin: {
-            top: '0.5cm',
-            right: '0.5cm',
-            bottom: '0.5cm',
-            left: '0.5cm',
+            top: '0',
+            right: '0',
+            bottom: '0',
+            left: '0',
           },
           displayHeaderFooter: false,
           printBackground: true,

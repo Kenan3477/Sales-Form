@@ -196,8 +196,12 @@ export class PDFService {
       const browser = await this.getBrowser();
       page = await browser.newPage();
       
-      // Optimize for large documents
-      await page.setViewport({ width: 1920, height: 1080 });
+      // Optimize for high-quality PDF output
+      await page.setViewport({ 
+        width: 794,  // A4 width at 96 DPI (210mm)
+        height: 1123, // A4 height at 96 DPI (297mm)
+        deviceScaleFactor: 2, // Higher DPI for crisp text
+      });
       
       // For very large documents, disable some features that can cause memory issues
       if (htmlContent.length > 5 * 1024 * 1024) { // > 5MB
@@ -213,12 +217,24 @@ export class PDFService {
         timeout: fullOptions.timeout,
       });
 
-      // Give extra time for CSS to fully load and apply
-      console.log('⏳ Allowing time for CSS to fully render...');
-      await new Promise(resolve => setTimeout(resolve, htmlContent.length > 10 * 1024 * 1024 ? 3000 : 1500));
+      // Give extra time for CSS to fully load, auto-scaling, and fonts
+      console.log('⏳ Allowing time for CSS, auto-scaling, and font loading...');
+      await new Promise(resolve => setTimeout(resolve, htmlContent.length > 10 * 1024 * 1024 ? 4000 : 2500));
 
-      console.log('🎨 Generating PDF buffer...');
-      // Generate PDF buffer
+      // Execute auto-fit scaling if present
+      try {
+        await page.evaluate(() => {
+          if (typeof (window as any).fitToPage === 'function') {
+            (window as any).fitToPage();
+          }
+        });
+        console.log('✅ Auto-fit scaling applied');
+      } catch (error) {
+        console.log('ℹ️ No auto-fit scaling function found, proceeding without it');
+      }
+
+      console.log('🎨 Generating high-quality A4 PDF buffer...');
+      // Generate PDF buffer with enhanced settings
       const pdfBuffer = await page.pdf({
         format: fullOptions.format,
         margin: fullOptions.margin,
@@ -227,6 +243,10 @@ export class PDFService {
         footerTemplate: fullOptions.footerTemplate || '',
         printBackground: fullOptions.printBackground,
         timeout: fullOptions.timeout,
+        preferCSSPageSize: true,
+        tagged: true,
+        scale: 1,
+        landscape: false,
       });
 
       return Buffer.from(pdfBuffer);
