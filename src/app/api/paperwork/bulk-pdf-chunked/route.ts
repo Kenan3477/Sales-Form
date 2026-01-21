@@ -6,6 +6,8 @@ import { PDFService } from '@/lib/paperwork/pdf-service';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🚀 PDF Chunked endpoint hit:', request.url);
+    
     // Rate limiting
     const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const rateLimitCheck = await checkApiRateLimit(clientIP);
@@ -18,12 +20,16 @@ export async function GET(request: NextRequest) {
 
     // Authentication
     const session = await getServerSession(authOptions);
+    console.log('🔐 Session check:', session ? `User: ${session.user?.email}` : 'No session');
+    
     if (!session?.user) {
+      console.log('❌ Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Only admin users can bulk download all customer documents
     if (session.user.role !== 'ADMIN') {
+      console.log(`❌ Access denied for role: ${session.user.role}`);
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -33,6 +39,7 @@ export async function GET(request: NextRequest) {
     const chunksParam = url.searchParams.get('chunks');
     const chunkSize = parseInt(url.searchParams.get('size') || '100');
     
+    console.log(`📊 Request params:`, { chunk: chunkParam, chunks: chunksParam, size: chunkSize });
     if (!chunkParam || !chunksParam) {
       return NextResponse.json({ 
         error: 'Missing chunk parameters. Use /api/paperwork/bulk-pdf-info to get chunk information.' 
@@ -55,25 +62,35 @@ export async function GET(request: NextRequest) {
     const offset = (chunk - 1) * chunkSize;
     const limit = chunkSize;
 
-    // Get documents for this chunk
-    const documents = await prisma.generatedDocument.findMany({
-      where: {
-        isDeleted: false,
-      },
-      include: {
-        template: true,
-        sale: true,
-      },
-      orderBy: [
-        { sale: { customerLastName: 'asc' } },
-        { sale: { customerFirstName: 'asc' } },
-        { generatedAt: 'desc' },
-      ],
-      skip: offset,
-      take: limit,
-    });
+    console.log(`📊 Database query params: offset=${offset}, limit=${limit}`);
 
-    console.log(`📋 Found ${documents.length} documents in chunk ${chunk}`);
+    // Get documents for this chunk
+    let documents;
+    try {
+      documents = await prisma.generatedDocument.findMany({
+        where: {
+          isDeleted: false,
+        },
+        include: {
+          template: true,
+          sale: true,
+        },
+        orderBy: [
+          { sale: { customerLastName: 'asc' } },
+          { sale: { customerFirstName: 'asc' } },
+          { generatedAt: 'desc' },
+        ],
+        skip: offset,
+        take: limit,
+      });
+      console.log(`📋 Found ${documents.length} documents in chunk ${chunk}`);
+    } catch (dbError) {
+      console.error('❌ Database query failed:', dbError);
+      return NextResponse.json({ 
+        error: 'Database query failed',
+        details: dbError instanceof Error ? dbError.message : String(dbError)
+      }, { status: 500 });
+    }
 
     if (documents.length === 0) {
       return NextResponse.json({ 

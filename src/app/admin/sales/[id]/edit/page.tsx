@@ -480,6 +480,7 @@ export default function EditSalePage() {
                         value={formData.boilerPriceSelected}
                         onChange={(e) => setFormData({...formData, boilerPriceSelected: parseFloat(e.target.value)})}
                         className="w-20 rounded-md border-gray-300 shadow-sm text-sm"
+                        onWheel={(e) => e.currentTarget.blur()}
                       />
                     </div>
                   )}
@@ -493,6 +494,7 @@ export default function EditSalePage() {
                     value={formData.totalPlanCost}
                     onChange={(e) => setFormData({...formData, totalPlanCost: parseFloat(e.target.value)})}
                     className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm"
+                    onWheel={(e) => e.currentTarget.blur()}
                   />
                 </div>
               </div>
@@ -549,6 +551,7 @@ export default function EditSalePage() {
                         value={appliance.coverLimit}
                         onChange={(e) => updateAppliance(index, 'coverLimit', parseFloat(e.target.value))}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        onWheel={(e) => e.currentTarget.blur()}
                       />
                     </div>
                     <div>
@@ -559,6 +562,7 @@ export default function EditSalePage() {
                         value={appliance.cost}
                         onChange={(e) => updateAppliance(index, 'cost', parseFloat(e.target.value))}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        onWheel={(e) => e.currentTarget.blur()}
                       />
                     </div>
                   </div>

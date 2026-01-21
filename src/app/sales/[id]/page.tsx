@@ -687,6 +687,7 @@ export default function AgentSaleDetailPage() {
                                           value={appliance.cost}
                                           onChange={(e) => handleApplianceChange(index, 'cost', parseFloat(e.target.value) || 0)}
                                           className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          onWheel={(e) => e.currentTarget.blur()}
                                         />
                                       </div>
                                     </div>
