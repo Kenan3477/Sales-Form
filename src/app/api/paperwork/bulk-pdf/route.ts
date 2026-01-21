@@ -107,7 +107,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, inject CSS to preserve styling while fitting on one page
+        // For single documents, inject aggressive CSS to force single page while preserving styling
         const singleDocumentCSS = `
           <style>
             @media print {
@@ -124,13 +124,15 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 padding: 0 !important;
                 width: 100% !important;
                 height: 100% !important;
+                font-size: 9px !important;
+                line-height: 1.1 !important;
               }
               
               body {
-                transform: scale(0.92) !important;
+                transform: scale(0.85) !important;
                 transform-origin: top left !important;
-                width: 108.7% !important;
-                height: 108.7% !important;
+                width: 117.6% !important;
+                height: 117.6% !important;
               }
               
               .document-wrapper, .document-container, .content {
@@ -141,35 +143,51 @@ async function handleBulkPDFDownload(request: NextRequest) {
                 padding: 0 !important;
               }
               
-              /* Preserve original styling but make it more compact */
+              /* Aggressively compress spacing while preserving colors */
               table {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
                 border-collapse: collapse !important;
                 width: 100% !important;
-                margin: 1px 0 !important;
+                margin: 0 !important;
+                font-size: 8px !important;
               }
               
               .section, div {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-                margin: 1px 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
               }
               
               p {
-                margin: 1px 0 !important;
-                line-height: 1.1 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 1.0 !important;
               }
               
               h1, h2, h3, h4 {
-                margin: 2px 0 !important;
-                line-height: 1.1 !important;
+                margin: 1px 0 !important;
+                line-height: 1.0 !important;
+                font-size: 10px !important;
               }
               
-              /* Preserve colors and backgrounds */
-              .header, .section-header {
+              /* Preserve background colors and styling */
+              .header, .section-header, [style*="background"] {
                 background-color: inherit !important;
                 color: inherit !important;
+              }
+              
+              /* Force very tight spacing */
+              ul, ol {
+                margin: 0 !important;
+                padding: 0 0 0 10px !important;
+              }
+              
+              li {
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 1.0 !important;
               }
               
               @page {
@@ -185,7 +203,7 @@ async function handleBulkPDFDownload(request: NextRequest) {
           ? fileContent.replace('</head>', `${singleDocumentCSS}</head>`)
           : `${singleDocumentCSS}${fileContent}`;
 
-        console.log(`🎨 Added layout-preserving CSS with optimized scaling`);
+        console.log(`🎨 Added aggressive single-page CSS while preserving branding`);
 
         // Update download count
         await prisma.generatedDocument.update({
