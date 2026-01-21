@@ -158,10 +158,10 @@ export async function middleware(req: NextRequest) {
     })
   }
   
-  // Allow access to public pages and debug endpoints
+  // Allow access to public pages, API routes, and debug endpoints
   if (req.nextUrl.pathname === '/' || 
       req.nextUrl.pathname.startsWith('/auth/') ||
-      req.nextUrl.pathname.startsWith('/api/auth/') ||
+      req.nextUrl.pathname.startsWith('/api/') ||
       req.nextUrl.pathname.startsWith('/api/debug/') ||
       req.nextUrl.pathname.startsWith('/api/health/') ||
       req.nextUrl.pathname.startsWith('/api/clear-all-rate-limits/') ||
