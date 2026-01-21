@@ -107,319 +107,296 @@ async function handleBulkPDFDownload(request: NextRequest) {
         console.log(`🔍 SINGLE DOCUMENT MODE: ${doc.filename}, using original HTML directly`);
         console.log(`🔄 Starting PDF generation for ${Math.round(fileContent.length/1024)}KB HTML content`);
 
-        // For single documents, use professional A4 single-page layout
+        // Use exact template styling - no single page constraint
         const singleDocumentCSS = `
           <style>
-            /* Professional A4 PDF Layout - Enhanced Version */
-            
-            /* Reset and base styles */
+            /* Reset */
             * {
               margin: 0;
               padding: 0;
               box-sizing: border-box;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
             }
             
-            /* A4 page setup */
+            /* A4 page setup - allow natural flow */
             @page {
-              size: A4 !important;
-              margin: 0 !important;
+              size: A4;
+              margin: 20mm;
             }
             
-            /* Document container */
+            /* Base styling */
             html, body {
-              width: 210mm !important;
-              height: 297mm !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              font-family: 'Segoe UI', Arial, Helvetica, sans-serif !important;
-              background: white !important;
-              overflow: hidden !important;
+              font-family: Arial, sans-serif;
+              font-size: 11pt;
+              line-height: 1.4;
+              color: #333;
+              background: white;
             }
             
-            /* Main content wrapper */
+            /* Remove any height constraints - let it flow naturally */
             body {
-              padding: 15mm !important;
-              display: flex !important;
-              flex-direction: column !important;
-              gap: 10pt !important;
+              width: 100%;
+              height: auto;
+              padding: 0;
+              margin: 0;
             }
             
-            /* Content container */
-            .document-content {
-              width: 180mm !important;
-              max-height: 267mm !important;
-              display: flex !important;
-              flex-direction: column !important;
-              gap: 12pt !important;
+            /* Flash Team Header - exact match */
+            .flash-team-header {
+              background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #f59e0b 100%);
+              color: white;
+              padding: 20pt;
+              text-align: center;
+              margin-bottom: 20pt;
+              position: relative;
             }
             
-            /* Flash Team Header */
-            .flash-team-header, [style*="background"] h1:first-child {
-              background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%) !important;
-              color: white !important;
-              padding: 16pt !important;
-              border-radius: 8pt !important;
-              text-align: center !important;
-              margin-bottom: 16pt !important;
-              box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+            .flash-team-header::before {
+              content: "";
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M0,20 Q50,0 100,20 L100,80 Q50,100 0,80 Z" fill="rgba(255,255,255,0.1)"/></svg>');
             }
             
-            .flash-team-header h1, [style*="background"] h1 {
-              color: white !important;
-              font-size: 20pt !important;
-              font-weight: bold !important;
-              margin: 0 !important;
-              text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+            .flash-team-header .logo {
+              background: #f59e0b;
+              color: white;
+              display: inline-block;
+              padding: 4pt 8pt;
+              font-weight: bold;
+              margin-bottom: 8pt;
+            }
+            
+            .flash-team-header h1 {
+              font-size: 28pt;
+              font-weight: bold;
+              color: white;
+              margin: 8pt 0;
+              text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }
+            
+            .flash-team-header .tagline {
+              font-size: 14pt;
+              color: rgba(255,255,255,0.9);
+              font-style: italic;
             }
             
             /* Document title */
-            h1:not(.flash-team-header h1) {
-              font-size: 18pt !important;
-              font-weight: bold !important;
-              color: #1e40af !important;
-              text-align: center !important;
-              margin-bottom: 16pt !important;
-              padding-bottom: 8pt !important;
-              border-bottom: 2px solid #e5e7eb !important;
+            .document-title {
+              font-size: 24pt;
+              font-weight: bold;
+              color: #1e40af;
+              text-align: center;
+              margin: 20pt 0;
+              border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 10pt;
             }
             
-            /* Section headers */
-            h2 {
-              font-size: 14pt !important;
-              font-weight: bold !important;
-              color: #374151 !important;
-              margin: 12pt 0 8pt 0 !important;
-              padding: 8pt 12pt !important;
-              background: #f8fafc !important;
-              border-left: 4pt solid #2563eb !important;
-              border-radius: 4pt !important;
+            /* Greeting */
+            .greeting {
+              font-size: 12pt;
+              margin: 15pt 0;
+              line-height: 1.5;
             }
             
-            h3 {
-              font-size: 12pt !important;
-              font-weight: 600 !important;
-              color: #1e40af !important;
-              margin: 8pt 0 6pt 0 !important;
+            /* Active status banner */
+            .status-banner {
+              background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+              color: white;
+              padding: 12pt 20pt;
+              text-align: center;
+              font-weight: bold;
+              font-size: 16pt;
+              margin: 20pt 0;
+              border-radius: 8pt;
             }
             
-            /* Body text */
-            p, div:not(.flash-team-header):not(.section):not(.two-column) {
-              font-size: 10pt !important;
-              line-height: 1.4 !important;
-              color: #374151 !important;
-              margin-bottom: 6pt !important;
-            }
-            
-            /* Status badges */
-            .status-active, [style*="background"]:not(.flash-team-header) {
-              background: linear-gradient(135deg, #10b981, #059669) !important;
-              color: white !important;
-              padding: 6pt 12pt !important;
-              border-radius: 16pt !important;
-              font-weight: bold !important;
-              font-size: 10pt !important;
-              display: inline-block !important;
-              text-align: center !important;
-              box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+            .status-subtitle {
+              background: #1e40af;
+              color: white;
+              padding: 8pt 20pt;
+              text-align: center;
+              font-size: 12pt;
+              margin-bottom: 20pt;
             }
             
             /* Two column layout */
             .two-column {
-              display: grid !important;
-              grid-template-columns: 1fr 1fr !important;
-              gap: 16pt !important;
-              margin: 12pt 0 !important;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20pt;
+              margin: 20pt 0;
             }
             
-            .column {
-              background: #f9fafb !important;
-              padding: 12pt !important;
-              border-radius: 6pt !important;
-              border: 1px solid #e5e7eb !important;
+            /* Column headers */
+            .column-header {
+              background: #1e40af;
+              color: white;
+              padding: 10pt;
+              font-weight: bold;
+              font-size: 14pt;
+              margin-bottom: 0;
             }
             
-            /* Tables */
-            table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-              margin: 8pt 0 !important;
-              background: white !important;
-              border-radius: 6pt !important;
-              overflow: hidden !important;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+            /* Column content */
+            .column-content {
+              background: #f8fafc;
+              padding: 15pt;
+              border: 1px solid #e5e7eb;
             }
             
-            th {
-              background: #f3f4f6 !important;
-              font-weight: bold !important;
-              color: #374151 !important;
-              padding: 8pt 10pt !important;
-              font-size: 9pt !important;
-              text-align: left !important;
-              border-bottom: 1px solid #d1d5db !important;
+            /* Account details styling */
+            .account-details {
+              list-style: none;
+              padding: 0;
             }
             
-            td {
-              padding: 6pt 10pt !important;
-              font-size: 9pt !important;
-              color: #374151 !important;
-              border-bottom: 1px solid #f3f4f6 !important;
+            .account-details li {
+              display: flex;
+              margin-bottom: 8pt;
+              font-size: 10pt;
             }
             
-            tr:last-child td {
-              border-bottom: none !important;
+            .account-details li strong {
+              width: 80pt;
+              color: #1e40af;
+              font-weight: bold;
             }
             
-            /* Lists */
-            ul, ol {
-              margin: 6pt 0 6pt 16pt !important;
-              padding: 0 !important;
+            /* Plan benefits */
+            .plan-benefits ul {
+              list-style: none;
+              padding: 0;
             }
             
-            li {
-              font-size: 9pt !important;
-              line-height: 1.4 !important;
-              margin-bottom: 3pt !important;
-              color: #374151 !important;
+            .plan-benefits li {
+              position: relative;
+              padding-left: 20pt;
+              margin-bottom: 6pt;
+              font-size: 10pt;
+              line-height: 1.4;
             }
             
-            /* Plan benefits styling */
-            .plan-benefits, .benefits-list {
-              background: #f0f9ff !important;
-              padding: 10pt !important;
-              border-radius: 6pt !important;
-              border-left: 4pt solid #0ea5e9 !important;
-              margin: 8pt 0 !important;
+            .plan-benefits li::before {
+              content: "✓";
+              position: absolute;
+              left: 0;
+              color: #22c55e;
+              font-weight: bold;
             }
             
-            .plan-benefits ul, .benefits-list ul {
-              list-style: none !important;
-              margin-left: 0 !important;
+            /* Section headers */
+            .section-header {
+              background: #1e40af;
+              color: white;
+              padding: 10pt;
+              font-weight: bold;
+              font-size: 14pt;
+              margin: 20pt 0 0 0;
             }
             
-            .plan-benefits li, .benefits-list li {
-              position: relative !important;
-              padding-left: 16pt !important;
+            .section-content {
+              background: #f8fafc;
+              padding: 15pt;
+              border: 1px solid #e5e7eb;
+              border-top: none;
             }
             
-            .plan-benefits li:before, .benefits-list li:before {
-              content: "✓" !important;
-              position: absolute !important;
-              left: 0 !important;
-              color: #059669 !important;
-              font-weight: bold !important;
-              font-size: 10pt !important;
+            /* Requesting assistance */
+            .assistance-steps {
+              counter-reset: step-counter;
+              list-style: none;
+              padding: 0;
             }
             
-            /* Contact info section */
-            .contact-info {
-              display: grid !important;
-              grid-template-columns: repeat(3, 1fr) !important;
-              gap: 8pt !important;
-              margin-top: 12pt !important;
-              padding: 10pt !important;
-              background: #f9fafb !important;
-              border-radius: 6pt !important;
-              border-top: 2px solid #e5e7eb !important;
+            .assistance-steps li {
+              counter-increment: step-counter;
+              position: relative;
+              padding-left: 30pt;
+              margin-bottom: 8pt;
+              font-size: 11pt;
             }
             
-            .contact-item {
-              text-align: center !important;
-              padding: 6pt !important;
-              background: white !important;
-              border-radius: 4pt !important;
-              font-size: 8pt !important;
+            .assistance-steps li::before {
+              content: counter(step-counter) ".";
+              position: absolute;
+              left: 0;
+              font-weight: bold;
+              color: #1e40af;
             }
             
-            .contact-item strong {
-              display: block !important;
-              color: #1e40af !important;
-              font-size: 9pt !important;
-              margin-bottom: 2pt !important;
+            /* Direct Debit section */
+            .debit-section {
+              margin: 20pt 0;
             }
             
-            /* Price highlighting */
-            .price-highlight, [style*="color"][style*="font-weight"] {
-              background: #ecfdf5 !important;
-              color: #047857 !important;
-              font-weight: bold !important;
-              padding: 8pt 12pt !important;
-              border-radius: 6pt !important;
-              border: 2px solid #10b981 !important;
-              text-align: center !important;
-              font-size: 12pt !important;
-              margin: 6pt 0 !important;
+            .debit-content {
+              background: #f1f5f9;
+              padding: 15pt;
+              border-left: 4pt solid #1e40af;
             }
             
-            /* Auto-fit scaling for overflow content */
-            .scale-content {
-              transform-origin: top left !important;
-              width: 180mm !important;
+            /* Important Information */
+            .important-info {
+              margin: 20pt 0;
             }
             
-            /* Images */
-            img {
-              max-width: 100% !important;
-              height: auto !important;
-              image-rendering: crisp-edges !important;
+            .important-info ul {
+              list-style-type: disc;
+              margin-left: 20pt;
             }
             
-            /* Ensure professional spacing */
-            .section {
-              margin-bottom: 10pt !important;
-              page-break-inside: avoid !important;
+            .important-info li {
+              margin-bottom: 6pt;
+              font-size: 10pt;
+              line-height: 1.4;
             }
             
-            /* Footer styling */
+            /* Footer */
             .footer {
-              margin-top: auto !important;
-              padding-top: 8pt !important;
-              border-top: 1px solid #e5e7eb !important;
-              font-size: 8pt !important;
-              color: #6b7280 !important;
+              background: linear-gradient(135deg, #1e40af 0%, #f59e0b 100%);
+              color: white;
+              padding: 15pt;
+              text-align: center;
+              margin-top: 30pt;
+              font-size: 12pt;
             }
             
+            .footer-content {
+              display: flex;
+              justify-content: space-around;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 10pt;
+            }
+            
+            .footer strong {
+              color: white;
+            }
+            
+            /* Print optimization */
             @media print {
               body { 
                 print-color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
               }
+              
+              .page-break {
+                page-break-before: always;
+              }
             }
           </style>
         `;
 
-        // Add auto-fit scaling script
+        // Add auto-fit scaling script - REMOVED for template matching
         const autoFitScript = `
           <script>
-            function autoFitContent() {
-              console.log('🔍 Auto-fit scaling: Starting...');
-              
-              const content = document.body;
-              const maxHeight = 267; // mm (A4 height - padding)
-              
-              // Measure content height in mm
-              const heightPx = content.scrollHeight;
-              const heightMM = heightPx * 0.264583; // Convert px to mm
-              
-              if (heightMM > maxHeight) {
-                const scale = (maxHeight / heightMM) * 0.95;
-                content.style.transform = \`scale(\${scale})\`;
-                content.style.transformOrigin = 'top left';
-                console.log(\`📐 Scaled to \${(scale * 100).toFixed(1)}%\`);
-              } else {
-                console.log('✅ Content fits naturally');
-              }
-            }
-            
-            if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', autoFitContent);
-            } else {
-              autoFitContent();
-            }
+            // No scaling - let template flow naturally across pages
+            console.log('Template matching mode: Natural page flow enabled');
           </script>
         `;
 
@@ -433,15 +410,10 @@ async function handleBulkPDFDownload(request: NextRequest) {
           htmlWithWrapper = `${singleDocumentCSS}${autoFitScript}${htmlWithWrapper}`;
         }
         
-        // Wrap body content in document-content container if not already wrapped
-        if (!htmlWithWrapper.includes('document-content')) {
-          htmlWithWrapper = htmlWithWrapper.replace(
-            /<body[^>]*>/i,
-            '$&<div class="document-content">'
-          ).replace('</body>', '</div></body>');
-        }
+        // Remove any document-content wrapper constraints for natural flow
+        // Let the template structure control layout naturally
 
-        console.log(`🎨 Added professional A4 single-page layout with auto-fit scaling`);
+        console.log(`🎨 Applied exact template styling - allowing natural page flow`);
 
         // Update download count
         await prisma.generatedDocument.update({
