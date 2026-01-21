@@ -17,6 +17,19 @@ import {
 export async function middleware(req: NextRequest) {
   const response = NextResponse.next()
   
+  // SECURITY: Block dangerous endpoints in production
+  const dangerousEndpoints = ['/api/debug', '/api/seed-production', '/api/clear-all-rate-limits']
+  const pathname = req.nextUrl.pathname
+  
+  if (process.env.NODE_ENV === 'production') {
+    for (const endpoint of dangerousEndpoints) {
+      if (pathname.startsWith(endpoint)) {
+        console.log(`[SECURITY BLOCK] Dangerous endpoint ${pathname} blocked in production`)
+        return new NextResponse('Not Found', { status: 404 })
+      }
+    }
+  }
+  
   // Generate nonce for CSP
   const nonce = generateNonce()
   
