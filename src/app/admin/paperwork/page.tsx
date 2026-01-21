@@ -57,6 +57,9 @@ export default function AdminPaperworkPage() {
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [documentsViewMode, setDocumentsViewMode] = useState<'documents' | 'customers'>('documents');
   const [customerDocumentFilter, setCustomerDocumentFilter] = useState<'all' | 'generated' | 'not-generated'>('all');
+  
+  // Basic pagination state
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Redirect if not admin
   if (status === 'loading') {
@@ -84,16 +87,19 @@ export default function AdminPaperworkPage() {
         const data = await response.json();
         setTemplates(data.templates || []);
       } else if (activeTab === 'documents') {
-        console.log('📋 Fetching documents...');
+        console.log('📋 Fetching documents page', currentPage, '...');
         const url = new URL('/api/paperwork/documents', window.location.origin);
         if (customerStatusFilter !== 'all') {
           url.searchParams.set('customerStatus', customerStatusFilter);
         }
+        url.searchParams.set('page', currentPage.toString());
+        url.searchParams.set('limit', '100');
         const response = await fetch(url.toString());
         if (!response.ok) throw new Error('Failed to fetch documents');
         const data = await response.json();
         console.log('📋 Documents response:', data);
         setDocuments(data.documents || []);
+        console.log('📋 Pagination info:', data.pagination);
       } else if (activeTab === 'generate') {
         // Fetch both templates and sales data
         const salesUrl = new URL('/api/sales', window.location.origin);
@@ -134,7 +140,7 @@ export default function AdminPaperworkPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, customerStatusFilter, documentsGeneratedFilter, session]);
+  }, [activeTab, customerStatusFilter, documentsGeneratedFilter, currentPage, session]);
 
   useEffect(() => {
     // Only fetch data when properly authenticated

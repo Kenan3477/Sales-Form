@@ -26,6 +26,11 @@ export async function GET(request: NextRequest) {
     const saleId = url.searchParams.get('saleId');
     const customerStatus = url.searchParams.get('customerStatus');
     const userId = session.user.role === 'AGENT' ? session.user.id : undefined;
+    
+    // Pagination parameters
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '100');
+    const skip = (page - 1) * limit;
 
     // Query generated documents from database
     const { prisma } = await import('@/lib/prisma');
@@ -55,6 +60,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('📋 Fetching documents with where clause:', JSON.stringify(whereClause, null, 2));
+    console.log('📋 Pagination: page', page, 'limit', limit, 'skip', skip);
+
+    // Get total count for pagination
+    const totalCount = await prisma.generatedDocument.count({
+      where: whereClause
+    });
 
     const documents = await prisma.generatedDocument.findMany({
       where: whereClause,
@@ -82,7 +93,9 @@ export async function GET(request: NextRequest) {
       },
       orderBy: {
         generatedAt: 'desc'
-      }
+      },
+      skip: skip,
+      take: limit
     });
 
     console.log('📋 Found documents from database:', documents.length);
@@ -113,7 +126,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      documents: transformedDocuments
+      documents: transformedDocuments,
+      pagination: {
+        page: page,
+        limit: limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasMore: skip + documents.length < totalCount
+      }
     });
 
   } catch (error) {
