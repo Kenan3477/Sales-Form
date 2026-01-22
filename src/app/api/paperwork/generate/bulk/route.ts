@@ -57,13 +57,27 @@ export async function POST(request: NextRequest) {
     });
     console.log('📄 Available templates in database:', allTemplates);
     
-    // Check if the requested templates exist
-    const missingTemplates = templateIds.filter(id => 
-      !allTemplates.find(t => t.id === id && t.isActive)
-    );
-    if (missingTemplates.length > 0) {
-      console.error('❌ Missing template IDs:', missingTemplates);
-      console.log('📄 Valid template IDs:', allTemplates.filter(t => t.isActive).map(t => t.id));
+    // Enhanced Template Service built-in templates
+    const enhancedServiceTemplates = ['welcome-letter', 'service-agreement', 'direct-debit-form', 'coverage-summary'];
+    
+    // Check if the requested templates exist (either in database or enhanced service)
+    const invalidTemplates = templateIds.filter(id => {
+      const inDatabase = allTemplates.find(t => t.id === id && t.isActive);
+      const inEnhancedService = enhancedServiceTemplates.includes(id);
+      return !inDatabase && !inEnhancedService;
+    });
+    
+    if (invalidTemplates.length > 0) {
+      console.error('❌ Invalid template IDs:', invalidTemplates);
+      const validIds = [
+        ...allTemplates.filter(t => t.isActive).map(t => t.id),
+        ...enhancedServiceTemplates
+      ];
+      console.log('📄 Valid template IDs:', validIds);
+      return NextResponse.json({
+        error: `Invalid template IDs: ${invalidTemplates.join(', ')}`,
+        validTemplateIds: validIds
+      }, { status: 400 });
     }
 
     // Initialize enhanced template service
@@ -350,14 +364,29 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       console.error('❌ Validation error:', error.issues);
+      const validationDetails = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`);
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
+        { 
+          error: 'Invalid request data', 
+          details: error.issues,
+          message: `Validation failed: ${validationDetails.join(', ')}`
+        },
         { status: 400 }
       );
     }
 
+    // Check if error is due to missing data
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid template IDs') || error.message.includes('Batch too large')) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
