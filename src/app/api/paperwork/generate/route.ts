@@ -51,18 +51,7 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
   // Use our enhanced template service to generate the beautiful template
   const templateService = new EnhancedTemplateService();
   const html = await templateService.generateDocument('welcome-letter', {
-    customer: {
-      name: data.customerName || '[Customer Name]',
-      email: data.email || '',
-      phone: data.phone || '',
-      address: data.address || '',
-    },
-    agreement: {
-      startDate: data.coverageStartDate || '',
-      planNumber: data.policyNumber || '',
-      monthlyCost: data.monthlyCost || '',
-    },
-    // Additional data for our template
+    // Map the data to match our template variables exactly
     customerName: data.customerName || '[Customer Name]',
     email: data.email || '',
     phone: data.phone || '',
@@ -70,8 +59,6 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
     coverageStartDate: data.coverageStartDate || '',
     policyNumber: data.policyNumber || '',
     monthlyCost: data.monthlyCost || '',
-    hasApplianceCover: data.hasApplianceCover || false,
-    hasBoilerCover: data.hasBoilerCover || false,
     totalCost: data.totalCost || data.monthlyCost || ''
   });
 
