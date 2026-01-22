@@ -328,7 +328,110 @@ export default function AdminPaperworkPage() {
     });
 
     setGenerating(true);
+    setError(null);
+
     try {
+      const totalCombinations = selectedSales.length * templateIds.length;
+      const maxBatchSize = 50;
+      
+      console.log(`📦 Total combinations: ${totalCombinations}`);
+      
+      // If the total combinations exceed the batch limit, process in chunks
+      if (totalCombinations > maxBatchSize) {
+        console.log(`📦 Large request detected (${totalCombinations} documents). Processing in batches of ${maxBatchSize}...`);
+        
+        // Calculate optimal batch size for sales (keep all templates in each batch)
+        const salesPerBatch = Math.floor(maxBatchSize / templateIds.length);
+        const batches = [];
+        
+        for (let i = 0; i < selectedSales.length; i += salesPerBatch) {
+          batches.push(selectedSales.slice(i, i + salesPerBatch));
+        }
+        
+        console.log(`📦 Split into ${batches.length} batches of max ${salesPerBatch} sales each`);
+        
+        let totalGenerated = 0;
+        let totalFailed = 0;
+        let allErrors: string[] = [];
+        let allDocuments: any[] = [];
+        
+        // Show progress
+        alert(`Processing ${totalCombinations} documents in ${batches.length} batches. This may take a few minutes...`);
+        
+        // Process each batch sequentially to avoid overwhelming the server
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+          const batch = batches[batchIndex];
+          console.log(`📦 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} sales...`);
+          
+          try {
+            const batchRequestBody = {
+              saleIds: batch,
+              templateIds: templateIds
+            };
+
+            const response = await fetch('/api/paperwork/generate/bulk', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(batchRequestBody)
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error(`❌ Batch ${batchIndex + 1} failed:`, errorData);
+              allErrors.push(`Batch ${batchIndex + 1}: ${errorData.error || 'Unknown error'}`);
+              totalFailed += batch.length * templateIds.length;
+              continue;
+            }
+
+            const batchResult = await response.json();
+            console.log(`✅ Batch ${batchIndex + 1} completed:`, {
+              generated: batchResult.generated,
+              failed: batchResult.failed
+            });
+            
+            totalGenerated += batchResult.generated || 0;
+            totalFailed += batchResult.failed || 0;
+            
+            if (batchResult.errors?.length > 0) {
+              allErrors.push(...batchResult.errors);
+            }
+            
+            if (batchResult.documents?.length > 0) {
+              allDocuments.push(...batchResult.documents);
+            }
+            
+          } catch (batchError) {
+            console.error(`❌ Batch ${batchIndex + 1} error:`, batchError);
+            allErrors.push(`Batch ${batchIndex + 1}: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
+            totalFailed += batch.length * templateIds.length;
+          }
+          
+          // Small delay between batches to prevent overwhelming the server
+          if (batchIndex < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+        
+        // Show final results
+        setError(null);
+        
+        const message = totalGenerated > 0 
+          ? `✅ Batch processing complete!\n\nSuccessfully generated ${totalGenerated} documents!${totalFailed > 0 ? `\n❌ ${totalFailed} failed` : ''}\n\nProcessed ${batches.length} batches`
+          : `❌ Failed to generate documents. ${allErrors.slice(0, 3).join(', ')}${allErrors.length > 3 ? '...' : ''}`;
+          
+        alert(message);
+        
+        if (allErrors.length > 0) {
+          console.error('❌ All batch errors:', allErrors);
+        }
+        
+        setSelectedSales([]);
+        await fetchData();
+        return;
+      }
+
+      // Single batch processing (original logic for smaller requests)
+      console.log('📦 Single batch processing');
       const requestBody = {
         saleIds: selectedSales,
         templateIds: templateIds
