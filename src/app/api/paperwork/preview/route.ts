@@ -650,12 +650,12 @@ export async function GET(request: NextRequest) {
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: false,
-        scale: 0.8,
+        scale: 1.0,
         margin: {
-          top: '0.3in',
-          right: '0.3in',
-          bottom: '0.3in',
-          left: '0.3in'
+          top: '0.2in',
+          right: '0.2in',
+          bottom: '0.2in',
+          left: '0.2in'
         }
       });
       
@@ -1370,12 +1370,12 @@ export async function POST(request: NextRequest) {
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: false,
-        scale: 0.8,
+        scale: 1.0,
         margin: {
-          top: '0.3in',
-          right: '0.3in',
-          bottom: '0.3in',
-          left: '0.3in'
+          top: '0.2in',
+          right: '0.2in',
+          bottom: '0.2in',
+          left: '0.2in'
         }
       });
       

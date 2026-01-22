@@ -26,25 +26,21 @@ export class EnhancedTemplateService {
         
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            line-height: 1.4;
+            line-height: 1.3;
             color: #333;
-            background: #f5f5f5;
-            padding: 20px;
+            background: white;
+            font-size: 12px;
         }
         
         .document-container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 100%;
             background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
         .header {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 30%, #1e4c72 70%, #1a365d 100%);
             color: white;
-            padding: 30px 40px;
+            padding: 15px 20px;
             position: relative;
         }
         
@@ -54,27 +50,26 @@ export class EnhancedTemplateService {
             bottom: 0;
             left: 0;
             right: 0;
-            height: 8px;
+            height: 4px;
             background: linear-gradient(90deg, #ff4500 0%, #ff6500 50%, #ff4500 100%);
         }
         
         .logo-section {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
         
         .lightning-icon {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            border-radius: 6px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 14px;
             color: white;
-            box-shadow: 0 0 10px rgba(255,101,0,0.4);
         }
         
         .lightning-icon::before {
@@ -82,103 +77,58 @@ export class EnhancedTemplateService {
         }
         
         .logo-text {
-            font-size: 36px;
+            font-size: 24px;
             font-weight: bold;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
         
         .tagline {
-            font-size: 14px;
-            opacity: 0.95;
-            margin-top: 2px;
+            font-size: 11px;
+            opacity: 0.9;
+            margin-top: 1px;
             font-style: italic;
-            letter-spacing: 0.5px;
         }
         
         .content {
-            padding: 40px;
+            padding: 15px 20px;
         }
         
         .main-title {
-            font-size: 28px;
+            font-size: 20px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 25px;
-            border-bottom: 3px solid #ff6500;
-            padding-bottom: 10px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #ff6500;
+            padding-bottom: 5px;
         }
         
         .intro-text {
-            font-size: 15px;
-            margin-bottom: 25px;
-            line-height: 1.6;
+            font-size: 12px;
+            margin-bottom: 15px;
+            line-height: 1.4;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
             text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .activation-banner::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-        }
-        
-        .activation-banner .lightning-small {
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 4px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 10px;
-            vertical-align: middle;
-            font-size: 12px;
-            color: #ff6500;
-        }
-        
-        .activation-banner .lightning-small::before {
-            content: '⚡';
-        }
-        
-        .activation-text {
-            font-size: 18px;
-            font-weight: bold;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .activation-subtext {
-            background: #1a365d;
-            margin: 15px -20px -20px -20px;
-            padding: 12px 20px;
             font-size: 14px;
-            position: relative;
-            z-index: 1;
+            font-weight: bold;
         }
         
-        .two-column {
+        .three-column {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            margin-bottom: 25px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
         }
         
         .card {
             border: 1px solid #e2e8f0;
-            border-radius: 6px;
+            border-radius: 4px;
             overflow: hidden;
             background: #fafbfc;
         }
@@ -186,21 +136,23 @@ export class EnhancedTemplateService {
         .card-header {
             background: #1a365d;
             color: white;
-            padding: 15px 20px;
+            padding: 8px 12px;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 11px;
+            text-transform: uppercase;
         }
         
         .card-content {
-            padding: 20px;
+            padding: 10px 12px;
             background: white;
+            font-size: 10px;
         }
         
         .detail-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 10px 0;
+            padding: 3px 0;
             border-bottom: 1px solid #f0f4f7;
         }
         
@@ -212,25 +164,26 @@ export class EnhancedTemplateService {
             font-weight: 600;
             color: #4a5568;
             text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 0.5px;
-            width: 35%;
+            font-size: 9px;
+            letter-spacing: 0.3px;
+            width: 45%;
         }
         
         .detail-value {
             font-weight: bold;
             color: #1a365d;
             text-align: right;
-            width: 60%;
-            font-size: 14px;
+            width: 50%;
+            font-size: 10px;
         }
         
         .checklist-item {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 10px;
-            font-size: 14px;
+            gap: 6px;
+            margin-bottom: 5px;
+            font-size: 9px;
+            line-height: 1.2;
         }
         
         .checklist-item:last-child {
@@ -238,13 +191,13 @@ export class EnhancedTemplateService {
         }
         
         .check-icon {
-            width: 18px;
-            height: 18px;
+            width: 12px;
+            height: 12px;
             background: #ff6500;
             border-radius: 50%;
             position: relative;
             flex-shrink: 0;
-            margin-top: 2px;
+            margin-top: 1px;
         }
         
         .check-icon::after {
@@ -254,119 +207,90 @@ export class EnhancedTemplateService {
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 12px;
+            font-size: 8px;
             font-weight: bold;
         }
         
-        .single-column-card {
-            margin-bottom: 25px;
-        }
-        
-        .numbered-list {
-            counter-reset: step-counter;
-        }
-        
-        .numbered-item {
-            display: flex;
-            align-items: flex-start;
+        .two-column-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-bottom: 12px;
-            counter-increment: step-counter;
-            font-size: 14px;
-        }
-        
-        .numbered-item::before {
-            content: counter(step-counter);
-            background: #1a365d;
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-        
-        .guarantee-intro {
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #1a365d;
-            font-size: 14px;
-        }
-        
-        .guarantee-list {
-            list-style: none;
-            counter-reset: item-counter;
-        }
-        
-        .guarantee-list li {
-            margin-bottom: 8px;
-            padding-left: 20px;
-            position: relative;
-            font-size: 14px;
-            counter-increment: item-counter;
-        }
-        
-        .guarantee-list li::before {
-            content: counter(item-counter);
-            position: absolute;
-            left: 0;
-            background: #1a365d;
-            color: white;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-        }
-        
-        .important-section {
-            background: #f8fafc;
-            border-left: 4px solid #ff6500;
-            padding: 25px;
-            margin-bottom: 0;
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .important-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1a365d;
             margin-bottom: 15px;
         }
         
-        .important-list {
+        .compact-list {
             list-style: none;
+            font-size: 9px;
+            line-height: 1.3;
         }
         
-        .important-list li {
-            margin-bottom: 12px;
-            padding-left: 20px;
+        .compact-list li {
+            margin-bottom: 4px;
+            padding-left: 12px;
             position: relative;
-            font-size: 14px;
         }
         
-        .important-list li::before {
+        .compact-list li::before {
             content: '•';
             color: #ff6500;
             font-weight: bold;
             position: absolute;
             left: 0;
-            font-size: 16px;
+        }
+        
+        .numbered-steps {
+            font-size: 10px;
+        }
+        
+        .numbered-steps div {
+            margin-bottom: 4px;
+            padding-left: 15px;
+            position: relative;
+        }
+        
+        .numbered-steps div::before {
+            content: counter(step-counter);
+            counter-increment: step-counter;
+            position: absolute;
+            left: 0;
+            background: #1a365d;
+            color: white;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: bold;
+            top: 1px;
+        }
+        
+        .numbered-steps {
+            counter-reset: step-counter;
+        }
+        
+        .important-section {
+            background: #f8fafc;
+            border-left: 3px solid #ff6500;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .important-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1a365d;
+            margin-bottom: 8px;
         }
         
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 20px 40px;
+            padding: 10px 20px;
             text-align: center;
-            font-size: 14px;
+            font-size: 10px;
             margin-top: 0;
         }
         
@@ -374,7 +298,7 @@ export class EnhancedTemplateService {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
         }
         
@@ -396,44 +320,8 @@ export class EnhancedTemplateService {
                 page-break-inside: avoid;
             }
             
-            .card {
-                break-inside: avoid;
+            * {
                 page-break-inside: avoid;
-            }
-            
-            .content {
-                page-break-inside: avoid;
-            }
-            
-            .two-column {
-                page-break-inside: avoid;
-            }
-            
-            .single-column-card {
-                page-break-inside: avoid;
-            }
-            
-            .important-section {
-                page-break-inside: avoid;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .content {
-                padding: 20px;
-            }
-            
-            .header {
-                padding: 20px;
-            }
-            
-            .two-column {
-                grid-template-columns: 1fr;
-            }
-            
-            .footer-content {
-                flex-direction: column;
-                gap: 10px;
             }
         }
     </style>
@@ -451,130 +339,112 @@ export class EnhancedTemplateService {
         </div>
         
         <div class="content">
-            <h1 class="main-title">The Flash Team's Protection Plan</h1>
+            <h1 class="main-title">Protection Plan Confirmation</h1>
             
             <div class="intro-text">
-                <strong>Dear {{customerName}},</strong><br><br>
-                Thank you for choosing Flash Team. This document confirms that your <strong>Protection Plan</strong> is now active, subject to the plan terms, conditions and exclusions.
+                <strong>Dear {{customerName}},</strong><br>
+                Thank you for choosing Flash Team. Your <strong>Protection Plan</strong> is now active.
             </div>
             
             <div class="activation-banner">
-                <div class="activation-text">
-                    <span class="lightning-small"></span>
-                    Your Protection Plan is now active
-                </div>
-                <div class="activation-subtext">
-                    This letter explains your cover and how to request assistance
-                </div>
+                ⚡ Your Protection Plan is Active - Plan Ref: {{policyNumber}}
             </div>
             
-            <div class="two-column">
+            <div class="three-column">
                 <div class="card">
-                    <div class="card-header">Your Account Details</div>
+                    <div class="card-header">Customer Details</div>
                     <div class="card-content">
                         <div class="detail-row">
-                            <span class="detail-label">CUSTOMER</span>
+                            <span class="detail-label">Name</span>
                             <span class="detail-value">{{customerName}}</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">EMAIL</span>
+                            <span class="detail-label">Email</span>
                             <span class="detail-value">{{email}}</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">PHONE</span>
+                            <span class="detail-label">Phone</span>
                             <span class="detail-value">{{phone}}</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">ADDRESS</span>
+                            <span class="detail-label">Address</span>
                             <span class="detail-value">{{address}}</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">START DATE</span>
+                            <span class="detail-label">Start Date</span>
                             <span class="detail-value">{{coverageStartDate}}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">PLAN REF</span>
-                            <span class="detail-value">{{policyNumber}}</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="card">
-                    <div class="card-header">What Your Plan Provides</div>
+                    <div class="card-header">Plan Benefits</div>
                     <div class="card-content">
-                        <div class="detail-row" style="border-bottom: 2px solid #ff6500; margin-bottom: 15px; padding-bottom: 15px;">
-                            <span class="detail-label">Monthly Payment:</span>
+                        <div class="detail-row" style="border-bottom: 2px solid #ff6500; margin-bottom: 8px; padding-bottom: 8px;">
+                            <span class="detail-label">Monthly:</span>
                             <span class="detail-value">£{{monthlyCost}}</span>
                         </div>
                         
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>Access to qualified engineers for covered breakdowns</span>
+                            <span>Qualified engineers for covered breakdowns</span>
                         </div>
                         
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>Repairs to covered appliances or systems, where repair is possible.</span>
+                            <span>Repairs or replacement where applicable</span>
                         </div>
+                        
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability.</span>
+                            <span>Fixed pricing - no call-out charges</span>
                         </div>
+                        
                         <div class="checklist-item">
                             <div class="check-icon"></div>
-                            <span>Fixed pricing with no call-out charge for covered faults</span>
+                            <span>Subject to engineer availability</span>
                         </div>
-                        <div class="checklist-item">
-                            <div class="check-icon"></div>
-                            <span>Appointments offered subject to engineer availability</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">Request Assistance</div>
+                    <div class="card-content">
+                        <div class="numbered-steps">
+                            <div>Call 0330 822 7695</div>
+                            <div>Quote plan ref {{policyNumber}}</div>
+                            <div>Describe the issue</div>
+                            <div>Book appointment</div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="card single-column-card">
-                <div class="card-header">Requesting Assistance</div>
-                <div class="card-content">
-                    <div class="numbered-list">
-                        <div class="numbered-item">
-                            <span>Call 0330 822 7695</span>
+            <div class="two-column-bottom">
+                <div class="card">
+                    <div class="card-header">Direct Debit Guarantee</div>
+                    <div class="card-content">
+                        <div style="font-weight: bold; margin-bottom: 6px; font-size: 9px;">
+                            Payments appear as "Warmcare" on your bank statement.
                         </div>
-                        <div class="numbered-item">
-                            <span>Quote your plan reference {{policyNumber}}</span>
-                        </div>
-                        <div class="numbered-item">
-                            <span>Describe the issue so we can assess eligibility</span>
-                        </div>
-                        <div class="numbered-item">
-                            <span>Book an appointment subject to availability</span>
-                        </div>
+                        <ul class="compact-list">
+                            <li>10 working days notice for payment changes</li>
+                            <li>Full refund if payment errors occur</li>
+                            <li>Cancel anytime via your bank</li>
+                            <li>Offered by all banks and building societies</li>
+                        </ul>
                     </div>
                 </div>
-            </div>
-            
-            <div class="card single-column-card">
-                <div class="card-header">Direct Debit Guarantee</div>
-                <div class="card-content">
-                    <div class="guarantee-intro">
-                        If you pay by Direct Debit, payments will appear on your bank statement as Warmcare.
-                    </div>
-                    <ul class="guarantee-list">
-                        <li>This Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits</li>
-                        <li>If there are any changes to the amount, date or frequency of your Direct Debit we will notify you at least 10 working days in advance</li>
-                        <li>If you request us to collect a payment, confirmation will be given at the time of the request</li>
-                        <li>If an error is made in the payment of your Direct Debit, by us or your bank or building society you are entitled to a full and immediate refund of the amount paid</li>
-                        <li>You can cancel your Direct Debit at any time via your bank or building society</li>
+                
+                <div class="important-section">
+                    <div class="important-title">Important Information</div>
+                    <ul class="compact-list">
+                        <li>This is a <strong>service agreement</strong> (not insurance)</li>
+                        <li>Subject to <strong>plan terms, conditions and exclusions</strong></li>
+                        <li><strong>Annual boiler service:</strong> Contact us to book</li>
+                        <li>All repairs subject to availability and assessment</li>
                     </ul>
                 </div>
-            </div>
-            
-            <div class="important-section">
-                <div class="important-title">Important Information</div>
-                <ul class="important-list">
-                    <li>This Protection Plan is a <strong>service agreement</strong> and is not an insurance plan</li>
-                    <li>All services are provided subject to <strong>plan terms, conditions and exclusions</strong></li>
-                    <li><strong>Annual boiler service:</strong> Please contact us to <strong>book your annual boiler service</strong></li>
-                </ul>
             </div>
         </div>
         
