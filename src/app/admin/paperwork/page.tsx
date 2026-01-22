@@ -584,21 +584,38 @@ export default function AdminPaperworkPage() {
         throw new Error('Failed to create combined document file');
       }
 
-      // Download the combined HTML file
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
-      // Get filename from response header or use default
-      const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || 'customer-documents.html';
-      a.download = filename;
-      
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const htmlContent = await response.text();
+      const pdfFilename = response.headers.get('X-PDF-Filename') || 'customer-documents.pdf';
+
+      // Create a new window with the HTML content and trigger print
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        // Wait for content to load, then trigger print dialog
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+            // Close the window after printing
+            setTimeout(() => {
+              printWindow.close();
+            }, 1000);
+          }, 500);
+        };
+      } else {
+        // Fallback: download as HTML file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = pdfFilename.replace('.pdf', '.html');
+        
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
 
       // Reset selection and refetch to update download counts
       setSelectedDocuments([]);
