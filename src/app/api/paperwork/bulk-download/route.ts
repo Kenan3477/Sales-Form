@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer';
 
 export async function POST(request: NextRequest) {
   console.log('🔄 Starting bulk download request...');
@@ -351,56 +349,15 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
     const pdfFileName = `flash_team_protection_plans_${processedCount}_customers_${timestamp}.pdf`;
     
-    console.log(`✅ Combined document ready, generating PDF: ${pdfFileName} (${Math.round(combinedHtml.length/1024)}KB)`);
+    console.log(`✅ Combined document ready: ${pdfFileName} (${Math.round(combinedHtml.length/1024)}KB)`);
 
-    // Generate PDF using puppeteer with @sparticuz/chromium for serverless
-    let executablePath: string | undefined;
-    let args: string[] = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-    ];
-    
-    // Configure for serverless environment
-    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-      executablePath = await chromium.executablePath();
-      args = chromium.args.concat(args);
-    }
-    
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath,
-      args,
-    });
-    
-    const page = await browser.newPage();
-    await page.setContent(combinedHtml, { waitUntil: 'networkidle0' });
-    
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: {
-        top: '10mm',
-        right: '10mm', 
-        bottom: '10mm',
-        left: '10mm'
-      },
-      scale: 1
-    });
-    
-    await browser.close();
-
-    return new NextResponse(Buffer.from(pdfBuffer), {
+    // Return HTML for client-side PDF generation
+    return new NextResponse(combinedHtml, {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${pdfFileName}"`,
-        'Content-Length': pdfBuffer.length.toString(),
+        'Content-Type': 'text/html',
+        'Content-Disposition': `inline; filename="${pdfFileName.replace('.pdf', '.html')}"`,
+        'X-PDF-Filename': pdfFileName,
       },
     });
 
