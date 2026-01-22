@@ -44,337 +44,129 @@ function safeFilename(s: string): string {
     .slice(0, 80);
 }
 
-function buildFlashTeamHtml(data: any): string {
-  return `<!doctype html>
-<html lang="en">
+// Generate Flash Team PDF directly using minimal template approach
+async function generateFlashTeamPDF(data: any): Promise<Buffer> {
+  const { chromium } = await import('playwright');
+  
+  // Minimal HTML template for PDF generation - one page only
+  const minimalHtml = `<!doctype html>
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>The Flash Team's Protection Plan</title>
-
+<meta charset="utf-8">
 <style>
-  :root{
-    --navy:#0b2a4a;
-    --navy2:#081f36;
-    --orange:#ff6b35;
-    --orange2:#ff8c42;
-    --ink:#1f2a3a;
-    --muted:#5e6b7a;
-    --line:#e4e9f1;
-    --paper:#ffffff;
-  }
-
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:#fff;color:var(--ink);font-family:"Segoe UI",Arial,Helvetica,sans-serif}
-
-  /* A4 canvas (screen + print) */
-  .sheet{
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0 auto;
-    background: var(--paper);
-  }
-  .wrap{
-    padding: 10mm; /* keep tight for one-page */
-  }
-
-  /* Header band */
-  .banner{
-    position:relative;
-    padding: 12mm 10mm 8mm 10mm;
-    color:#fff;
-    background:
-      radial-gradient(900px 220px at 20% 30%, rgba(255,255,255,.10), transparent 55%),
-      radial-gradient(700px 200px at 80% 35%, rgba(255,255,255,.08), transparent 55%),
-      linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
-  }
-  .banner:after{
-    content:"";
-    position:absolute;left:0;right:0;bottom:0;height:4mm;
-    background: linear-gradient(90deg, var(--orange), var(--orange2));
-  }
-  .brand{
-    display:flex;justify-content:center;align-items:center;gap:10px;text-align:center;
-  }
-  .bolt{
-    width: 12mm;height: 12mm;border-radius:4mm;
-    background: linear-gradient(135deg, var(--orange), var(--orange2));
-    display:flex;align-items:center;justify-content:center;
-    font-weight:900;color:#10243c;
-    box-shadow:0 3mm 7mm rgba(255,107,53,.25);
-  }
-  .brand h1{
-    margin:0;font-size: 18mm;line-height:1;font-weight:900;letter-spacing:.2px;
-  }
-  .tagline{margin-top:2mm;font-size:4mm;font-weight:600;opacity:.92}
-
-  /* Main title */
-  .title{
-    font-size: 9mm;
-    margin: 6mm 0 2mm 0;
-    color: var(--navy);
-    font-weight: 900;
-    letter-spacing:.2px;
-  }
-  .rule{height:1px;background:var(--line);margin: 2mm 0 4mm 0}
-
-  /* Intro */
-  .p{margin:0 0 2.5mm 0;font-size:3.6mm;line-height:1.35}
-  .p strong{font-weight:900}
-
-  /* Activation bar */
-  .active{
-    margin: 4mm 0 5mm 0;
-    border-radius:3mm;
-    overflow:hidden;
-    border:1px solid rgba(10,20,35,.12);
-  }
-  .active .top{
-    background: linear-gradient(135deg, var(--orange), var(--orange2));
-    color:#fff;
-    padding: 3mm 4mm;
-    display:flex;align-items:center;justify-content:center;gap:3mm;
-    font-weight:900;font-size:4.6mm;
-    text-align:center;
-  }
-  .miniBolt{
-    width:7mm;height:7mm;border-radius:2mm;
-    background: rgba(0,0,0,.16);
-    display:flex;align-items:center;justify-content:center;
-    font-size:4mm;
-  }
-  .active .bottom{
-    background: linear-gradient(135deg, var(--navy), var(--navy2));
-    color:#eaf1ff;
-    padding: 2.8mm 4mm;
-    text-align:center;
-    font-weight:700;
-    font-size:3.3mm;
-  }
-
-  /* Cards */
-  .grid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4mm;
-    align-items:start;
-  }
-  .card{
-    border:1px solid var(--line);
-    border-radius:3mm;
-    overflow:hidden;
-    background:#fff;
-  }
-  .head{
-    background: linear-gradient(135deg, var(--navy), var(--navy2));
-    color:#fff;
-    padding: 2.6mm 3.2mm;
-    font-weight:900;
-    font-size:4.2mm;
-  }
-  .body{padding:2.6mm 3.2mm}
-
-  /* Account rows */
-  .row{
-    display:flex;justify-content:space-between;gap:3mm;
-    padding: 1.8mm 0;
-    border-bottom:1px solid var(--line);
-    font-size:3.3mm;
-    line-height:1.2;
-  }
-  .row:last-child{border-bottom:none}
-  .k{font-weight:900}
-  .v{font-weight:700;color:#2c3a52;text-align:right;max-width:85mm}
-
-  /* Plan list */
-  .kv{font-size:3.3mm;margin:0 0 2mm 0}
-  .kv .k2{font-weight:900}
-  .checks{list-style:none;margin:1mm 0 0 0;padding:0}
-  .checks li{
-    display:flex;gap:2.2mm;
-    margin: 1.8mm 0;
-    font-size:3.2mm;
-    line-height:1.25;
-  }
-  .tick{
-    width:5mm;height:5mm;border-radius:1.6mm;
-    background: rgba(255,107,53,.18);
-    display:flex;align-items:center;justify-content:center;
-    color: var(--orange);
-    font-weight:1000;
-    flex: 0 0 5mm;
-    font-size:3.2mm;
-  }
-
-  /* Lower row: assistance + small note */
-  .lower{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4mm;
-    margin-top: 4mm;
-    align-items:start;
-  }
-  .steps{margin:0;padding-left:4.6mm;font-size:3.3mm}
-  .steps li{margin:1.8mm 0}
-  .phone{font-weight:1000;color:var(--navy);text-decoration:none}
-
-  /* Direct Debit (concise) */
-  .dd p{margin:0 0 2mm 0;font-size:3.3mm;line-height:1.25}
-  .dd ul{margin:0;padding-left:4.6mm;font-size:3.2mm}
-  .dd li{margin:1.6mm 0}
-
-  /* Important info (concise) */
-  .important{
-    margin-top: 4mm;
-  }
-  .important h2{
-    margin:0 0 2mm 0;
-    font-size:4.4mm;
-    color: var(--navy);
-    font-weight:900;
-  }
-  .important ul{margin:0;padding-left:4.6mm;font-size:3.2mm}
-  .important li{margin:1.6mm 0}
-
-  /* Footer band */
-  .footer{
-    margin-top: 4mm;
-    background: linear-gradient(135deg, var(--navy), var(--navy2));
-    color:#eaf1ff;
-    padding: 3.2mm 4mm;
-    font-weight:800;
-    text-align:center;
-    font-size:3.2mm;
-    border-top: 3mm solid;
-    border-image: linear-gradient(90deg, var(--orange), var(--orange2)) 1;
-  }
-  .dot{opacity:.7;padding:0 1.5mm}
-
-  /* --- PRINT: force one-page A4, keep colours, avoid splitting --- */
-  @page { size: A4; margin: 0; }
-  @media print {
-    html,body{background:#fff !important}
-    .sheet{width:210mm;min-height:297mm;margin:0}
-    .wrap{padding:10mm}
-    *{
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    /* prevent page breaks inside key blocks */
-    .banner,.active,.grid,.card,.lower,.important,.footer{break-inside:avoid;page-break-inside:avoid}
-  }
+  @page { size: A4; margin: 10mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #333; }
+  .header { background: #0b2a4a; color: white; padding: 20px; margin-bottom: 20px; text-align: center; }
+  .logo { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+  .tagline { font-size: 12px; opacity: 0.9; }
+  .title { font-size: 20px; color: #0b2a4a; margin-bottom: 15px; font-weight: bold; }
+  .section { margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
+  .card-header { background: #0b2a4a; color: white; padding: 10px; font-weight: bold; }
+  .card-body { padding: 15px; }
+  .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+  .row:last-child { border-bottom: none; }
+  .label { font-weight: bold; }
+  .value { color: #666; }
+  .active-box { background: #ff6b35; color: white; padding: 15px; text-align: center; margin: 20px 0; border-radius: 5px; font-weight: bold; }
+  .benefits { list-style: none; }
+  .benefits li { padding: 5px 0; }
+  .benefits li:before { content: "✓"; color: #ff6b35; font-weight: bold; margin-right: 10px; }
+  .steps { list-style: decimal; padding-left: 20px; }
+  .steps li { padding: 5px 0; }
+  .important { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px; }
+  .footer { background: #0b2a4a; color: white; padding: 10px; text-align: center; margin-top: 20px; }
 </style>
 </head>
-
 <body>
-  <div class="sheet">
-    <div class="banner">
-      <div class="brand">
-        <div class="bolt">⚡</div>
-        <div>
-          <h1>Flash Team</h1>
-          <div class="tagline">Fast, Friendly Repairs You Can Trust</div>
-        </div>
+  <div class="header">
+    <div class="logo">⚡ Flash Team</div>
+    <div class="tagline">Fast, Friendly Repairs You Can Trust</div>
+  </div>
+  
+  <div class="title">The Flash Team's Protection Plan</div>
+  
+  <div class="section">
+    <p>Dear <strong>${data.customerName || '[Customer Name]'}</strong>,</p>
+    <p>Thank you for choosing Flash Team. This document confirms your <strong>Protection Plan</strong> is now active, subject to the plan terms, conditions and exclusions.</p>
+  </div>
+
+  <div class="active-box">
+    ⚡ Your Protection Plan is now active
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">Your Account Details</div>
+      <div class="card-body">
+        <div class="row"><span class="label">Customer:</span><span class="value">${data.customerName || '[Name]'}</span></div>
+        <div class="row"><span class="label">Email:</span><span class="value">${data.email || '[Email]'}</span></div>
+        <div class="row"><span class="label">Phone:</span><span class="value">${data.phone || '[Phone]'}</span></div>
+        <div class="row"><span class="label">Address:</span><span class="value">${data.address || '[Address]'}</span></div>
+        <div class="row"><span class="label">Start Date:</span><span class="value">${data.coverageStartDate || '[Date]'}</span></div>
+        <div class="row"><span class="label">Policy Ref:</span><span class="value">${data.policyNumber || '[Policy]'}</span></div>
       </div>
     </div>
 
-    <div class="wrap">
-      <div class="title">The Flash Team's Protection Plan</div>
-      <div class="rule"></div>
-
-      <p class="p">Dear <strong>${escapeHtml(data.customerName)}</strong>,</p>
-      <p class="p">
-        Thank you for choosing Flash Team. This document confirms your <strong>Protection Plan</strong> is now active,
-        subject to the plan terms, conditions and exclusions.
-      </p>
-
-      <div class="active">
-        <div class="top"><span class="miniBolt">⚡</span> Your Protection Plan is now active</div>
-        <div class="bottom">This letter explains your cover and how to request assistance</div>
-      </div>
-
-      <div class="grid">
-        <!-- LEFT: Account -->
-        <div class="card">
-          <div class="head">Your Account Details</div>
-          <div class="body">
-            <div class="row"><div class="k">Customer</div><div class="v">${escapeHtml(data.customerName)}</div></div>
-            <div class="row"><div class="k">Email</div><div class="v">${escapeHtml(data.email)}</div></div>
-            <div class="row"><div class="k">Phone</div><div class="v">${escapeHtml(data.phone)}</div></div>
-            <div class="row"><div class="k">Address</div><div class="v">${escapeHtml(data.address)}</div></div>
-            <div class="row"><div class="k">Start Date</div><div class="v">${escapeHtml(data.coverageStartDate)}</div></div>
-            <div class="row"><div class="k">Policy Ref</div><div class="v">${escapeHtml(data.policyNumber)}</div></div>
-          </div>
-        </div>
-
-        <!-- RIGHT: Plan provides -->
-        <div class="card">
-          <div class="head">What Your Plan Provides</div>
-          <div class="body">
-            ${data.monthlyCost ? `
-              <div class="kv"><span class="k2">Monthly Payment:</span> ${money(data.monthlyCost)}</div>
-            ` : ''}
-
-            <ul class="checks">
-              ${data.hasApplianceCover ? `
-                <li><span class="tick">✓</span><span>Access to qualified engineers for covered appliance breakdowns</span></li>
-              ` : ''}
-              ${data.hasBoilerCover ? `
-                <li><span class="tick">✓</span><span>Access to qualified engineers for covered boiler and central heating breakdowns</span></li>
-              ` : ''}
-              <li><span class="tick">✓</span><span>Repairs to covered appliances or systems, where repair is possible</span></li>
-              <li><span class="tick">✓</span><span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability and the plan terms</span></li>
-              <li><span class="tick">✓</span><span>Fixed pricing with no call-out charge for covered faults</span></li>
-              <li><span class="tick">✓</span><span>Appointments offered subject to engineer availability</span></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="lower">
-        <!-- Requesting assistance -->
-        <div class="card">
-          <div class="head">Requesting Assistance</div>
-          <div class="body">
-            <ol class="steps">
-              <li>Call <a class="phone" href="tel:03308227695">0330 822 7695</a></li>
-              <li>Quote your policy reference <strong>${escapeHtml(data.policyNumber)}</strong></li>
-              <li>Describe the issue so we can assess eligibility</li>
-              <li>Book an appointment subject to availability</li>
-            </ol>
-          </div>
-        </div>
-
-        <!-- Direct debit (compact) -->
-        <div class="card dd">
-          <div class="head">Direct Debit Guarantee</div>
-          <div class="body">
-            <p>If you pay by <strong>Direct Debit</strong>, payments will appear on your bank statement as <strong>Warmcare</strong>.</p>
-            <ul>
-              <li>We'll notify you in advance of any changes to amount, date or frequency.</li>
-              <li>If an error is made, you're entitled to a full and immediate refund from your bank.</li>
-              <li>You can cancel a Direct Debit at any time via your bank or building society.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="important">
-        <h2>Important Information</h2>
-        <ul>
-          <li>This Protection Plan is a <strong>service agreement</strong> and is not an insurance policy.</li>
-          <li>All services are provided subject to <strong>plan terms, conditions and exclusions</strong>.</li>
-          <li>Annual boiler service: Please contact us to book your annual boiler service.</li>
+    <div class="card">
+      <div class="card-header">What Your Plan Provides</div>
+      <div class="card-body">
+        ${data.monthlyCost ? `<p><strong>Monthly Payment:</strong> £${data.monthlyCost}</p>` : ''}
+        <ul class="benefits">
+          ${data.hasApplianceCover ? '<li>Access to qualified engineers for appliance breakdowns</li>' : ''}
+          ${data.hasBoilerCover ? '<li>Access to qualified engineers for boiler and heating breakdowns</li>' : ''}
+          <li>Repairs to covered appliances or systems, where repair is possible</li>
+          <li>Fixed pricing with no call-out charge for covered faults</li>
+          <li>Appointments offered subject to engineer availability</li>
         </ul>
-      </div>
-
-      <div class="footer">
-        Flash Team <span class="dot">•</span> Nationwide UK <span class="dot">•</span> 0330 822 7695 <span class="dot">•</span> theflashteam.co.uk
       </div>
     </div>
   </div>
+
+  <div class="section">
+    <h3>How to Request Assistance</h3>
+    <ol class="steps">
+      <li>Call <strong>0330 822 7695</strong></li>
+      <li>Quote your policy reference <strong>${data.policyNumber || '[Policy Ref]'}</strong></li>
+      <li>Describe the issue so we can assess eligibility</li>
+      <li>Book an appointment subject to availability</li>
+    </ol>
+  </div>
+
+  <div class="important">
+    <h3>Important Information</h3>
+    <ul>
+      <li>This Protection Plan is a <strong>service agreement</strong> and is not an insurance policy.</li>
+      <li>All services are provided subject to <strong>plan terms, conditions and exclusions</strong>.</li>
+      <li>Annual boiler service: Please contact us to book your annual boiler service.</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    Flash Team • Nationwide UK • 0330 822 7695 • theflashteam.co.uk
+  </div>
 </body>
 </html>`;
+
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(minimalHtml, { waitUntil: "networkidle" });
+    await page.emulateMedia({ media: "print" });
+    
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
+      preferCSSPageSize: true
+    });
+    
+    return pdfBuffer;
+  } finally {
+    await browser.close();
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -513,36 +305,11 @@ export async function POST(request: NextRequest) {
 
     console.log('📄 Flash Team data prepared:', flashTeamData);
     
-    // Generate HTML using Flash Team template
-    const htmlContent = buildFlashTeamHtml(flashTeamData);
-    console.log('✅ Flash Team HTML generated, length:', htmlContent.length);
-
-    // Generate PDF from Flash Team HTML
-    console.log('📄 Converting Flash Team HTML to PDF...');
+    // Generate PDF directly using one-page template
+    console.log('📄 Generating Flash Team PDF directly...');
     
-    const browser = await chromium.launch({
-      headless: true,
-      args: ["--font-render-hinting=medium"]
-    });
-    
-    try {
-      const page = await browser.newPage();
-      
-      // Load HTML
-      await page.setContent(htmlContent, { waitUntil: "networkidle" });
-      
-      // Ensure deterministic layout
-      await page.emulateMedia({ media: "print" });
-      
-      // A4 PDF with proper margins
-      const pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: { top: "12mm", right: "12mm", bottom: "12mm", left: "12mm" },
-        preferCSSPageSize: true
-      });
-      
-      console.log('✅ PDF generated, size:', pdfBuffer.length, 'bytes');
+    const pdfBuffer = await generateFlashTeamPDF(flashTeamData);
+    console.log('✅ Flash Team PDF generated, size:', pdfBuffer.length, 'bytes');
 
       // Generate filename 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -601,10 +368,6 @@ export async function POST(request: NextRequest) {
           downloadUrl: `/api/paperwork/download/${generatedDocument.id}`
         }
       });
-      
-    } finally {
-      await browser.close();
-    }
 
   } catch (error) {
     console.error('❌ Document generation error:', error);
