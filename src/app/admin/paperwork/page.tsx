@@ -347,7 +347,22 @@ export default function AdminPaperworkPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Error response:', errorData);
-        throw new Error(errorData.message || 'Failed to generate documents');
+        
+        // Provide detailed error message
+        let errorMessage = 'Failed to generate documents';
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          if (errorData.validTemplateIds && errorData.error.includes('Invalid template IDs')) {
+            errorMessage = `${errorData.error}\nValid template IDs: ${errorData.validTemplateIds.join(', ')}`;
+          } else if (errorData.maxRecommended && errorData.error.includes('Batch too large')) {
+            errorMessage = `${errorData.error}\nRecommended: Select max ${errorData.maxRecommended} sales for the current template selection.`;
+          } else {
+            errorMessage = errorData.error;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
