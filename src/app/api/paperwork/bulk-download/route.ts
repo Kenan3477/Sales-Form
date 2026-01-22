@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`📊 Processing ${customerDocuments.size} unique customers from ${documents.length} total documents`);
 
-    // Create combined HTML file with proper print layout
-    console.log('📄 Creating combined HTML document...');
+    // Create combined HTML file with single-page layout per customer
+    console.log('📄 Creating combined single-page PDF document...');
     let skippedFiles = 0;
     let combinedHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -137,152 +137,61 @@ export async function POST(request: NextRequest) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Documents - ${new Date().toLocaleDateString()}</title>
     <style>
-        @page {
-            size: A4;
-            margin: 2cm 2cm 2cm 2cm;
-        }
-        
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
         
         body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.3;
+            color: #2d3748;
             background: white;
-            line-height: 1.6;
-        }
-        
-        .customer-document {
-            page-break-before: always;
-            page-break-inside: auto;
-            width: 100%;
-            padding: 0;
             margin: 0;
+            padding: 0;
         }
         
-        .customer-document:first-child {
+        .customer-page {
+            page-break-before: always;
+            page-break-after: always;
+            page-break-inside: avoid;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .customer-page:first-child {
             page-break-before: auto;
         }
         
-        .customer-header {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border: 2px solid #007bff;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            text-align: center;
-            page-break-inside: avoid;
+        @page {
+            margin: 15mm 10mm;
+            size: A4;
         }
         
-        .customer-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 8px;
-        }
-        
-        .customer-info {
-            font-size: 12px;
-            color: #666;
-            line-height: 1.4;
-        }
-        
-        .document-content {
-            width: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        
-        /* Ensure proper content flow and page breaks */
-        .document-content > * {
-            page-break-inside: avoid;
-            margin-bottom: 1em;
-        }
-        
-        .document-content h1,
-        .document-content h2,
-        .document-content h3,
-        .document-content h4,
-        .document-content h5,
-        .document-content h6 {
-            page-break-after: avoid;
-            page-break-inside: avoid;
-        }
-        
-        .document-content table {
-            page-break-inside: auto;
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .document-content tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
-        }
-        
-        .document-content thead {
-            display: table-header-group;
-        }
-        
-        .document-content tfoot {
-            display: table-footer-group;
-        }
-        
-        /* Override any embedded styles that could cause layout issues */
-        .document-content h1 { font-size: 24px !important; margin: 20px 0 15px 0 !important; }
-        .document-content h2 { font-size: 20px !important; margin: 18px 0 12px 0 !important; }
-        .document-content h3 { font-size: 18px !important; margin: 16px 0 10px 0 !important; }
-        .document-content p { font-size: 14px !important; margin: 0 0 10px 0 !important; }
-        
-        /* Ensure tables display properly */
-        .document-content table { 
-          width: 100% !important; 
-          margin-bottom: 20px !important; 
-          border-collapse: collapse !important; 
-        }
-        .document-content td, .document-content th { 
-          padding: 8px !important; 
-          border: 1px solid #ddd !important; 
-          font-size: 12px !important; 
-        }
-        
-        /* Handle long text and prevent overflow */
-        .document-content {
-          word-wrap: break-word !important;
-          overflow-wrap: break-word !important;
-        }
-        
-        /* Print-specific styles */
         @media print {
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
             body {
-                margin: 0 !important;
-                padding: 0 !important;
+                background: white;
+                padding: 0;
+                margin: 0;
             }
             
-            .customer-document {
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            .customer-header {
-                background-color: #f8f9fa !important;
-                border: 2px solid #007bff !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            
-            .document-content {
-                width: 100% !important;
-            }
-        }
-        
-        /* Hide screen-only elements */
-        @media print {
-            .no-print {
-                display: none !important;
+            .customer-page {
+                width: 100%;
+                height: 100vh;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                page-break-inside: avoid;
             }
         }
     </style>
@@ -306,46 +215,43 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // The document content is a complete HTML document - we need to extract the styled content properly
+        // The document content should be our enhanced template - extract it properly
         let documentHtml = fileContent;
+        
+        // For our enhanced template, we want the complete document content as-is
+        // Remove only the outer html/head tags but preserve all styles and structure
+        let cleanDocumentContent = documentHtml;
+        
+        // Remove DOCTYPE and outer HTML wrapper, but keep everything else including styles
+        cleanDocumentContent = cleanDocumentContent
+          .replace(/<!DOCTYPE[^>]*>/gi, '')
+          .replace(/<html[^>]*>/gi, '')
+          .replace(/<\/html>/gi, '')
+          .trim();
+        
+        // Extract the head content (including styles) and body content separately
+        const headMatch = cleanDocumentContent.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+        const bodyMatch = cleanDocumentContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        
+        let headContent = headMatch ? headMatch[1] : '';
+        let bodyContent = bodyMatch ? bodyMatch[1] : cleanDocumentContent;
+        
+        // If we have head content, extract just the styles
         let documentStyles = '';
-        let documentBody = '';
-        
-        // Extract styles from the head section
-        const styleMatch = documentHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-        if (styleMatch) {
-          documentStyles = styleMatch.join('\n');
-        }
-        
-        // Extract content from body, but if no body tags exist, use everything after head
-        const bodyMatch = documentHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-          documentBody = bodyMatch[1].trim();
-        } else {
-          // Fallback: remove head and html wrapper tags but keep all content
-          documentBody = documentHtml
-            .replace(/<!DOCTYPE[^>]*>/gi, '')
-            .replace(/<html[^>]*>/gi, '')
-            .replace(/<\/html>/gi, '')
-            .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
-            .trim();
+        if (headContent) {
+          const styleMatches = headContent.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+          if (styleMatches) {
+            documentStyles = styleMatches.map(style => 
+              style.replace(/<\/?style[^>]*>/gi, '')
+            ).join('\n');
+          }
         }
 
-        // Create customer page with proper structure for printing
+        // Create a single page for this customer using our enhanced template format
         combinedHtml += `
-    <div class="customer-document">
-        ${documentStyles ? `<style scoped>${documentStyles.replace(/<\/?style[^>]*>/gi, '')}</style>` : ''}
-        <div class="customer-header">
-            <div class="customer-name">${doc.sale.customerFirstName} ${doc.sale.customerLastName}</div>
-            <div class="customer-info">
-                Email: ${doc.sale.email} | 
-                Document: ${doc.template.name || 'Welcome Letter'} | 
-                Generated: ${new Date(doc.generatedAt).toLocaleDateString()}
-            </div>
-        </div>
-        <div class="document-content">
-            ${documentBody}
-        </div>
+    <div class="customer-page">
+        ${documentStyles ? `<style>${documentStyles}</style>` : ''}
+        ${bodyContent}
     </div>
 `;
 
@@ -383,7 +289,7 @@ export async function POST(request: NextRequest) {
 
     // Generate filename
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
-    const pdfFileName = `all_customer_documents_${processedCount}_customers_${timestamp}.pdf`;
+    const pdfFileName = `flash_team_protection_plans_${processedCount}_customers_${timestamp}.pdf`;
     
     console.log(`✅ Combined document ready, generating PDF: ${pdfFileName} (${Math.round(combinedHtml.length/1024)}KB)`);
 
@@ -417,12 +323,14 @@ export async function POST(request: NextRequest) {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
+      preferCSSPageSize: true,
       margin: {
-        top: '0.5in',
-        right: '0.5in',
-        bottom: '0.5in',
-        left: '0.5in'
-      }
+        top: '10mm',
+        right: '10mm', 
+        bottom: '10mm',
+        left: '10mm'
+      },
+      scale: 1
     });
     
     await browser.close();
