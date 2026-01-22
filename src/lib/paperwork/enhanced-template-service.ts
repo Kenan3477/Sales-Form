@@ -90,40 +90,40 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 15px 20px;
+            padding: 20px 20px;
         }
         
         .main-title {
-            font-size: 20px;
+            font-size: 24px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             border-bottom: 2px solid #ff6500;
-            padding-bottom: 5px;
+            padding-bottom: 8px;
         }
         
         .intro-text {
-            font-size: 12px;
-            margin-bottom: 15px;
-            line-height: 1.4;
+            font-size: 14px;
+            margin-bottom: 18px;
+            line-height: 1.5;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 12px 15px;
-            margin-bottom: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
             border-radius: 5px;
             text-align: center;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
         }
         
         .three-column {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 20px;
+            margin-bottom: 20px;
         }
         
         .card {
@@ -136,23 +136,23 @@ export class EnhancedTemplateService {
         .card-header {
             background: #1a365d;
             color: white;
-            padding: 8px 12px;
+            padding: 12px 15px;
             font-weight: bold;
-            font-size: 11px;
+            font-size: 12px;
             text-transform: uppercase;
         }
         
         .card-content {
-            padding: 10px 12px;
+            padding: 15px;
             background: white;
-            font-size: 10px;
+            font-size: 11px;
         }
         
         .detail-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 3px 0;
+            padding: 5px 0;
             border-bottom: 1px solid #f0f4f7;
         }
         
@@ -164,7 +164,7 @@ export class EnhancedTemplateService {
             font-weight: 600;
             color: #4a5568;
             text-transform: uppercase;
-            font-size: 9px;
+            font-size: 10px;
             letter-spacing: 0.3px;
             width: 45%;
         }
@@ -174,16 +174,16 @@ export class EnhancedTemplateService {
             color: #1a365d;
             text-align: right;
             width: 50%;
-            font-size: 10px;
+            font-size: 11px;
         }
         
         .checklist-item {
             display: flex;
             align-items: flex-start;
-            gap: 6px;
-            margin-bottom: 5px;
-            font-size: 9px;
-            line-height: 1.2;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            line-height: 1.4;
         }
         
         .checklist-item:last-child {
@@ -191,13 +191,13 @@ export class EnhancedTemplateService {
         }
         
         .check-icon {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             background: #ff6500;
             border-radius: 50%;
             position: relative;
             flex-shrink: 0;
-            margin-top: 1px;
+            margin-top: 2px;
         }
         
         .check-icon::after {
@@ -207,26 +207,26 @@ export class EnhancedTemplateService {
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 8px;
+            font-size: 9px;
             font-weight: bold;
         }
         
         .two-column-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 20px;
+            margin-bottom: 20px;
         }
         
         .compact-list {
             list-style: none;
-            font-size: 9px;
-            line-height: 1.3;
+            font-size: 10px;
+            line-height: 1.4;
         }
         
         .compact-list li {
-            margin-bottom: 4px;
-            padding-left: 12px;
+            margin-bottom: 6px;
+            padding-left: 15px;
             position: relative;
         }
         
@@ -239,12 +239,12 @@ export class EnhancedTemplateService {
         }
         
         .numbered-steps {
-            font-size: 10px;
+            font-size: 11px;
         }
         
         .numbered-steps div {
-            margin-bottom: 4px;
-            padding-left: 15px;
+            margin-bottom: 6px;
+            padding-left: 18px;
             position: relative;
         }
         
@@ -255,15 +255,15 @@ export class EnhancedTemplateService {
             left: 0;
             background: #1a365d;
             color: white;
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
+            font-size: 9px;
             font-weight: bold;
-            top: 1px;
+            top: 2px;
         }
         
         .numbered-steps {
@@ -273,24 +273,63 @@ export class EnhancedTemplateService {
         .important-section {
             background: #f8fafc;
             border-left: 3px solid #ff6500;
-            padding: 12px;
-            margin-bottom: 10px;
+            padding: 15px;
+            margin-bottom: 0;
             border-radius: 0 4px 4px 0;
         }
         
         .important-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             color: #1a365d;
+            margin-bottom: 10px;
+        }
+        
+        .additional-info {
+            background: #e8f4fd;
+            border: 1px solid #bee3f8;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .additional-info h3 {
+            color: #1a365d;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #bee3f8;
+            padding-bottom: 5px;
+        }
+        
+        .coverage-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .coverage-section {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 12px;
+        }
+        
+        .coverage-section h4 {
+            color: #1a365d;
+            font-size: 12px;
+            font-weight: bold;
             margin-bottom: 8px;
+            text-transform: uppercase;
         }
         
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 10px 20px;
+            padding: 15px 20px;
             text-align: center;
-            font-size: 10px;
+            font-size: 11px;
             margin-top: 0;
         }
         
@@ -424,7 +463,7 @@ export class EnhancedTemplateService {
                 <div class="card">
                     <div class="card-header">Direct Debit Guarantee</div>
                     <div class="card-content">
-                        <div style="font-weight: bold; margin-bottom: 6px; font-size: 9px;">
+                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 10px;">
                             Payments appear as "Warmcare" on your bank statement.
                         </div>
                         <ul class="compact-list">
@@ -432,6 +471,7 @@ export class EnhancedTemplateService {
                             <li>Full refund if payment errors occur</li>
                             <li>Cancel anytime via your bank</li>
                             <li>Offered by all banks and building societies</li>
+                            <li>Confirmation given when payment requested</li>
                         </ul>
                     </div>
                 </div>
@@ -443,7 +483,49 @@ export class EnhancedTemplateService {
                         <li>Subject to <strong>plan terms, conditions and exclusions</strong></li>
                         <li><strong>Annual boiler service:</strong> Contact us to book</li>
                         <li>All repairs subject to availability and assessment</li>
+                        <li>Engineer visits available Monday-Friday 8AM-6PM</li>
+                        <li>Emergency cover available for qualifying issues</li>
                     </ul>
+                </div>
+            </div>
+            
+            <div class="coverage-grid">
+                <div class="coverage-section">
+                    <h4>What's Covered</h4>
+                    <ul class="compact-list">
+                        <li>Central heating system repairs</li>
+                        <li>Boiler breakdown and servicing</li>
+                        <li>Radiator and pipework issues</li>
+                        <li>Thermostat and control faults</li>
+                        <li>Kitchen appliance breakdowns</li>
+                        <li>Washing machine and dishwasher</li>
+                    </ul>
+                </div>
+                
+                <div class="coverage-section">
+                    <h4>Exclusions & Limitations</h4>
+                    <ul class="compact-list">
+                        <li>Pre-existing conditions</li>
+                        <li>Damage due to neglect or misuse</li>
+                        <li>External pipework and drainage</li>
+                        <li>Cosmetic damage or wear</li>
+                        <li>Appliances over 15 years old</li>
+                        <li>Full terms available on request</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="additional-info">
+                <h3>Your Rights & Peace of Mind</h3>
+                <div class="coverage-grid">
+                    <div>
+                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Cooling Off Period:</strong> You have 14 days to cancel this agreement for a full refund.</p>
+                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Customer Service:</strong> Available Monday-Friday 8AM-6PM, Saturday 9AM-1PM.</p>
+                    </div>
+                    <div>
+                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Quality Guarantee:</strong> All work carried out by Gas Safe registered engineers.</p>
+                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Parts Warranty:</strong> 12 months on all replacement parts and labor.</p>
+                    </div>
                 </div>
             </div>
         </div>
