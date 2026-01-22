@@ -170,7 +170,7 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('📝 Document generation request started');
+  console.log('📝 Document generation request started - FLASH TEAM PDF ONLY');
   
   try {
     // Rate limiting
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
     console.log('📝 Request body:', body);
     
     const validatedData = generateDocumentSchema.parse(body);
-    console.log('✅ Request data validated:', validatedData);
+    console.log('✅ Request data validated - WILL GENERATE PDF ONLY:', validatedData);
 
     // Initialize template data for Flash Team PDF
     console.log('📝 Preparing data for Flash Team PDF generation');
@@ -353,6 +353,10 @@ export async function POST(request: NextRequest) {
       });
 
       console.log('✅ Sale marked as having documents generated:', sale.id);
+
+      console.log('🎯 FINAL RESULT: Generated PDF file:', fileName);
+      console.log('🎯 Template name:', templateName);
+      console.log('🎯 File type: application/pdf');
 
       return NextResponse.json({
         success: true,
