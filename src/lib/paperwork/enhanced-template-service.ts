@@ -90,7 +90,7 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 12px 15px;
+            padding: 12px 15px 20px 15px;
         }
         
         .main-title {
@@ -123,7 +123,7 @@ export class EnhancedTemplateService {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
         }
         
         .card {
@@ -215,7 +215,7 @@ export class EnhancedTemplateService {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
         }
         
         .compact-list {
