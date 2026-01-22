@@ -26,10 +26,10 @@ export class EnhancedTemplateService {
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.2;
+            line-height: 1.3;
             color: #2d3748;
             background: white;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 400;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -37,6 +37,7 @@ export class EnhancedTemplateService {
             padding: 0;
             width: 100vw;
             height: 100vh;
+            overflow: hidden;
         }
         
         .document-container {
@@ -45,6 +46,7 @@ export class EnhancedTemplateService {
             background: white;
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
         }
         
         .header {
@@ -111,34 +113,37 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 14px 20px 20px 20px;
+            padding: 16px 20px;
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         
         .main-title {
-            font-size: 15px;
+            font-size: 18px;
             font-weight: 700;
             color: #1a365d;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             border-bottom: 2px solid #ff6500;
-            padding-bottom: 6px;
+            padding-bottom: 8px;
             letter-spacing: -0.25px;
         }
         
         .intro-text {
-            font-size: 10px;
-            margin-bottom: 16px;
-            line-height: 1.4;
+            font-size: 12px;
+            margin-bottom: 18px;
+            line-height: 1.5;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 12px 16px;
-            margin-bottom: 18px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
             border-radius: 4px;
             text-align: center;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             box-shadow: 0 2px 6px rgba(255, 101, 0, 0.2);
             letter-spacing: 0.25px;
@@ -147,8 +152,9 @@ export class EnhancedTemplateService {
         .three-column {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 22px;
+            flex: 1;
         }
         
         .card {
@@ -158,23 +164,27 @@ export class EnhancedTemplateService {
             background: #fafbfc;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             transition: box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         
         .card-header {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 12px 8px;
+            padding: 14px 10px;
             font-weight: 600;
-            font-size: 9px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
         .card-content {
-            padding: 14px 8px;
+            padding: 16px 10px;
             background: white;
-            font-size: 8px;
-            line-height: 1.45;
+            font-size: 10px;
+            line-height: 1.4;
+            flex: 1;
         }
         
         .detail-row {
@@ -194,7 +204,7 @@ export class EnhancedTemplateService {
             font-weight: 600;
             color: #4a5568;
             text-transform: uppercase;
-            font-size: 7px;
+            font-size: 8px;
             letter-spacing: 0.5px;
             width: 45%;
         }
@@ -204,7 +214,7 @@ export class EnhancedTemplateService {
             color: #1a365d;
             text-align: right;
             flex: 1;
-            font-size: 8px;
+            font-size: 10px;
             word-break: break-word;
             overflow-wrap: break-word;
         }
@@ -212,10 +222,10 @@ export class EnhancedTemplateService {
         .checklist-item {
             display: flex;
             align-items: flex-start;
-            gap: 5px;
-            margin-bottom: 7px;
-            font-size: 8px;
-            line-height: 1.45;
+            gap: 6px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            line-height: 1.4;
         }
         
         .checklist-item:last-child {
@@ -247,19 +257,19 @@ export class EnhancedTemplateService {
         .two-column-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 18px;
+            gap: 14px;
+            margin-bottom: 20px;
         }
         
         .compact-list {
             list-style: none;
-            font-size: 7px;
-            line-height: 1.3;
+            font-size: 9px;
+            line-height: 1.4;
         }
         
         .compact-list li {
-            margin-bottom: 4px;
-            padding-left: 8px;
+            margin-bottom: 5px;
+            padding-left: 10px;
             position: relative;
         }
         
@@ -272,14 +282,14 @@ export class EnhancedTemplateService {
         }
         
         .numbered-steps {
-            font-size: 8px;
+            font-size: 10px;
         }
         
         .numbered-steps div {
-            margin-bottom: 6px;
-            padding-left: 12px;
+            margin-bottom: 7px;
+            padding-left: 14px;
             position: relative;
-            line-height: 1.45;
+            line-height: 1.4;
         }
         
         .numbered-steps div::before {
@@ -308,17 +318,17 @@ export class EnhancedTemplateService {
         .important-section {
             background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
             border-left: 3px solid #ff6500;
-            padding: 14px;
-            margin-bottom: 22px;
+            padding: 16px;
+            margin-bottom: 20px;
             border-radius: 0 4px 4px 0;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
         .important-title {
-            font-size: 9px;
+            font-size: 11px;
             font-weight: 700;
             color: #1a365d;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             letter-spacing: 0.25px;
         }
         
@@ -326,41 +336,41 @@ export class EnhancedTemplateService {
             background: linear-gradient(135deg, #e8f4fd 0%, #bee3f8 100%);
             border: 1px solid #90cdf4;
             border-radius: 4px;
-            padding: 12px;
-            margin-bottom: 16px;
+            padding: 14px;
+            margin-bottom: 18px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
         .additional-info h3 {
             color: #1a365d;
-            font-size: 9px;
+            font-size: 11px;
             font-weight: 700;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             border-bottom: 1px solid #90cdf4;
-            padding-bottom: 4px;
+            padding-bottom: 5px;
             letter-spacing: 0.25px;
         }
         
         .coverage-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 18px;
+            gap: 14px;
+            margin-bottom: 20px;
         }
         
         .coverage-section {
             background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
             border: 1px solid #e2e8f0;
             border-radius: 4px;
-            padding: 10px;
+            padding: 12px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
         .coverage-section h4 {
             color: #1a365d;
-            font-size: 8px;
+            font-size: 10px;
             font-weight: 700;
-            margin-bottom: 7px;
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -368,10 +378,10 @@ export class EnhancedTemplateService {
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 10px 20px;
+            padding: 12px 20px;
             text-align: center;
-            font-size: 8px;
-            margin-top: 12px;
+            font-size: 10px;
+            margin-top: auto;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
             width: 100%;
         }
@@ -442,7 +452,7 @@ export class EnhancedTemplateService {
             
             <div class="intro-text">
                 <strong>Dear {{customerName}},</strong><br>
-                <div style="margin: 8px 0 18px 0; font-size: 10px; line-height: 1.4;">
+                <div style="margin: 10px 0 20px 0; font-size: 12px; line-height: 1.5;">
                     {{address}}
                 </div>
                 Thank you for choosing Flash Team. Your <strong>Protection Plan</strong> is now active.
@@ -526,7 +536,7 @@ export class EnhancedTemplateService {
                 <div class="card">
                     <div class="card-header">Direct Debit Guarantee</div>
                     <div class="card-content">
-                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 10px;">
+                        <div style="font-weight: bold; margin-bottom: 10px; font-size: 11px;">
                             Payments appear as "Warmcare" on your bank statement.
                         </div>
                         <ul class="compact-list">
@@ -581,10 +591,10 @@ export class EnhancedTemplateService {
                 <h3>Your Rights & Peace of Mind</h3>
                 <div class="coverage-grid">
                     <div>
-                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Cooling Off Period:</strong> You have 14 days to cancel this agreement for a full refund.</p>
+                        <p style="font-size: 11px; margin-bottom: 8px;"><strong>Cooling Off Period:</strong> You have 14 days to cancel this agreement for a full refund.</p>
                     </div>
                     <div>
-                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Quality Guarantee:</strong> All work carried out by Gas Safe registered engineers.</p>
+                        <p style="font-size: 11px; margin-bottom: 8px;"><strong>Quality Guarantee:</strong> All work carried out by Gas Safe registered engineers.</p>
                     </div>
                 </div>
             </div>
