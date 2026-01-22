@@ -90,29 +90,29 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 12px 15px 20px 15px;
+            padding: 16px 15px 25px 15px;
         }
         
         .main-title {
             font-size: 16px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             border-bottom: 2px solid #ff6500;
-            padding-bottom: 3px;
+            padding-bottom: 6px;
         }
         
         .intro-text {
             font-size: 10px;
-            margin-bottom: 10px;
-            line-height: 1.3;
+            margin-bottom: 16px;
+            line-height: 1.4;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 8px 12px;
-            margin-bottom: 12px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
             border-radius: 3px;
             text-align: center;
             font-size: 11px;
@@ -122,8 +122,8 @@ export class EnhancedTemplateService {
         .three-column {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
         .card {
@@ -136,28 +136,30 @@ export class EnhancedTemplateService {
         .card-header {
             background: #1a365d;
             color: white;
-            padding: 6px 8px;
+            padding: 10px 8px;
             font-weight: bold;
             font-size: 9px;
             text-transform: uppercase;
         }
         
         .card-content {
-            padding: 8px;
+            padding: 12px 8px;
             background: white;
             font-size: 8px;
+            line-height: 1.4;
         }
         
         .detail-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 2px 0;
+            padding: 3px 0;
             border-bottom: 1px solid #f0f4f7;
         }
         
         .detail-row:last-child {
             border-bottom: none;
+            padding-bottom: 2px;
         }
         
         .detail-label {
@@ -181,13 +183,13 @@ export class EnhancedTemplateService {
             display: flex;
             align-items: flex-start;
             gap: 4px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             font-size: 8px;
-            line-height: 1.2;
+            line-height: 1.4;
         }
         
         .checklist-item:last-child {
-            margin-bottom: 0;
+            margin-bottom: 2px;
         }
         
         .check-icon {
@@ -214,18 +216,18 @@ export class EnhancedTemplateService {
         .two-column-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
         .compact-list {
             list-style: none;
             font-size: 8px;
-            line-height: 1.2;
+            line-height: 1.4;
         }
         
         .compact-list li {
-            margin-bottom: 3px;
+            margin-bottom: 5px;
             padding-left: 10px;
             position: relative;
         }
@@ -243,9 +245,10 @@ export class EnhancedTemplateService {
         }
         
         .numbered-steps div {
-            margin-bottom: 3px;
+            margin-bottom: 5px;
             padding-left: 12px;
             position: relative;
+            line-height: 1.4;
         }
         
         .numbered-steps div::before {
@@ -273,8 +276,8 @@ export class EnhancedTemplateService {
         .important-section {
             background: #f8fafc;
             border-left: 2px solid #ff6500;
-            padding: 8px;
-            margin-bottom: 0;
+            padding: 12px;
+            margin-bottom: 18px;
             border-radius: 0 3px 3px 0;
         }
         
@@ -282,55 +285,55 @@ export class EnhancedTemplateService {
             font-size: 9px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
         
         .additional-info {
             background: #e8f4fd;
             border: 1px solid #bee3f8;
             border-radius: 3px;
-            padding: 8px;
-            margin-bottom: 12px;
+            padding: 12px;
+            margin-bottom: 18px;
         }
         
         .additional-info h3 {
             color: #1a365d;
             font-size: 9px;
             font-weight: bold;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             border-bottom: 1px solid #bee3f8;
-            padding-bottom: 2px;
+            padding-bottom: 3px;
         }
         
         .coverage-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
         .coverage-section {
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 3px;
-            padding: 6px;
+            padding: 10px;
         }
         
         .coverage-section h4 {
             color: #1a365d;
             font-size: 8px;
             font-weight: bold;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             text-transform: uppercase;
         }
         
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 8px 15px;
+            padding: 12px 15px;
             text-align: center;
             font-size: 8px;
-            margin-top: 0;
+            margin-top: 15px;
         }
         
         .footer-content {
