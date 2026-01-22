@@ -202,15 +202,56 @@ export async function POST(request: NextRequest) {
 
     for (const doc of Array.from(customerDocuments.values())) {
       try {
-        // Get document content from metadata
+        // Get document content from metadata first
         let fileContent: string | undefined;
         
         if (doc.metadata && typeof doc.metadata === 'object' && 'documentContent' in doc.metadata) {
           fileContent = doc.metadata.documentContent as string;
         }
         
+        // If no content in metadata, try to regenerate using enhanced template service
         if (!fileContent || typeof fileContent !== 'string') {
-          console.error(`❌ Document content not found for ${doc.filename}. Document may have been generated before serverless migration.`);
+          console.log(`⚡ Regenerating content for ${doc.filename} using enhanced template service`);
+          
+          try {
+            // Import the enhanced template service
+            const { EnhancedTemplateService } = await import('@/lib/paperwork/enhanced-template-service');
+            const templateService = new EnhancedTemplateService();
+            
+            // Get the sale data to regenerate the document
+            const sale = await prisma.sale.findUnique({
+              where: { id: doc.saleId }
+            });
+            
+            if (sale) {
+              // Prepare the data for template generation
+              const templateData = {
+                customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+                email: sale.email,
+                phone: sale.phoneNumber,
+                address: `${sale.mailingStreet || ''}${sale.mailingCity ? `, ${sale.mailingCity}` : ''}${sale.mailingProvince ? `, ${sale.mailingProvince}` : ''}${sale.mailingPostalCode ? ` ${sale.mailingPostalCode}` : ''}`.trim(),
+                monthlyCost: sale.totalPlanCost?.toString() || '0',
+                policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Generate new policy number
+                coverageStartDate: sale.createdAt ? new Date(sale.createdAt).toLocaleDateString() : new Date().toLocaleDateString()
+              };
+              
+              // Generate the document content using enhanced template service
+              fileContent = await templateService.generateDocument('welcome-letter', templateData);
+              console.log(`✅ Successfully regenerated content for ${doc.filename}`);
+            } else {
+              console.error(`❌ Sale not found for document ${doc.filename} (sale ID: ${doc.saleId})`);
+              skippedFiles++;
+              continue;
+            }
+          } catch (regenerateError) {
+            console.error(`❌ Failed to regenerate content for ${doc.filename}:`, regenerateError);
+            skippedFiles++;
+            continue;
+          }
+        }
+        
+        if (!fileContent || typeof fileContent !== 'string') {
+          console.error(`❌ No content available for ${doc.filename} after regeneration attempt`);
           skippedFiles++;
           continue;
         }
