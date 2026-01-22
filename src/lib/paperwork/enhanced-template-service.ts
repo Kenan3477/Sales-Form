@@ -26,10 +26,10 @@ export class EnhancedTemplateService {
         
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            line-height: 1.3;
+            line-height: 1.2;
             color: #333;
             background: white;
-            font-size: 12px;
+            font-size: 10px;
         }
         
         .document-container {
@@ -40,7 +40,7 @@ export class EnhancedTemplateService {
         .header {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 30%, #1e4c72 70%, #1a365d 100%);
             color: white;
-            padding: 15px 20px;
+            padding: 8px 15px;
             position: relative;
         }
         
@@ -50,25 +50,25 @@ export class EnhancedTemplateService {
             bottom: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
             background: linear-gradient(90deg, #ff4500 0%, #ff6500 50%, #ff4500 100%);
         }
         
         .logo-section {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
         
         .lightning-icon {
-            width: 24px;
-            height: 24px;
+            width: 18px;
+            height: 18px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            border-radius: 4px;
+            border-radius: 3px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 11px;
             color: white;
         }
         
@@ -77,58 +77,58 @@ export class EnhancedTemplateService {
         }
         
         .logo-text {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             letter-spacing: 1px;
         }
         
         .tagline {
-            font-size: 11px;
+            font-size: 9px;
             opacity: 0.9;
             margin-top: 1px;
             font-style: italic;
         }
         
         .content {
-            padding: 20px 20px;
+            padding: 12px 15px;
         }
         
         .main-title {
-            font-size: 24px;
+            font-size: 16px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
             border-bottom: 2px solid #ff6500;
-            padding-bottom: 8px;
+            padding-bottom: 3px;
         }
         
         .intro-text {
-            font-size: 14px;
-            margin-bottom: 18px;
-            line-height: 1.5;
+            font-size: 10px;
+            margin-bottom: 10px;
+            line-height: 1.3;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            border-radius: 5px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            border-radius: 3px;
             text-align: center;
-            font-size: 16px;
+            font-size: 11px;
             font-weight: bold;
         }
         
         .three-column {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
         
         .card {
             border: 1px solid #e2e8f0;
-            border-radius: 4px;
+            border-radius: 3px;
             overflow: hidden;
             background: #fafbfc;
         }
@@ -136,23 +136,23 @@ export class EnhancedTemplateService {
         .card-header {
             background: #1a365d;
             color: white;
-            padding: 12px 15px;
+            padding: 6px 8px;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 9px;
             text-transform: uppercase;
         }
         
         .card-content {
-            padding: 15px;
+            padding: 8px;
             background: white;
-            font-size: 11px;
+            font-size: 8px;
         }
         
         .detail-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 5px 0;
+            padding: 2px 0;
             border-bottom: 1px solid #f0f4f7;
         }
         
@@ -164,8 +164,8 @@ export class EnhancedTemplateService {
             font-weight: 600;
             color: #4a5568;
             text-transform: uppercase;
-            font-size: 10px;
-            letter-spacing: 0.3px;
+            font-size: 7px;
+            letter-spacing: 0.2px;
             width: 45%;
         }
         
@@ -174,16 +174,16 @@ export class EnhancedTemplateService {
             color: #1a365d;
             text-align: right;
             width: 50%;
-            font-size: 11px;
+            font-size: 8px;
         }
         
         .checklist-item {
             display: flex;
             align-items: flex-start;
-            gap: 8px;
-            margin-bottom: 8px;
-            font-size: 10px;
-            line-height: 1.4;
+            gap: 4px;
+            margin-bottom: 4px;
+            font-size: 8px;
+            line-height: 1.2;
         }
         
         .checklist-item:last-child {
@@ -191,13 +191,13 @@ export class EnhancedTemplateService {
         }
         
         .check-icon {
-            width: 14px;
-            height: 14px;
+            width: 10px;
+            height: 10px;
             background: #ff6500;
             border-radius: 50%;
             position: relative;
             flex-shrink: 0;
-            margin-top: 2px;
+            margin-top: 1px;
         }
         
         .check-icon::after {
@@ -207,26 +207,26 @@ export class EnhancedTemplateService {
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 9px;
+            font-size: 7px;
             font-weight: bold;
         }
         
         .two-column-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
         
         .compact-list {
             list-style: none;
-            font-size: 10px;
-            line-height: 1.4;
+            font-size: 8px;
+            line-height: 1.2;
         }
         
         .compact-list li {
-            margin-bottom: 6px;
-            padding-left: 15px;
+            margin-bottom: 3px;
+            padding-left: 10px;
             position: relative;
         }
         
@@ -239,12 +239,12 @@ export class EnhancedTemplateService {
         }
         
         .numbered-steps {
-            font-size: 11px;
+            font-size: 8px;
         }
         
         .numbered-steps div {
-            margin-bottom: 6px;
-            padding-left: 18px;
+            margin-bottom: 3px;
+            padding-left: 12px;
             position: relative;
         }
         
@@ -255,15 +255,15 @@ export class EnhancedTemplateService {
             left: 0;
             background: #1a365d;
             color: white;
-            width: 16px;
-            height: 16px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
+            font-size: 6px;
             font-weight: bold;
-            top: 2px;
+            top: 1px;
         }
         
         .numbered-steps {
@@ -272,64 +272,64 @@ export class EnhancedTemplateService {
         
         .important-section {
             background: #f8fafc;
-            border-left: 3px solid #ff6500;
-            padding: 15px;
+            border-left: 2px solid #ff6500;
+            padding: 8px;
             margin-bottom: 0;
-            border-radius: 0 4px 4px 0;
+            border-radius: 0 3px 3px 0;
         }
         
         .important-title {
-            font-size: 14px;
+            font-size: 9px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         
         .additional-info {
             background: #e8f4fd;
             border: 1px solid #bee3f8;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 20px;
+            border-radius: 3px;
+            padding: 8px;
+            margin-bottom: 12px;
         }
         
         .additional-info h3 {
             color: #1a365d;
-            font-size: 13px;
+            font-size: 9px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             border-bottom: 1px solid #bee3f8;
-            padding-bottom: 5px;
+            padding-bottom: 2px;
         }
         
         .coverage-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 12px;
         }
         
         .coverage-section {
             background: white;
             border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 12px;
+            border-radius: 3px;
+            padding: 6px;
         }
         
         .coverage-section h4 {
             color: #1a365d;
-            font-size: 12px;
+            font-size: 8px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             text-transform: uppercase;
         }
         
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 15px 20px;
+            padding: 8px 15px;
             text-align: center;
-            font-size: 11px;
+            font-size: 8px;
             margin-top: 0;
         }
         
