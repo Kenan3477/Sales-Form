@@ -409,6 +409,9 @@ export class EnhancedTemplateService {
             
             <div class="intro-text">
                 <strong>Dear {{customerName}},</strong><br>
+                <div style="margin: 8px 0 18px 0; font-size: 10px; line-height: 1.4;">
+                    {{address}}
+                </div>
                 Thank you for choosing Flash Team. Your <strong>Protection Plan</strong> is now active.
             </div>
             
