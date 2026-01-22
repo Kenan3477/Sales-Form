@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { isAdminRole } from '@/lib/apiSecurity';
 import fs from 'fs/promises';
 import path from 'path';
-import { chromium } from 'playwright';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -388,12 +389,34 @@ function buildFlashTeamHtml(data: any): string {
 }
 
 async function generateFlashTeamPDF(data: any): Promise<Buffer> {
-  const browser = await chromium.launch({ headless: true });
+  // Configure for serverless environment
+  let executablePath: string | undefined;
+  let args: string[] = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu',
+  ];
+  
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    executablePath = await chromium.executablePath();
+    args = chromium.args.concat(args);
+  }
+  
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath,
+    args,
+  });
+  
   try {
     const page = await browser.newPage();
     const htmlContent = buildFlashTeamHtml(data);
     
-    await page.setContent(htmlContent, { waitUntil: 'networkidle' });
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
     const pdfBuffer = await page.pdf({
       format: 'A4',

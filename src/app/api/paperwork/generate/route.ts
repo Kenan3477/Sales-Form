@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
-import { chromium } from 'playwright';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer';
 
 // Request validation schema
 const generateDocumentSchema = z.object({
@@ -150,11 +151,37 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
 </body>
 </html>`;
 
-  const browser = await chromium.launch({ headless: true });
+  // Configure for serverless environment
+  let executablePath: string | undefined;
+  let args: string[] = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu',
+  ];
+  
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    try {
+      executablePath = await chromium.executablePath();
+      args = (chromium as any).args.concat(args);
+    } catch (e) {
+      console.warn('Could not get chromium executable path:', e);
+    }
+  }
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath,
+    args,
+  });
+  
   try {
     const page = await browser.newPage();
-    await page.setContent(minimalHtml, { waitUntil: "networkidle" });
-    await page.emulateMedia({ media: "print" });
+    await page.setContent(minimalHtml, { waitUntil: "networkidle0" });
+    await page.emulateMediaType("print");
     
     const pdfBuffer = await page.pdf({
       format: "A4",
@@ -163,7 +190,7 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
       preferCSSPageSize: true
     });
     
-    return pdfBuffer;
+    return Buffer.from(pdfBuffer);
   } finally {
     await browser.close();
   }

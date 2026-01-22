@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
-import { chromium } from 'playwright';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer';
 
 // Request validation schema - PDF ONLY
 const previewDocumentSchema = z.object({
@@ -618,11 +619,32 @@ export async function GET(request: NextRequest) {
         return value !== undefined ? String(value) : match;
       });
       
-      // Generate PDF using chromium
-      const browser = await chromium.launch({ headless: true });
+      // Generate PDF using puppeteer with @sparticuz/chromium for serverless
+      let executablePath: string | undefined;
+      let args: string[] = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+      ];
+      
+      // Configure for serverless environment
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        executablePath = await chromium.executablePath();
+        args = chromium.args.concat(args);
+      }
+      
+      const browser = await puppeteer.launch({
+        headless: true,
+        executablePath,
+        args,
+      });
       
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle' });
+      await page.setContent(html, { waitUntil: 'networkidle0' });
       
       const pdfBuffer = await page.pdf({
         format: 'A4',
@@ -1315,11 +1337,32 @@ export async function POST(request: NextRequest) {
         return value !== undefined ? String(value) : match;
       });
       
-      // Generate PDF using chromium
-      const browser = await chromium.launch({ headless: true });
+      // Generate PDF using puppeteer with @sparticuz/chromium for serverless
+      let executablePath: string | undefined;
+      let args: string[] = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+      ];
+      
+      // Configure for serverless environment
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        executablePath = await chromium.executablePath();
+        args = chromium.args.concat(args);
+      }
+      
+      const browser = await puppeteer.launch({
+        headless: true,
+        executablePath,
+        args,
+      });
       
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle' });
+      await page.setContent(html, { waitUntil: 'networkidle0' });
       
       const pdfBuffer = await page.pdf({
         format: 'A4',
