@@ -3,13 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
+import { chromium } from 'playwright';
 
-// Request validation schema
+// Request validation schema - PDF ONLY
 const previewDocumentSchema = z.object({
   saleId: z.string().min(1),
   templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary']),
   templateId: z.string().optional(),
-  format: z.enum(['html', 'pdf']).default('html'),
+  format: z.enum(['pdf']).default('pdf'), // PDF ONLY
 });
 
 export async function GET(request: NextRequest) {
@@ -617,10 +618,29 @@ export async function GET(request: NextRequest) {
         return value !== undefined ? String(value) : match;
       });
       
-      return new Response(html, {
+      // Generate PDF using chromium
+      const browser = await chromium.launch({ headless: true });
+      
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '0.5in',
+          right: '0.5in',
+          bottom: '0.5in',
+          left: '0.5in'
+        }
+      });
+      
+      await browser.close();
+      
+      return new Response(Buffer.from(pdfBuffer), {
         headers: {
-          'Content-Type': 'text/html',
-          'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'inline; filename="paperwork-preview.pdf"',
         },
       });
 
@@ -1295,11 +1315,30 @@ export async function POST(request: NextRequest) {
         return value !== undefined ? String(value) : match;
       });
       
-      // Return the processed perfect template
-      return new Response(html, {
+      // Generate PDF using chromium
+      const browser = await chromium.launch({ headless: true });
+      
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '0.5in',
+          right: '0.5in',
+          bottom: '0.5in',
+          left: '0.5in'
+        }
+      });
+      
+      await browser.close();
+      
+      // Return the processed document as PDF
+      return new Response(Buffer.from(pdfBuffer), {
         headers: {
-          'Content-Type': 'text/html',
-          'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'inline; filename="document-preview.pdf"',
         },
       });
 

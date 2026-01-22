@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { checkApiRateLimit } from '@/lib/rateLimit';
 import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
+import { chromium } from 'playwright';
 
 export async function GET(
   request: NextRequest,
@@ -30,13 +31,32 @@ export async function GET(
 
     // For Flash Team, we only have the welcome-letter template
     // Use sample data for preview
-    const result = await enhancedTemplateService.previewTemplate('welcome-letter');
+    const htmlResult = await enhancedTemplateService.previewTemplate('welcome-letter');
 
-    // Return HTML response
-    return new Response(result, {
+    // Generate PDF using chromium
+    const browser = await chromium.launch({ headless: true });
+    
+    const page = await browser.newPage();
+    await page.setContent(htmlResult, { waitUntil: 'networkidle' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '0.5in',
+        right: '0.5in',
+        bottom: '0.5in',
+        left: '0.5in'
+      }
+    });
+    
+    await browser.close();
+
+    // Return PDF response
+    return new Response(Buffer.from(pdfBuffer), {
       headers: {
-        'Content-Type': 'text/html',
-        'X-Frame-Options': 'SAMEORIGIN', // Allow iframe preview
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="template-preview.pdf"',
       },
     });
 
