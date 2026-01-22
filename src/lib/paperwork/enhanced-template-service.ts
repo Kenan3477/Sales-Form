@@ -393,10 +393,28 @@ export class EnhancedTemplateService {
                 max-width: none;
                 margin: 0;
                 box-shadow: none;
+                page-break-inside: avoid;
             }
             
             .card {
                 break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            
+            .content {
+                page-break-inside: avoid;
+            }
+            
+            .two-column {
+                page-break-inside: avoid;
+            }
+            
+            .single-column-card {
+                page-break-inside: avoid;
+            }
+            
+            .important-section {
+                page-break-inside: avoid;
             }
         }
         
