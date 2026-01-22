@@ -33,19 +33,27 @@ export class EnhancedTemplateService {
             font-weight: 400;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
         }
         
         .document-container {
-            max-width: 100%;
+            width: 100%;
+            height: 100%;
             background: white;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 30%, #1e4c72 70%, #1a365d 100%);
             color: white;
-            padding: 8px 15px;
+            padding: 8px 20px;
             position: relative;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
         }
         
         .header::after {
@@ -103,7 +111,8 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 14px 15px 20px 15px;
+            padding: 14px 20px 20px 20px;
+            flex: 1;
         }
         
         .main-title {
@@ -359,11 +368,12 @@ export class EnhancedTemplateService {
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 10px 15px;
+            padding: 10px 20px;
             text-align: center;
             font-size: 8px;
             margin-top: 12px;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
         }
         
         .footer-content {
@@ -380,20 +390,37 @@ export class EnhancedTemplateService {
         }
         
         @media print {
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
             body {
                 background: white;
                 padding: 0;
+                margin: 0;
+                width: 100%;
+                height: 100%;
             }
             
             .document-container {
                 max-width: none;
+                width: 100%;
+                height: 100%;
                 margin: 0;
                 box-shadow: none;
                 page-break-inside: avoid;
+                display: flex;
+                flex-direction: column;
             }
             
-            * {
-                page-break-inside: avoid;
+            .content {
+                flex: 1;
+            }
+            
+            @page {
+                margin: 0;
+                size: A4;
             }
         }
     </style>
