@@ -1,110 +1,496 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';import { NextRequest, NextResponse } from 'next/server';import { NextRequest, NextResponse } from 'next/server';import { NextRequest, NextResponse } from 'next/server';
+
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+
+import { authOptions } from '@/lib/auth';import { getServerSession } from 'next-auth/next';
+
 import { prisma } from '@/lib/prisma';
-import chromium from '@sparticuz/chromium';
+
+import chromium from '@sparticuz/chromium';import { authOptions } from '@/lib/auth';import { getServerSession } from 'next-auth/next';import { getServerSession } from 'next-auth/next';
+
 import puppeteer from 'puppeteer';
 
-// ---------- Flash Team PDF Generator ----------
-function escapeHtml(v: any): string {
-  if (v === null || v === undefined) return "";
-  return String(v)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';import { prisma } from '@/lib/prisma';
+
+
+
+async function generateFlashTeamPDF(data: any): Promise<Buffer> {import chromium from '@sparticuz/chromium';import { authOptions } from '@/lib/auth';import { authOptions } from '@/lib/auth';
+
+  const templateService = new EnhancedTemplateService();
+
+  const html = await templateService.generateDocument('welcome-letter', {import puppeteer from 'puppeteer';
+
+    customerName: data.customerName || '[Customer Name]',
+
+    email: data.email || '',import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';import { prisma } from '@/lib/prisma';import { prisma } from '@/lib/prisma';
+
+    phone: data.phone || '',
+
+    address: data.address || '',
+
+    coverageStartDate: data.coverageStartDate || '',
+
+    policyNumber: data.policyNumber || '',// Generate Flash Team PDF using enhanced template serviceimport chromium from '@sparticuz/chromium';import chromium from '@sparticuz/chromium';
+
+    monthlyCost: data.monthlyCost || '',
+
+    totalCost: data.totalCost || data.monthlyCost || ''async function generateFlashTeamPDF(data: any): Promise<Buffer> {
+
+  });
+
+  // Use our enhanced template service to generate the beautiful templateimport puppeteer from 'puppeteer';import puppeteer from 'puppeteer';
+
+  let executablePath: string | undefined;
+
+  let args: string[] = [  const templateService = new EnhancedTemplateService();
+
+    '--no-sandbox',
+
+    '--disable-setuid-sandbox',  const html = await templateService.generateDocument('welcome-letter', {import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
+
+    '--disable-dev-shm-usage',
+
+    '--disable-accelerated-2d-canvas',    customerName: data.customerName || '[Customer Name]',
+
+    '--no-first-run',
+
+    '--no-zygote',    email: data.email || '',
+
+    '--disable-gpu',
+
+  ];    phone: data.phone || '',
+
+  
+
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {    address: data.address || '',// Generate Flash Team PDF using enhanced template service// ---------- Flash Team PDF Generator ----------
+
+    try {
+
+      executablePath = await chromium.executablePath();    coverageStartDate: data.coverageStartDate || '',
+
+      args = chromium.args.concat(args);
+
+    } catch (e) {    policyNumber: data.policyNumber || '',async function generateFlashTeamPDF(data: any): Promise<Buffer> {function escapeHtml(v: any): string {
+
+      console.warn('Could not get chromium executable path:', e);
+
+    }    monthlyCost: data.monthlyCost || '',
+
+  }
+
+    totalCost: data.totalCost || data.monthlyCost || ''  // Use our enhanced template service to generate the beautiful template  if (v === null || v === undefined) return "";
+
+  const browser = await puppeteer.launch({
+
+    headless: true,  });
+
+    executablePath,
+
+    args,  const templateService = new EnhancedTemplateService();  return String(v)
+
+  });
+
+    // Configure for serverless environment
+
+  try {
+
+    const page = await browser.newPage();  let executablePath: string | undefined;  const html = await templateService.generateDocument('welcome-letter', {    .replace(/&/g, "&amp;")
+
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    await page.emulateMediaType("print");  let args: string[] = [
+
+    
+
+    const pdfBuffer = await page.pdf({    '--no-sandbox',    // Map the data to match our template variables exactly    .replace(/</g, "&lt;")
+
+      format: "A4",
+
+      printBackground: true,    '--disable-setuid-sandbox',
+
+      margin: {
+
+        top: '0.1in',    '--disable-dev-shm-usage',    customerName: data.customerName || '[Customer Name]',    .replace(/>/g, "&gt;")
+
+        right: '0.1in',
+
+        bottom: '0.1in',    '--disable-accelerated-2d-canvas',
+
+        left: '0.1in'
+
+      },    '--no-first-run',    email: data.email || '',    .replace(/"/g, "&quot;")
+
+      scale: 1.0,
+
+    });    '--no-zygote',
+
+    
+
+    return Buffer.from(pdfBuffer);    '--disable-gpu',    phone: data.phone || '',    .replace(/'/g, "&#039;");
+
+  } finally {
+
+    await browser.close();  ];
+
+  }
+
+}      address: data.address || '',}
+
+
+
+export async function POST(req: NextRequest) {  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+
+  try {
+
+    const session = await getServerSession(authOptions);    try {    coverageStartDate: data.coverageStartDate || '',
+
+    
+
+    if (!session || session.user.role !== 'ADMIN') {      executablePath = await chromium.executablePath();
+
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
+    }      args = chromium.args.concat(args);    policyNumber: data.policyNumber || '',function money(v: any): string {
+
+
+
+    const body = await req.json();    } catch (e) {
+
+    const { saleId } = body;
+
+      console.warn('Could not get chromium executable path:', e);    monthlyCost: data.monthlyCost || '',  if (v === null || v === undefined || v === "") return "";
+
+    if (!saleId) {
+
+      return NextResponse.json({ error: 'Sale ID is required' }, { status: 400 });    }
+
+    }
+
+  }    totalCost: data.totalCost || data.monthlyCost || ''  const n = Number(v);
+
+    const sale = await prisma.sale.findUnique({
+
+      where: { id: saleId }
+
+    });
+
+  const browser = await puppeteer.launch({  });  if (Number.isFinite(n)) return n.toFixed(2);
+
+    if (!sale) {
+
+      return NextResponse.json({ error: 'Sale not found' }, { status: 404 });    headless: true,
+
+    }
+
+    executablePath,  return String(v);
+
+    const totalMonthlyCost = (sale.applianceMonthlyCost || 0) + (sale.boilerMonthlyCost || 0);
+
+        args,
+
+    const pdfBuffer = await generateFlashTeamPDF({
+
+      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,  });  // Configure for serverless environment}
+
+      email: sale.email || '',
+
+      phone: sale.phoneNumber || '',  
+
+      address: sale.customerAddress || '',
+
+      coverageStartDate: sale.createdAt.toISOString().split('T')[0],  try {  let executablePath: string | undefined;
+
+      policyNumber: sale.id.slice(-8).toUpperCase(),
+
+      monthlyCost: totalMonthlyCost.toFixed(2),    const page = await browser.newPage();
+
+      totalCost: totalMonthlyCost.toFixed(2)
+
+    });    await page.setContent(html, { waitUntil: "networkidle0" });  let args: string[] = [function joinAddressLines(addr: any): string {
+
+
+
+    return new Response(pdfBuffer, {    await page.emulateMediaType("print");
+
+      headers: {
+
+        'Content-Type': 'application/pdf',        '--no-sandbox',  if (!addr) return "";
+
+        'Content-Disposition': `attachment; filename="protection-plan-${sale.id.slice(-8)}.pdf"`,
+
+      },    const pdfBuffer = await page.pdf({
+
+    });
+
+      format: "A4",    '--disable-setuid-sandbox',  if (Array.isArray(addr)) return addr.filter(Boolean).join("<br/>");
+
+  } catch (error) {
+
+    console.error('Error generating PDF:', error);      printBackground: true,
+
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+
+  }      margin: {    '--disable-dev-shm-usage',  return escapeHtml(addr).replace(/\n/g, "<br/>");
+
+}
+        top: '0.1in',
+
+        right: '0.1in',    '--disable-accelerated-2d-canvas',}
+
+        bottom: '0.1in',
+
+        left: '0.1in'    '--no-first-run',
+
+      },
+
+      scale: 1.0,    '--no-zygote',function safeFilename(s: string): string {
+
+    });
+
+        '--disable-gpu',  return String(s || "protection-plan")
+
+    return Buffer.from(pdfBuffer);
+
+  } finally {  ];    .toLowerCase()
+
+    await browser.close();
+
+  }      .replace(/[^a-z0-9]+/g, "-")
+
 }
 
-function money(v: any): string {
-  if (v === null || v === undefined || v === "") return "";
-  const n = Number(v);
-  if (Number.isFinite(n)) return n.toFixed(2);
-  return String(v);
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {    .replace(/(^-|-$)/g, "")
+
+export async function POST(req: NextRequest) {
+
+  try {    try {    .slice(0, 80);
+
+    const session = await getServerSession(authOptions);
+
+          executablePath = await chromium.executablePath();}
+
+    if (!session || session.user.role !== 'ADMIN') {
+
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });      args = chromium.args.concat(args);
+
+    }
+
+    } catch (e) {async function buildHtml(data: any): Promise<string> {
+
+    const body = await req.json();
+
+    const { saleId } = body;      console.warn('Could not get chromium executable path:', e);  // Use our enhanced template service to generate the beautiful template
+
+
+
+    if (!saleId) {    }  const templateService = new EnhancedTemplateService();
+
+      return NextResponse.json({ error: 'Sale ID is required' }, { status: 400 });
+
+    }  }  const html = await templateService.generateDocument('welcome-letter', {
+
+
+
+    // Get sale data from database    // Map the data to match our template variables exactly
+
+    const sale = await prisma.sale.findUnique({
+
+      where: { id: saleId }  const browser = await puppeteer.launch({    customerName: data.customerName || '[Customer Name]',
+
+    });
+
+    headless: true,    email: data.email || '',
+
+    if (!sale) {
+
+      return NextResponse.json({ error: 'Sale not found' }, { status: 404 });    executablePath,    phone: data.phone || '',
+
+    }
+
+    args,    address: data.address || '',
+
+    // Calculate total monthly cost
+
+    const totalMonthlyCost = (sale.applianceMonthlyCost || 0) + (sale.boilerMonthlyCost || 0);  });    coverageStartDate: data.coverageStartDate || '',
+
+    
+
+    // Generate PDF with sale data      policyNumber: data.policyNumber || '',
+
+    const pdfBuffer = await generateFlashTeamPDF({
+
+      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,  try {    monthlyCost: data.monthlyCost || '',
+
+      email: sale.email || '',
+
+      phone: sale.phoneNumber || '',    const page = await browser.newPage();    totalCost: data.totalCost || data.monthlyCost || ''
+
+      address: sale.customerAddress || '',
+
+      coverageStartDate: sale.createdAt.toISOString().split('T')[0],    await page.setContent(html, { waitUntil: "networkidle0" });  });
+
+      policyNumber: sale.id.slice(-8).toUpperCase(),
+
+      monthlyCost: totalMonthlyCost.toFixed(2),    await page.emulateMediaType("print");  
+
+      hasApplianceCover: sale.applianceCover || false,
+
+      hasBoilerCover: sale.boilerCover || false,      return html;
+
+      totalCost: totalMonthlyCost.toFixed(2)
+
+    });    const pdfBuffer = await page.pdf({}
+
+
+
+    return new Response(pdfBuffer, {      format: "A4",
+
+      headers: {
+
+        'Content-Type': 'application/pdf',      printBackground: true,async function generateProtectionPlanPdf(data: any): Promise<{ filename: string; contentType: string; bytes: Buffer }> {
+
+        'Content-Disposition': `attachment; filename="protection-plan-${sale.id.slice(-8)}.pdf"`,
+
+      },      margin: {  const html = await buildHtml(data);
+
+    });
+
+        top: '0.1in',
+
+  } catch (error) {
+
+    console.error('Error generating PDF:', error);        right: '0.1in',  const customerName = escapeHtml(d.customerName || "");
+
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+
+  }        bottom: '0.1in',  const email = escapeHtml(d.email || "");
+
 }
+        left: '0.1in'  const phone = escapeHtml(d.phone || "");
 
-function joinAddressLines(addr: any): string {
-  if (!addr) return "";
-  if (Array.isArray(addr)) return addr.filter(Boolean).join("<br/>");
-  return escapeHtml(addr).replace(/\n/g, "<br/>");
-}
+      },  const address = joinAddressLines(d.address || "");
 
-function safeFilename(s: string): string {
-  return String(s || "protection-plan")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 80);
-}
+      scale: 1.0,  const coverageStartDate = escapeHtml(d.coverageStartDate || "");
 
-function buildHtml(data: any): string {
-  const d = data || {};
+    });  const policyNumber = escapeHtml(d.policyNumber || "");
 
-  const customerName = escapeHtml(d.customerName || "");
-  const email = escapeHtml(d.email || "");
-  const phone = escapeHtml(d.phone || "");
-  const address = joinAddressLines(d.address || "");
-  const coverageStartDate = escapeHtml(d.coverageStartDate || "");
-  const policyNumber = escapeHtml(d.policyNumber || "");
-  const monthlyCost = d.monthlyCost !== undefined && d.monthlyCost !== null && d.monthlyCost !== ""
-    ? money(d.monthlyCost)
-    : "";
+      const monthlyCost = d.monthlyCost !== undefined && d.monthlyCost !== null && d.monthlyCost !== ""
 
-  const hasApplianceCover = !!d.hasApplianceCover;
-  const hasBoilerCover = !!d.hasBoilerCover;
+    return Buffer.from(pdfBuffer);    ? money(d.monthlyCost)
 
-  const monthlyLine = monthlyCost
-    ? `<div class="kv"><span class="k">Monthly Payment:</span> <span class="v">£${escapeHtml(monthlyCost)}</span></div>`
-    : "";
+  } finally {    : "";
 
-  const coverLines = [
-    hasApplianceCover ? "Access to qualified engineers for covered appliance breakdowns" : null,
-    hasBoilerCover ? "Access to qualified engineers for covered boiler and central heating breakdowns" : null,
+    await browser.close();
+
+  }  const hasApplianceCover = !!d.hasApplianceCover;
+
+}  const hasBoilerCover = !!d.hasBoilerCover;
+
+
+
+export async function POST(req: NextRequest) {  const monthlyLine = monthlyCost
+
+  try {    ? `<div class="kv"><span class="k">Monthly Payment:</span> <span class="v">£${escapeHtml(monthlyCost)}</span></div>`
+
+    const session = await getServerSession(authOptions);    : "";
+
+    
+
+    if (!session || session.user.role !== 'ADMIN') {  const coverLines = [
+
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });    hasApplianceCover ? "Access to qualified engineers for covered appliance breakdowns" : null,
+
+    }    hasBoilerCover ? "Access to qualified engineers for covered boiler and central heating breakdowns" : null,
+
     "Repairs to covered appliances or systems, where repair is possible",
-    "If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability and the plan terms",
-    "Fixed pricing with no call-out charge for covered faults",
+
+    const body = await req.json();    "If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability and the plan terms",
+
+    const { saleId } = body;    "Fixed pricing with no call-out charge for covered faults",
+
     "Appointments offered subject to engineer availability"
-  ].filter(Boolean);
 
-  const coverList = coverLines.map(li => `<li><span class="tick">✓</span><span class="li">${escapeHtml(li)}</span></li>`).join("");
+    if (!saleId) {  ].filter(Boolean);
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
+      return NextResponse.json({ error: 'Sale ID is required' }, { status: 400 });
+
+    }  const coverList = coverLines.map(li => `<li><span class="tick">✓</span><span class="li">${escapeHtml(li)}</span></li>`).join("");
+
+
+
+    // Get sale data from database  return `<!doctype html>
+
+    const sale = await prisma.sale.findUnique({<html lang="en">
+
+      where: { id: saleId }<head>
+
+    });<meta charset="utf-8" />
+
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>The Flash Team's Protection Plan</title>
-<style>
-  :root{
+
+    if (!sale) {<title>The Flash Team's Protection Plan</title>
+
+      return NextResponse.json({ error: 'Sale not found' }, { status: 404 });<style>
+
+    }  :root{
+
     --navy:#0b2a4a;
-    --navy2:#081f36;
-    --navy3:#06162a;
-    --orange:#ff6b35;
-    --orange2:#ff8c42;
-    --paper:#ffffff;
-    --ink:#1f2a3a;
-    --muted:#6b7787;
-    --line:#e4e9f1;
-    --bg:#f4f6fa;
-  }
 
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
+    // Generate PDF with sale data - use correct Sale model fields    --navy2:#081f36;
 
-  .page{
+    const totalMonthlyCost = (sale.applianceMonthlyCost || 0) + (sale.boilerMonthlyCost || 0);    --navy3:#06162a;
+
+        --orange:#ff6b35;
+
+    const pdfBuffer = await generateFlashTeamPDF({    --orange2:#ff8c42;
+
+      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,    --paper:#ffffff;
+
+      email: sale.email || '',    --ink:#1f2a3a;
+
+      phone: sale.phoneNumber || '',    --muted:#6b7787;
+
+      address: sale.customerAddress || '',    --line:#e4e9f1;
+
+      coverageStartDate: sale.createdAt.toISOString().split('T')[0],    --bg:#f4f6fa;
+
+      policyNumber: sale.id.slice(-8).toUpperCase(),  }
+
+      monthlyCost: totalMonthlyCost.toFixed(2),
+
+      hasApplianceCover: sale.applianceCover || false,  *{ box-sizing:border-box; }
+
+      hasBoilerCover: sale.boilerCover || false,  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
+
+      totalCost: totalMonthlyCost.toFixed(2)
+
+    });  .page{
+
     width: 800px;
-    margin: 24px auto;
-    background: var(--paper);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 10px 24px rgba(10,20,35,.12);
-    border: 1px solid rgba(11,42,74,.10);
+
+    return new Response(pdfBuffer, {    margin: 24px auto;
+
+      headers: {    background: var(--paper);
+
+        'Content-Type': 'application/pdf',    border-radius: 14px;
+
+        'Content-Disposition': `attachment; filename="protection-plan-${sale.id.slice(-8)}.pdf"`,    overflow: hidden;
+
+      },    box-shadow: 0 10px 24px rgba(10,20,35,.12);
+
+    });    border: 1px solid rgba(11,42,74,.10);
+
   }
 
-  .banner{
-    position: relative;
-    padding: 20px 22px 14px 22px;
-    color: #fff;
+  } catch (error) {
+
+    console.error('Error generating PDF:', error);  .banner{
+
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });    position: relative;
+
+  }    padding: 20px 22px 14px 22px;
+
+}    color: #fff;
     background:
       radial-gradient(1200px 240px at 20% 40%, rgba(255,255,255,.10), transparent 55%),
       radial-gradient(900px 260px at 70% 30%, rgba(255,255,255,.08), transparent 55%),
@@ -434,7 +820,7 @@ function buildHtml(data: any): string {
 }
 
 async function generateProtectionPlanPdf(data: any): Promise<{ filename: string; contentType: string; bytes: Buffer }> {
-  const html = buildHtml(data);
+  const html = await buildHtml(data);
 
   // Configure for serverless environment
   let executablePath: string | undefined;
