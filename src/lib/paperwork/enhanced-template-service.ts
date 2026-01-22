@@ -65,16 +65,17 @@ export class EnhancedTemplateService {
         }
         
         .lightning-icon {
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            border-radius: 3px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 14px;
             color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            flex-shrink: 0;
         }
         
         .lightning-icon::before {
@@ -82,9 +83,10 @@ export class EnhancedTemplateService {
         }
         
         .logo-text {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             letter-spacing: 1px;
+            color: white;
         }
         
         .tagline {
@@ -186,8 +188,10 @@ export class EnhancedTemplateService {
             font-weight: 600;
             color: #1a365d;
             text-align: right;
-            width: 50%;
+            flex: 1;
             font-size: 8px;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
         
         .checklist-item {
@@ -596,6 +600,13 @@ export class EnhancedTemplateService {
     try {
       const template = this.getTemplate(templateId);
       let html = template.html;
+
+      // Ensure policy number is in correct format (TFT + 4 digits max)
+      if (data.policyNumber && (!data.policyNumber.match(/^TFT\d{4}$/))) {
+        // If policy number doesn't match TFT + 4 digits, generate a new one
+        data.policyNumber = `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+        console.log('Fixed policy number format:', data.policyNumber);
+      }
 
       // Replace template variables with actual data
       html = html.replace(/\{\{([^}]+)\}\}/g, (match: string, key: string) => {
