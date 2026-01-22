@@ -5,6 +5,7 @@ import { checkApiRateLimit } from '@/lib/rateLimit';
 import { z } from 'zod';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
+import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
 
 // Request validation schema
 const generateDocumentSchema = z.object({
@@ -45,111 +46,34 @@ function safeFilename(s: string): string {
     .slice(0, 80);
 }
 
-// Generate Flash Team PDF directly using minimal template approach
+// Generate Flash Team PDF using enhanced template service
 async function generateFlashTeamPDF(data: any): Promise<Buffer> {
-  const { chromium } = await import('playwright');
-  
-  // Minimal HTML template for PDF generation - one page only
-  const minimalHtml = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  @page { size: A4; margin: 10mm; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #333; }
-  .header { background: #0b2a4a; color: white; padding: 20px; margin-bottom: 20px; text-align: center; }
-  .logo { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
-  .tagline { font-size: 12px; opacity: 0.9; }
-  .title { font-size: 20px; color: #0b2a4a; margin-bottom: 15px; font-weight: bold; }
-  .section { margin-bottom: 20px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .card { border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
-  .card-header { background: #0b2a4a; color: white; padding: 10px; font-weight: bold; }
-  .card-body { padding: 15px; }
-  .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
-  .row:last-child { border-bottom: none; }
-  .label { font-weight: bold; }
-  .value { color: #666; }
-  .active-box { background: #ff6b35; color: white; padding: 15px; text-align: center; margin: 20px 0; border-radius: 5px; font-weight: bold; }
-  .benefits { list-style: none; }
-  .benefits li { padding: 5px 0; }
-  .benefits li:before { content: "✓"; color: #ff6b35; font-weight: bold; margin-right: 10px; }
-  .steps { list-style: decimal; padding-left: 20px; }
-  .steps li { padding: 5px 0; }
-  .important { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px; }
-  .footer { background: #0b2a4a; color: white; padding: 10px; text-align: center; margin-top: 20px; }
-</style>
-</head>
-<body>
-  <div class="header">
-    <div class="logo">⚡ Flash Team</div>
-    <div class="tagline">Fast, Friendly Repairs You Can Trust</div>
-  </div>
-  
-  <div class="title">The Flash Team's Protection Plan</div>
-  
-  <div class="section">
-    <p>Dear <strong>${data.customerName || '[Customer Name]'}</strong>,</p>
-    <p>Thank you for choosing Flash Team. This document confirms your <strong>Protection Plan</strong> is now active, subject to the plan terms, conditions and exclusions.</p>
-  </div>
-
-  <div class="active-box">
-    ⚡ Your Protection Plan is now active
-  </div>
-
-  <div class="grid">
-    <div class="card">
-      <div class="card-header">Your Account Details</div>
-      <div class="card-body">
-        <div class="row"><span class="label">Customer:</span><span class="value">${data.customerName || '[Name]'}</span></div>
-        <div class="row"><span class="label">Email:</span><span class="value">${data.email || '[Email]'}</span></div>
-        <div class="row"><span class="label">Phone:</span><span class="value">${data.phone || '[Phone]'}</span></div>
-        <div class="row"><span class="label">Address:</span><span class="value">${data.address || '[Address]'}</span></div>
-        <div class="row"><span class="label">Start Date:</span><span class="value">${data.coverageStartDate || '[Date]'}</span></div>
-        <div class="row"><span class="label">Policy Ref:</span><span class="value">${data.policyNumber || '[Policy]'}</span></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">What Your Plan Provides</div>
-      <div class="card-body">
-        ${data.monthlyCost ? `<p><strong>Monthly Payment:</strong> £${data.monthlyCost}</p>` : ''}
-        <ul class="benefits">
-          ${data.hasApplianceCover ? '<li>Access to qualified engineers for appliance breakdowns</li>' : ''}
-          ${data.hasBoilerCover ? '<li>Access to qualified engineers for boiler and heating breakdowns</li>' : ''}
-          <li>Repairs to covered appliances or systems, where repair is possible</li>
-          <li>Fixed pricing with no call-out charge for covered faults</li>
-          <li>Appointments offered subject to engineer availability</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h3>How to Request Assistance</h3>
-    <ol class="steps">
-      <li>Call <strong>0330 822 7695</strong></li>
-      <li>Quote your policy reference <strong>${data.policyNumber || '[Policy Ref]'}</strong></li>
-      <li>Describe the issue so we can assess eligibility</li>
-      <li>Book an appointment subject to availability</li>
-    </ol>
-  </div>
-
-  <div class="important">
-    <h3>Important Information</h3>
-    <ul>
-      <li>This Protection Plan is a <strong>service agreement</strong> and is not an insurance policy.</li>
-      <li>All services are provided subject to <strong>plan terms, conditions and exclusions</strong>.</li>
-      <li>Annual boiler service: Please contact us to book your annual boiler service.</li>
-    </ul>
-  </div>
-
-  <div class="footer">
-    Flash Team • Nationwide UK • 0330 822 7695 • theflashteam.co.uk
-  </div>
-</body>
-</html>`;
+  // Use our enhanced template service to generate the beautiful template
+  const templateService = new EnhancedTemplateService();
+  const html = await templateService.generateDocument('welcome-letter', {
+    customer: {
+      name: data.customerName || '[Customer Name]',
+      email: data.email || '',
+      phone: data.phone || '',
+      address: data.address || '',
+    },
+    agreement: {
+      startDate: data.coverageStartDate || '',
+      planNumber: data.policyNumber || '',
+      monthlyCost: data.monthlyCost || '',
+    },
+    // Additional data for our template
+    customerName: data.customerName || '[Customer Name]',
+    email: data.email || '',
+    phone: data.phone || '',
+    address: data.address || '',
+    coverageStartDate: data.coverageStartDate || '',
+    policyNumber: data.policyNumber || '',
+    monthlyCost: data.monthlyCost || '',
+    hasApplianceCover: data.hasApplianceCover || false,
+    hasBoilerCover: data.hasBoilerCover || false,
+    totalCost: data.totalCost || data.monthlyCost || ''
+  });
 
   // Configure for serverless environment
   let executablePath: string | undefined;
@@ -166,7 +90,7 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
   if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
     try {
       executablePath = await chromium.executablePath();
-      args = (chromium as any).args.concat(args);
+      args = chromium.args.concat(args);
     } catch (e) {
       console.warn('Could not get chromium executable path:', e);
     }
@@ -180,14 +104,19 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
   
   try {
     const page = await browser.newPage();
-    await page.setContent(minimalHtml, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "networkidle0" });
     await page.emulateMediaType("print");
     
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
-      preferCSSPageSize: true
+      margin: {
+        top: '0.1in',
+        right: '0.1in',
+        bottom: '0.1in',
+        left: '0.1in'
+      },
+      scale: 1.0,
     });
     
     return Buffer.from(pdfBuffer);
