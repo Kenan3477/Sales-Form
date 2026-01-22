@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { chromium } from 'playwright';
 
 export async function POST(request: NextRequest) {
   try {
@@ -381,16 +382,35 @@ export async function POST(request: NextRequest) {
 
     // Generate filename
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
-    const htmlFileName = `all_customer_documents_${processedCount}_customers_${timestamp}.html`;
+    const pdfFileName = `all_customer_documents_${processedCount}_customers_${timestamp}.pdf`;
     
-    console.log(`✅ Combined HTML document ready: ${htmlFileName} (${Math.round(combinedHtml.length/1024)}KB)`);
+    console.log(`✅ Combined document ready, generating PDF: ${pdfFileName} (${Math.round(combinedHtml.length/1024)}KB)`);
 
-    return new NextResponse(combinedHtml, {
+    // Generate PDF using chromium
+    const browser = await chromium.launch({ headless: true });
+    
+    const page = await browser.newPage();
+    await page.setContent(combinedHtml, { waitUntil: 'networkidle' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '0.5in',
+        right: '0.5in',
+        bottom: '0.5in',
+        left: '0.5in'
+      }
+    });
+    
+    await browser.close();
+
+    return new NextResponse(Buffer.from(pdfBuffer), {
       status: 200,
       headers: {
-        'Content-Type': 'text/html',
-        'Content-Disposition': `attachment; filename="${htmlFileName}"`,
-        'Content-Length': Buffer.byteLength(combinedHtml, 'utf8').toString(),
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${pdfFileName}"`,
+        'Content-Length': pdfBuffer.length.toString(),
       },
     });
 

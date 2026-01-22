@@ -110,12 +110,11 @@ export class PaperworkService {
   }
 
   /**
-   * Generate document preview (return HTML or PDF buffer)
+   * Generate document preview (PDF ONLY)
    */
   async generatePreview(
-    request: DocumentGenerationRequest,
-    format: 'html' | 'pdf' = 'html'
-  ): Promise<{ content: string | Buffer; mimeType: string }> {
+    request: DocumentGenerationRequest
+  ): Promise<{ content: Buffer; mimeType: string }> {
     try {
       // 1. Fetch sale with all relations
       const sale = await this.getSaleWithRelations(request.saleId);
@@ -130,22 +129,15 @@ export class PaperworkService {
       const documentId = 'preview-' + Date.now();
       const context = ContextBuilder.buildTemplateContext(sale, documentId);
 
-      // 4. Render HTML from template
+      // 4. Render HTML from template (for PDF generation only)
       const htmlContent = this.templateService.renderTemplate(template.htmlContent, context);
 
-      if (format === 'html') {
-        return {
-          content: htmlContent,
-          mimeType: 'text/html',
-        };
-      } else {
-        // Generate PDF buffer
-        const pdfBuffer = await PDFService.generatePDFBuffer(htmlContent);
-        return {
-          content: pdfBuffer,
-          mimeType: 'application/pdf',
-        };
-      }
+      // Force PDF generation only - no HTML output
+      const pdfBuffer = await PDFService.generatePDFBuffer(htmlContent);
+      return {
+        content: pdfBuffer,
+        mimeType: 'application/pdf',
+      };
 
     } catch (error) {
       const docError: DocumentGenerationError = {
