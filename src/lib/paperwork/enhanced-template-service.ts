@@ -90,29 +90,29 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 16px 15px 25px 15px;
+            padding: 18px 15px 30px 15px;
         }
         
         .main-title {
             font-size: 16px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             border-bottom: 2px solid #ff6500;
-            padding-bottom: 6px;
+            padding-bottom: 7px;
         }
         
         .intro-text {
             font-size: 10px;
-            margin-bottom: 16px;
-            line-height: 1.4;
+            margin-bottom: 18px;
+            line-height: 1.45;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 12px 16px;
-            margin-bottom: 18px;
+            padding: 14px 18px;
+            margin-bottom: 22px;
             border-radius: 3px;
             text-align: center;
             font-size: 11px;
@@ -122,8 +122,8 @@ export class EnhancedTemplateService {
         .three-column {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 24px;
         }
         
         .card {
@@ -136,30 +136,30 @@ export class EnhancedTemplateService {
         .card-header {
             background: #1a365d;
             color: white;
-            padding: 10px 8px;
+            padding: 12px 8px;
             font-weight: bold;
             font-size: 9px;
             text-transform: uppercase;
         }
         
         .card-content {
-            padding: 12px 8px;
+            padding: 14px 8px;
             background: white;
             font-size: 8px;
-            line-height: 1.4;
+            line-height: 1.45;
         }
         
         .detail-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 3px 0;
+            padding: 4px 0;
             border-bottom: 1px solid #f0f4f7;
         }
         
         .detail-row:last-child {
             border-bottom: none;
-            padding-bottom: 2px;
+            padding-bottom: 3px;
         }
         
         .detail-label {
@@ -182,14 +182,14 @@ export class EnhancedTemplateService {
         .checklist-item {
             display: flex;
             align-items: flex-start;
-            gap: 4px;
-            margin-bottom: 6px;
+            gap: 5px;
+            margin-bottom: 7px;
             font-size: 8px;
-            line-height: 1.4;
+            line-height: 1.45;
         }
         
         .checklist-item:last-child {
-            margin-bottom: 2px;
+            margin-bottom: 3px;
         }
         
         .check-icon {
@@ -216,18 +216,18 @@ export class EnhancedTemplateService {
         .two-column-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 24px;
         }
         
         .compact-list {
             list-style: none;
             font-size: 8px;
-            line-height: 1.4;
+            line-height: 1.45;
         }
         
         .compact-list li {
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             padding-left: 10px;
             position: relative;
         }
@@ -245,10 +245,10 @@ export class EnhancedTemplateService {
         }
         
         .numbered-steps div {
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             padding-left: 12px;
             position: relative;
-            line-height: 1.4;
+            line-height: 1.45;
         }
         
         .numbered-steps div::before {
@@ -276,8 +276,8 @@ export class EnhancedTemplateService {
         .important-section {
             background: #f8fafc;
             border-left: 2px solid #ff6500;
-            padding: 12px;
-            margin-bottom: 18px;
+            padding: 14px;
+            margin-bottom: 22px;
             border-radius: 0 3px 3px 0;
         }
         
@@ -285,55 +285,55 @@ export class EnhancedTemplateService {
             font-size: 9px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         
         .additional-info {
             background: #e8f4fd;
             border: 1px solid #bee3f8;
             border-radius: 3px;
-            padding: 12px;
-            margin-bottom: 18px;
+            padding: 14px;
+            margin-bottom: 22px;
         }
         
         .additional-info h3 {
             color: #1a365d;
             font-size: 9px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             border-bottom: 1px solid #bee3f8;
-            padding-bottom: 3px;
+            padding-bottom: 4px;
         }
         
         .coverage-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 24px;
         }
         
         .coverage-section {
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 3px;
-            padding: 10px;
+            padding: 12px;
         }
         
         .coverage-section h4 {
             color: #1a365d;
             font-size: 8px;
             font-weight: bold;
-            margin-bottom: 6px;
+            margin-bottom: 7px;
             text-transform: uppercase;
         }
         
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 12px 15px;
+            padding: 14px 15px;
             text-align: center;
             font-size: 8px;
-            margin-top: 15px;
+            margin-top: 18px;
         }
         
         .footer-content {
