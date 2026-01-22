@@ -36,10 +36,13 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    console.log('📄 Request body received:', body);
+    console.log('📄 Request body received:', JSON.stringify(body, null, 2));
     
     const { saleIds, templateIds } = bulkGenerateSchema.parse(body);
-    console.log('📄 Validated data:', { saleIds, templateIds });
+    console.log('📄 Validated data:', { 
+      saleIds: saleIds.length > 0 ? `${saleIds.length} sales: [${saleIds.slice(0, 3).map(id => id.slice(-6)).join(', ')}${saleIds.length > 3 ? '...' : ''}]` : 'none',
+      templateIds: templateIds.length > 0 ? `${templateIds.length} templates: [${templateIds.join(', ')}]` : 'none'
+    });
 
     // Limit batch size to prevent timeout
     const totalCombinations = saleIds.length * templateIds.length;
@@ -55,15 +58,17 @@ export async function POST(request: NextRequest) {
     const allTemplates = await prisma.documentTemplate.findMany({
       select: { id: true, name: true, templateType: true, isActive: true }
     });
-    console.log('📄 Available templates in database:', allTemplates);
+    console.log('📄 Available database templates:', allTemplates);
     
     // Enhanced Template Service built-in templates
     const enhancedServiceTemplates = ['welcome-letter', 'service-agreement', 'direct-debit-form', 'coverage-summary'];
+    console.log('📄 Enhanced Service templates:', enhancedServiceTemplates);
     
     // Check if the requested templates exist (either in database or enhanced service)
     const invalidTemplates = templateIds.filter(id => {
       const inDatabase = allTemplates.find(t => t.id === id && t.isActive);
       const inEnhancedService = enhancedServiceTemplates.includes(id);
+      console.log(`📄 Checking template ${id}: inDB=${!!inDatabase}, inEnhanced=${inEnhancedService}`);
       return !inDatabase && !inEnhancedService;
     });
     
@@ -76,7 +81,10 @@ export async function POST(request: NextRequest) {
       console.log('📄 Valid template IDs:', validIds);
       return NextResponse.json({
         error: `Invalid template IDs: ${invalidTemplates.join(', ')}`,
-        validTemplateIds: validIds
+        validTemplateIds: validIds,
+        requestedTemplates: templateIds,
+        databaseTemplates: allTemplates.filter(t => t.isActive).map(t => ({ id: t.id, name: t.name })),
+        enhancedTemplates: enhancedServiceTemplates
       }, { status: 400 });
     }
 
