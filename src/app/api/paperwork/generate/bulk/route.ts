@@ -655,7 +655,19 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
   
   try {
     const page = await browser.newPage();
-    const htmlContent = buildFlashTeamHtml(data);
+    
+    // Use Enhanced Template Service instead of hardcoded HTML
+    const templateService = new EnhancedTemplateService();
+    const htmlContent = await templateService.generateDocument('welcome-letter', {
+      customerName: data.customerName || '[Customer Name]',
+      email: data.email || '',
+      phone: data.phone || '',
+      address: data.address || '',
+      coverageStartDate: data.coverageStartDate || '',
+      policyNumber: data.policyNumber || '',
+      monthlyCost: data.monthlyCost || '',
+      totalCost: data.totalCost || data.monthlyCost || ''
+    });
     
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     

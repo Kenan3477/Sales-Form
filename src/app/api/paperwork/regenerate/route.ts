@@ -1,137 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { isAdminRole } from '@/lib/apiSecurity';
-import fs from 'fs/promises';
-import path from 'path';
+import { checkApiRateLimit } from '@/lib/rateLimit';
+import { z } from 'zod';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
+import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !isAdminRole(session.user.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 401 }
-      );
-    }
-
-    const { documentId, saleId, templateId } = await request.json();
-
-    // Validate required fields
-    if (!documentId || !saleId || !templateId) {
-      return NextResponse.json(
-        { error: 'Missing required fields: documentId, saleId, and templateId are required' },
-        { status: 400 }
-      );
-    }
-
-    // Find the existing document
-    const existingDocument = await prisma.generatedDocument.findUnique({
-      where: { id: documentId },
-      include: {
-        sale: {
-          include: {
-            createdBy: true
-          }
-        },
-        template: true
-      }
-    });
-
-    if (!existingDocument) {
-      return NextResponse.json(
-        { error: 'Document not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get the template and sale data
-    const template = await prisma.documentTemplate.findUnique({
-      where: { id: templateId }
-    });
-
-    if (!template) {
-      return NextResponse.json(
-        { error: 'Template not found' },
-        { status: 404 }
-      );
-    }
-
-    const sale = existingDocument.sale;
-
-    // Generate PDF using Flash Team template
-    const pdfData = {
-      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
-      email: sale.email,
-      phone: sale.phoneNumber,
-      address: sale.mailingStreet || '',
-      postcode: sale.mailingPostalCode || '',
-      coverageStartDate: sale.createdAt.toLocaleDateString('en-GB'),
-      policyNumber: `FT${sale.id.toString().padStart(6, '0')}`,
-      monthlyCost: sale.totalPlanCost?.toString() || '0',
-      applianceCover: sale.applianceCoverSelected ? 'Yes' : 'No',
-      boilerCover: sale.boilerCoverSelected ? 'Yes' : 'No'
-    };
-
-    const pdfBytes = await generateFlashTeamPDF(pdfData);
-
-    // Generate new filename for PDF
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${template.name}-REGENERATED-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.pdf`;
-    const relativePath = `storage/documents/${filename}`;
-    const fullPath = path.join(process.cwd(), relativePath);
-
-    // Ensure directory exists
-    await fs.mkdir(path.dirname(fullPath), { recursive: true });
-
-    // Write the PDF to file
-    await fs.writeFile(fullPath, pdfBytes);
-
-    // Delete old file if it exists
-    if (existingDocument.filePath) {
-      try {
-        const oldFullPath = path.join(process.cwd(), existingDocument.filePath);
-        await fs.unlink(oldFullPath);
-      } catch (fileError) {
-        console.warn('Failed to delete old file:', fileError);
-      }
-    }
-
-    // Update the document in database (remove content field and include relations)
-    const updatedDocument = await prisma.generatedDocument.update({
-      where: { id: documentId },
-      data: {
-        filePath: relativePath,
-        filename: filename
-      },
-      include: {
-        template: true,
-        sale: {
-          include: {
-            createdBy: true
-          }
-        }
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      document: updatedDocument,
-      message: 'Document regenerated successfully'
-    });
-
-  } catch (error) {
-    console.error('Error regenerating document:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+// Request validation schema
+const generateDocumentSchema = z.object({
+  saleId: z.string().min(1),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary']),
+  templateId: z.string().optional(),
+});
 
 // ---------- Flash Team PDF Generator ----------
 function escapeHtml(v: any): string {
@@ -157,238 +38,30 @@ function joinAddressLines(addr: any): string {
   return escapeHtml(addr).replace(/\n/g, "<br/>");
 }
 
-function buildFlashTeamHtml(data: any): string {
-  const d = data || {};
-  const customerName = escapeHtml(d.customerName || "");
-  const email = escapeHtml(d.email || "");
-  const phone = escapeHtml(d.phone || "");
-  const address = joinAddressLines(d.address || "");
-  const coverageStartDate = escapeHtml(d.coverageStartDate || "");
-  const policyNumber = escapeHtml(d.policyNumber || "");
-  const monthlyCost = d.monthlyCost !== undefined && d.monthlyCost !== null && d.monthlyCost !== ""
-    ? money(d.monthlyCost)
-    : "";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flash Team Protection Plan</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: #fff;
-            padding: 20px;
-        }
-        .container {
-            max-width: 210mm;
-            margin: 0 auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 3px solid #1a237e;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        .logo {
-            flex: 1;
-        }
-        .company-name {
-            font-size: 32px;
-            font-weight: bold;
-            color: #1a237e;
-            margin-bottom: 5px;
-        }
-        .tagline {
-            font-size: 14px;
-            color: #666;
-            font-style: italic;
-        }
-        .document-title {
-            flex: 1;
-            text-align: right;
-        }
-        .document-title h1 {
-            font-size: 24px;
-            color: #1a237e;
-            margin-bottom: 10px;
-        }
-        .policy-number {
-            font-size: 16px;
-            color: #666;
-            font-weight: bold;
-        }
-        .customer-details {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border-left: 4px solid #ff6b35;
-        }
-        .customer-details h2 {
-            color: #1a237e;
-            margin-bottom: 15px;
-            font-size: 20px;
-        }
-        .detail-row {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: flex-start;
-        }
-        .detail-label {
-            font-weight: bold;
-            color: #1a237e;
-            min-width: 120px;
-            margin-right: 15px;
-        }
-        .coverage-section {
-            margin-bottom: 30px;
-        }
-        .coverage-section h2 {
-            color: #1a237e;
-            border-bottom: 2px solid #ff6b35;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }
-        .coverage-item {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .coverage-item h3 {
-            color: #1a237e;
-            margin-bottom: 8px;
-            font-size: 16px;
-        }
-        .cost-summary {
-            background: linear-gradient(135deg, #1a237e 0%, #303f9f 100%);
-            color: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            margin-top: 30px;
-            text-align: center;
-        }
-        .cost-summary h2 {
-            margin-bottom: 15px;
-            font-size: 22px;
-        }
-        .monthly-cost {
-            font-size: 36px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #e0e0e0;
-            text-align: center;
-            color: #666;
-            font-size: 12px;
-        }
-        .footer .company-info {
-            margin-bottom: 10px;
-        }
-        .footer .contact-info {
-            font-weight: bold;
-            color: #1a237e;
-        }
-        @media print {
-            body { padding: 0; }
-            .container { box-shadow: none; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">
-                <div class="company-name">Flash Team</div>
-                <div class="tagline">Protection Plans</div>
-            </div>
-            <div class="document-title">
-                <h1>Protection Plan Agreement</h1>
-                <div class="policy-number">Policy: ${policyNumber}</div>
-            </div>
-        </div>
-
-        <div class="customer-details">
-            <h2>Customer Information</h2>
-            <div class="detail-row">
-                <span class="detail-label">Name:</span>
-                <span>${customerName}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Email:</span>
-                <span>${email}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Phone:</span>
-                <span>${phone}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Address:</span>
-                <span>${address}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Coverage Start:</span>
-                <span>${coverageStartDate}</span>
-            </div>
-        </div>
-
-        <div class="coverage-section">
-            <h2>Coverage Details</h2>
-            
-            <div class="coverage-item">
-                <h3>🔧 Appliance Cover</h3>
-                <p><strong>Status:</strong> ${d.applianceCover || 'No'}</p>
-                <p>Comprehensive protection for your household appliances including repairs, parts, and labor costs.</p>
-            </div>
-
-            <div class="coverage-item">
-                <h3>🏠 Boiler Cover</h3>
-                <p><strong>Status:</strong> ${d.boilerCover || 'No'}</p>
-                <p>Complete boiler protection including annual service, emergency repairs, and replacement parts.</p>
-            </div>
-        </div>
-
-        <div class="cost-summary">
-            <h2>Monthly Investment</h2>
-            <div class="monthly-cost">£${monthlyCost}</div>
-            <p>Your monthly protection plan cost</p>
-        </div>
-
-        <div class="footer">
-            <div class="company-info">
-                Flash Team Protection Plans - Your trusted partner in home protection
-            </div>
-            <div class="contact-info">
-                📞 Support: 0800-FLASH-TEAM | 📧 support@flashteam.co.uk
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
+function safeFilename(s: string): string {
+  return String(s || "protection-plan")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 80);
 }
 
+// Generate Flash Team PDF using enhanced template service
 async function generateFlashTeamPDF(data: any): Promise<Buffer> {
+  // Use our enhanced template service to generate the beautiful template
+  const templateService = new EnhancedTemplateService();
+  const html = await templateService.generateDocument('welcome-letter', {
+    // Map the data to match our template variables exactly
+    customerName: data.customerName || '[Customer Name]',
+    email: data.email || '',
+    phone: data.phone || '',
+    address: data.address || '',
+    coverageStartDate: data.coverageStartDate || '',
+    policyNumber: data.policyNumber || '',
+    monthlyCost: data.monthlyCost || '',
+    totalCost: data.totalCost || data.monthlyCost || ''
+  });
+
   // Configure for serverless environment
   let executablePath: string | undefined;
   let args: string[] = [
@@ -402,10 +75,14 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
   ];
   
   if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-    executablePath = await chromium.executablePath();
-    args = chromium.args.concat(args);
+    try {
+      executablePath = await chromium.executablePath();
+      args = chromium.args.concat(args);
+    } catch (e) {
+      console.warn('Could not get chromium executable path:', e);
+    }
   }
-  
+
   const browser = await puppeteer.launch({
     headless: true,
     executablePath,
@@ -414,19 +91,261 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
   
   try {
     const page = await browser.newPage();
-    const htmlContent = buildFlashTeamHtml(data);
-    
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.emulateMediaType("print");
     
     const pdfBuffer = await page.pdf({
-      format: 'A4',
-      margin: { top: '1cm', bottom: '1cm', left: '1cm', right: '1cm' },
+      format: "A4",
       printBackground: true,
-      preferCSSPageSize: true
+      margin: {
+        top: '0.1in',
+        right: '0.1in',
+        bottom: '0.1in',
+        left: '0.1in'
+      },
+      scale: 1.0,
     });
     
     return Buffer.from(pdfBuffer);
   } finally {
     await browser.close();
+  }
+}
+
+export async function POST(request: NextRequest) {
+  console.log('📝 Document generation request started - FLASH TEAM PDF ONLY');
+  
+  try {
+    // Rate limiting
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log('📝 Client IP:', clientIP);
+    
+    const rateLimitCheck = await checkApiRateLimit(clientIP);
+    if (!rateLimitCheck.success) {
+      console.log('❌ Rate limit exceeded');
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
+    // Authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      console.log('❌ No session or user found');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    console.log('✅ User authenticated:', session.user.email);
+
+    // Parse and validate request body
+    const body = await request.json();
+    console.log('📝 Request body:', body);
+    
+    const validatedData = generateDocumentSchema.parse(body);
+    console.log('✅ Request data validated - WILL GENERATE PDF ONLY:', validatedData);
+
+    // Initialize template data for Flash Team PDF
+    console.log('📝 Preparing data for Flash Team PDF generation');
+
+    // Load sale data for document generation
+    const { prisma } = await import('@/lib/prisma');
+    console.log('📝 Loading sale data for ID:', validatedData.saleId);
+    
+    const sale = await prisma.sale.findUnique({
+      where: { id: validatedData.saleId },
+      include: {
+        appliances: true,
+        createdBy: {
+          select: {
+            email: true,
+          }
+        }
+      }
+    });
+
+    if (!sale) {
+      console.log('❌ Sale not found for ID:', validatedData.saleId);
+      return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
+    }
+    
+    console.log('✅ Sale loaded:', {
+      id: sale.id,
+      customer: `${sale.customerFirstName} ${sale.customerLastName}`,
+      email: sale.email
+    });
+
+    // Check user permissions (agents can only generate for their own sales)
+    if (session.user.role === 'AGENT') {
+      if (sale.createdById !== session.user.id) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
+    }
+
+    // Transform sale data for template
+    const templateData = {
+      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+      email: sale.email,
+      phone: sale.phoneNumber,
+      address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+      coverageStartDate: new Date().toLocaleDateString('en-GB'),
+      policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Format: TFT0123
+      totalCost: (sale.totalPlanCost * 12).toFixed(2), // Annual cost = monthly * 12
+      monthlyCost: sale.totalPlanCost.toFixed(2), // Monthly cost
+      hasApplianceCover: sale.applianceCoverSelected,
+      hasBoilerCover: sale.boilerCoverSelected,
+      // New coverage fields for template
+      applianceCount: sale.appliances.length,
+      boilerCover: sale.boilerCoverSelected,
+      annualBoilerService: sale.boilerCoverSelected, // Include service if boiler cover selected
+      // Customer data structure for new template
+      customer: {
+        name: `${sale.customerFirstName} ${sale.customerLastName}`,
+        email: sale.email,
+        phone: sale.phoneNumber,
+        address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`
+      },
+      coverage: {
+        startDate: new Date().toLocaleDateString('en-GB')
+      },
+      agreement: {
+        referenceNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+        coverage: {
+          hasBoilerCover: sale.boilerCoverSelected,
+          boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+        }
+      },
+      appliances: sale.appliances.map(appliance => ({
+        name: appliance.appliance + (appliance.otherText ? ` (${appliance.otherText})` : ''),
+        coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
+        monthlyCost: `£${appliance.cost.toFixed(2)}`
+      })),
+      boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : null,
+      currentDate: new Date().toLocaleDateString('en-GB', { 
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }),
+      metadata: {
+        agentName: sale.agentName || sale.createdBy?.email || 'Flash Team Support'
+      }
+    };
+
+    // Generate Flash Team PDF directly
+    console.log('� Generating Flash Team PDF...');
+    
+    // Prepare data for Flash Team template
+    const flashTeamData = {
+      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+      email: sale.email,
+      phone: sale.phoneNumber,
+      address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+      coverageStartDate: new Date().toLocaleDateString('en-GB'),
+      policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, 
+      monthlyCost: sale.totalPlanCost?.toFixed(2) || "0.00",
+      hasApplianceCover: sale.applianceCoverSelected,
+      hasBoilerCover: sale.boilerCoverSelected,
+    };
+
+    console.log('📄 Flash Team data prepared:', flashTeamData);
+    
+    // Generate PDF directly using one-page template
+    console.log('📄 Generating Flash Team PDF directly...');
+    
+    const pdfBuffer = await generateFlashTeamPDF(flashTeamData);
+    console.log('✅ Flash Team PDF generated, size:', pdfBuffer.length, 'bytes');
+
+      // Generate filename 
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `flash-team-protection-plan-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.pdf`;
+      
+      // Create a basic template record for compatibility
+      const templateName = 'Flash Team Protection Plan';
+      const templateId = 'flash-team-default';
+      
+      // Store PDF document in database
+      console.log(`� Storing Flash Team PDF in database (serverless environment)`);
+
+      const generatedDocument = await prisma.generatedDocument.create({
+        data: {
+          saleId: sale.id,
+          templateId: templateId, // Use default template ID for Flash Team
+          filename: fileName,
+          filePath: `virtual://generated-documents/${fileName}`,
+          fileSize: pdfBuffer.length,
+          mimeType: 'application/pdf',
+          metadata: {
+            templateType: validatedData.templateType,
+            customerName: flashTeamData.customerName,
+            generationMethod: 'flash-team-pdf-generator',
+            // Store the actual PDF content in metadata
+            documentContent: pdfBuffer.toString('base64')
+          }
+        }
+      });
+
+      console.log('📝 Successfully created GeneratedDocument:', generatedDocument.id);
+
+      // Mark the sale as having documents generated
+      await prisma.sale.update({
+        where: { id: sale.id },
+        data: {
+          documentsGenerated: true,
+          documentsGeneratedAt: new Date(),
+          documentsGeneratedBy: session.user.id
+        }
+      });
+
+      console.log('✅ Sale marked as having documents generated:', sale.id);
+
+      console.log('🎯 FINAL RESULT: Generated PDF file:', fileName);
+      console.log('🎯 Template name:', templateName);
+      console.log('🎯 File type: application/pdf');
+
+      return NextResponse.json({
+        success: true,
+        document: {
+          id: generatedDocument.id,
+          content: `Flash Team PDF generated successfully (${pdfBuffer.length} bytes)`,
+          fileName: fileName,
+          templateName: templateName,
+          saleId: sale.id,
+          customerName: flashTeamData.customerName,
+          customerEmail: sale.email,
+          generatedAt: generatedDocument.generatedAt.toISOString(),
+          downloadUrl: `/api/paperwork/download/${generatedDocument.id}`
+        }
+      });
+
+  } catch (error) {
+    console.error('❌ Document generation error:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+    if (error instanceof z.ZodError) {
+      console.error('❌ Validation error details:', error.issues);
+      return NextResponse.json(
+        { 
+          error: 'Invalid request data',
+          details: error.issues,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof Error) {
+      console.error('❌ Known error:', error.message);
+      // Handle specific paperwork service errors
+      if (error.message.includes('not found')) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+
+      if (error.message.includes('template')) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
