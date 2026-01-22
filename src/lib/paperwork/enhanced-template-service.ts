@@ -65,21 +65,27 @@ export class EnhancedTemplateService {
         }
         
         .lightning-icon {
-            width: 22px;
-            height: 22px;
+            width: 28px;
+            height: 28px;
             background: linear-gradient(45deg, #ff6500, #ffa500);
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 18px;
             color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
             flex-shrink: 0;
+            font-weight: bold;
+            border: 2px solid white;
         }
         
         .lightning-icon::before {
-            content: '⚡';
+            content: 'FT';
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
         }
         
         .logo-text {
@@ -97,30 +103,30 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 18px 15px 30px 15px;
+            padding: 14px 15px 20px 15px;
         }
         
         .main-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             color: #1a365d;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             border-bottom: 2px solid #ff6500;
-            padding-bottom: 7px;
+            padding-bottom: 6px;
             letter-spacing: -0.25px;
         }
         
         .intro-text {
             font-size: 10px;
-            margin-bottom: 18px;
-            line-height: 1.45;
+            margin-bottom: 16px;
+            line-height: 1.4;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 14px 18px;
-            margin-bottom: 22px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
             border-radius: 4px;
             text-align: center;
             font-size: 11px;
@@ -132,8 +138,8 @@ export class EnhancedTemplateService {
         .three-column {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 24px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
         .card {
@@ -232,19 +238,19 @@ export class EnhancedTemplateService {
         .two-column-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 24px;
+            gap: 12px;
+            margin-bottom: 18px;
         }
         
         .compact-list {
             list-style: none;
-            font-size: 8px;
-            line-height: 1.45;
+            font-size: 7px;
+            line-height: 1.3;
         }
         
         .compact-list li {
-            margin-bottom: 6px;
-            padding-left: 10px;
+            margin-bottom: 4px;
+            padding-left: 8px;
             position: relative;
         }
         
@@ -311,8 +317,8 @@ export class EnhancedTemplateService {
             background: linear-gradient(135deg, #e8f4fd 0%, #bee3f8 100%);
             border: 1px solid #90cdf4;
             border-radius: 4px;
-            padding: 14px;
-            margin-bottom: 22px;
+            padding: 12px;
+            margin-bottom: 16px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
@@ -329,15 +335,15 @@ export class EnhancedTemplateService {
         .coverage-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 24px;
+            gap: 12px;
+            margin-bottom: 18px;
         }
         
         .coverage-section {
             background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
             border: 1px solid #e2e8f0;
             border-radius: 4px;
-            padding: 12px;
+            padding: 10px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
@@ -353,10 +359,10 @@ export class EnhancedTemplateService {
         .footer {
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
             color: white;
-            padding: 14px 15px;
+            padding: 10px 15px;
             text-align: center;
             font-size: 8px;
-            margin-top: 18px;
+            margin-top: 12px;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
         }
         
