@@ -6,10 +6,14 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
 
 export async function POST(request: NextRequest) {
+  console.log('🔄 Starting bulk download request...');
+  
   try {
     // Authentication
+    console.log('🔐 Checking authentication...');
     const session = await getServerSession(authOptions);
     if (!session?.user) {
+      console.log('❌ No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -27,6 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    console.log('📄 Parsing request body...');
     const body = await request.json();
     const { documentIds, downloadAll = false, filter } = body;
     
@@ -52,53 +57,67 @@ export async function POST(request: NextRequest) {
 
     // Get documents
     let documents;
-    if (downloadAll) {
-      documents = await prisma.generatedDocument.findMany({
-        where: whereClause,
-        include: {
-          sale: {
-            select: {
-              customerFirstName: true,
-              customerLastName: true,
-              email: true
+    console.log('🔍 Fetching documents from database...');
+    
+    try {
+      if (downloadAll) {
+        console.log('📦 Fetching all documents with where clause:', JSON.stringify(whereClause, null, 2));
+        documents = await prisma.generatedDocument.findMany({
+          where: whereClause,
+          include: {
+            sale: {
+              select: {
+                customerFirstName: true,
+                customerLastName: true,
+                email: true
+              }
+            },
+            template: {
+              select: {
+                name: true,
+                templateType: true
+              }
             }
           },
-          template: {
-            select: {
-              name: true,
-              templateType: true
-            }
+          orderBy: {
+            generatedAt: 'desc'
           }
-        },
-        orderBy: {
-          generatedAt: 'desc'
-        }
-      });
-    } else {
-      documents = await prisma.generatedDocument.findMany({
-        where: {
-          ...whereClause,
-          id: { in: documentIds }
-        },
-        include: {
-          sale: {
-            select: {
-              customerFirstName: true,
-              customerLastName: true,
-              email: true
+        });
+      } else {
+        console.log('📦 Fetching specific documents with IDs:', documentIds);
+        documents = await prisma.generatedDocument.findMany({
+          where: {
+            ...whereClause,
+            id: { in: documentIds }
+          },
+          include: {
+            sale: {
+              select: {
+                customerFirstName: true,
+                customerLastName: true,
+                email: true
+              }
+            },
+            template: {
+              select: {
+                name: true,
+                templateType: true
+              }
             }
           },
-          template: {
-            select: {
-              name: true,
-              templateType: true
-            }
+          orderBy: {
+            generatedAt: 'desc'
           }
-        },
-        orderBy: {
-          generatedAt: 'desc'
-        }
-      });
+        });
+      }
+      
+      console.log('✅ Database query successful, found documents:', documents.length);
+    } catch (dbError) {
+      console.error('❌ Database query failed:', dbError);
+      return NextResponse.json({ 
+        error: 'Database query failed', 
+        details: dbError instanceof Error ? dbError.message : 'Unknown database error'
+      }, { status: 500 });
     }
 
     console.log('📥 Found documents for bulk download:', documents.length);
