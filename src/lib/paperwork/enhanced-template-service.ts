@@ -113,7 +113,7 @@ export class EnhancedTemplateService {
         }
         
         .content {
-            padding: 16px 20px;
+            padding: 12px 20px;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -132,15 +132,15 @@ export class EnhancedTemplateService {
         
         .intro-text {
             font-size: 12px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             line-height: 1.5;
         }
         
         .activation-banner {
             background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);
             color: white;
-            padding: 14px 18px;
-            margin-bottom: 20px;
+            padding: 12px 18px;
+            margin-bottom: 16px;
             border-radius: 4px;
             text-align: center;
             font-size: 13px;
@@ -152,8 +152,8 @@ export class EnhancedTemplateService {
         .three-column {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 22px;
+            gap: 12px;
+            margin-bottom: 16px;
             flex: 1;
         }
         
@@ -257,8 +257,8 @@ export class EnhancedTemplateService {
         .two-column-bottom {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 16px;
         }
         
         .compact-list {
@@ -318,8 +318,8 @@ export class EnhancedTemplateService {
         .important-section {
             background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
             border-left: 3px solid #ff6500;
-            padding: 16px;
-            margin-bottom: 20px;
+            padding: 12px;
+            margin-bottom: 16px;
             border-radius: 0 4px 4px 0;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
@@ -354,15 +354,15 @@ export class EnhancedTemplateService {
         .coverage-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
         
         .coverage-section {
             background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
             border: 1px solid #e2e8f0;
             border-radius: 4px;
-            padding: 12px;
+            padding: 10px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
@@ -602,17 +602,6 @@ export class EnhancedTemplateService {
                 </div>
             </div>
             
-            <div class="additional-info">
-                <h3>Your Rights & Peace of Mind</h3>
-                <div class="coverage-grid">
-                    <div>
-                        <p style="font-size: 11px; margin-bottom: 8px;"><strong>Cooling Off Period:</strong> You have 14 days to cancel this agreement for a full refund.</p>
-                    </div>
-                    <div>
-                        <p style="font-size: 11px; margin-bottom: 8px;"><strong>Quality Guarantee:</strong> All work carried out by Gas Safe registered engineers.</p>
-                    </div>
-                </div>
-            </div>
         </div>
         
         <div class="footer">
