@@ -649,11 +649,13 @@ export async function GET(request: NextRequest) {
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: false,
+        scale: 0.8,
         margin: {
-          top: '0.5in',
-          right: '0.5in',
-          bottom: '0.5in',
-          left: '0.5in'
+          top: '0.3in',
+          right: '0.3in',
+          bottom: '0.3in',
+          left: '0.3in'
         }
       });
       
@@ -1367,11 +1369,13 @@ export async function POST(request: NextRequest) {
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: false,
+        scale: 0.8,
         margin: {
-          top: '0.5in',
-          right: '0.5in',
-          bottom: '0.5in',
-          left: '0.5in'
+          top: '0.3in',
+          right: '0.3in',
+          bottom: '0.3in',
+          left: '0.3in'
         }
       });
       
