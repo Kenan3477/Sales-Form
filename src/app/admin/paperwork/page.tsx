@@ -93,7 +93,7 @@ export default function AdminPaperworkPage() {
           url.searchParams.set('customerStatus', customerStatusFilter);
         }
         url.searchParams.set('page', currentPage.toString());
-        url.searchParams.set('limit', '100');
+        url.searchParams.set('limit', '1000'); // Increased from 100 to show more documents
         const response = await fetch(url.toString());
         if (!response.ok) throw new Error('Failed to fetch documents');
         const data = await response.json();
