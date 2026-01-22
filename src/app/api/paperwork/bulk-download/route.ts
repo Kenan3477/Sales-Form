@@ -219,80 +219,58 @@ export async function POST(request: NextRequest) {
 
     for (const doc of Array.from(customerDocuments.values())) {
       try {
-        // Get document content from metadata first
-        let fileContent: string | undefined;
+        console.log(`🔄 Processing document for ${doc.sale.customerFirstName} ${doc.sale.customerLastName}`);
         
-        if (doc.metadata && typeof doc.metadata === 'object' && 'documentContent' in doc.metadata) {
-          fileContent = doc.metadata.documentContent as string;
-        }
+        // Get the sale data for this document
+        const sale = await prisma.sale.findUnique({
+          where: { id: doc.saleId }
+        });
         
-        // If no content in metadata, try to regenerate using enhanced template service
-        if (!fileContent || typeof fileContent !== 'string') {
-          console.log(`⚡ Regenerating content for ${doc.filename} using enhanced template service`);
-          
-          try {
-            // Import the enhanced template service
-            const { EnhancedTemplateService } = await import('@/lib/paperwork/enhanced-template-service');
-            const templateService = new EnhancedTemplateService();
-            
-            // Get the sale data to regenerate the document
-            const sale = await prisma.sale.findUnique({
-              where: { id: doc.saleId }
-            });
-            
-            if (sale) {
-              // Prepare the data for template generation
-              const templateData = {
-                customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
-                email: sale.email,
-                phone: sale.phoneNumber,
-                address: `${sale.mailingStreet || ''}${sale.mailingCity ? `, ${sale.mailingCity}` : ''}${sale.mailingProvince ? `, ${sale.mailingProvince}` : ''}${sale.mailingPostalCode ? ` ${sale.mailingPostalCode}` : ''}`.trim(),
-                monthlyCost: sale.totalPlanCost?.toString() || '0',
-                policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Generate new policy number
-                coverageStartDate: sale.createdAt ? new Date(sale.createdAt).toLocaleDateString() : new Date().toLocaleDateString()
-              };
-              
-              // Generate the document content using enhanced template service
-              fileContent = await templateService.generateDocument('welcome-letter', templateData);
-              console.log(`✅ Successfully regenerated content for ${doc.filename}`);
-            } else {
-              console.error(`❌ Sale not found for document ${doc.filename} (sale ID: ${doc.saleId})`);
-              skippedFiles++;
-              continue;
-            }
-          } catch (regenerateError) {
-            console.error(`❌ Failed to regenerate content for ${doc.filename}:`, regenerateError);
-            skippedFiles++;
-            continue;
-          }
-        }
-        
-        if (!fileContent || typeof fileContent !== 'string') {
-          console.error(`❌ No content available for ${doc.filename} after regeneration attempt`);
+        if (!sale) {
+          console.error(`❌ Sale not found for document ${doc.filename} (sale ID: ${doc.saleId})`);
           skippedFiles++;
           continue;
         }
 
-        // The document content should be our enhanced template - extract it properly
-        let documentHtml = fileContent;
+        // Generate fresh HTML content for this customer using the enhanced template service
+        const { EnhancedTemplateService } = await import('@/lib/paperwork/enhanced-template-service');
+        const templateService = new EnhancedTemplateService();
         
-        // For our enhanced template, we want the complete document content as-is
-        // Remove only the outer html/head tags but preserve all styles and structure
-        let cleanDocumentContent = documentHtml;
+        // Prepare the data for template generation
+        const templateData = {
+          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+          email: sale.email,
+          phone: sale.phoneNumber || 'N/A',
+          address: `${sale.mailingStreet || ''}${sale.mailingCity ? `, ${sale.mailingCity}` : ''}${sale.mailingProvince ? `, ${sale.mailingProvince}` : ''}${sale.mailingPostalCode ? ` ${sale.mailingPostalCode}` : ''}`.trim() || 'N/A',
+          monthlyCost: sale.totalPlanCost?.toString() || '0',
+          totalCost: sale.totalPlanCost?.toString() || '0',
+          policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, 
+          coverageStartDate: sale.createdAt ? new Date(sale.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+          currentDate: new Date().toLocaleDateString(),
+          applianceCover: sale.applianceCoverSelected ? 'Yes' : 'No',
+          boilerCover: sale.boilerCoverSelected ? 'Yes' : 'No'
+        };
+        
+        // Generate the document content using enhanced template service
+        const documentHtml = await templateService.generateDocument('welcome-letter', templateData);
+        console.log(`✅ Generated fresh content for ${sale.customerFirstName} ${sale.customerLastName}`);
+
+        // Extract body content from the generated HTML (remove html wrapper but keep styles)
+        let bodyContent = documentHtml;
         
         // Remove DOCTYPE and outer HTML wrapper, but keep everything else including styles
-        cleanDocumentContent = cleanDocumentContent
+        bodyContent = bodyContent
           .replace(/<!DOCTYPE[^>]*>/gi, '')
           .replace(/<html[^>]*>/gi, '')
           .replace(/<\/html>/gi, '')
           .trim();
         
         // Extract the head content (including styles) and body content separately
-        const headMatch = cleanDocumentContent.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
-        const bodyMatch = cleanDocumentContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        const headMatch = bodyContent.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+        const bodyMatch = bodyContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         
         let headContent = headMatch ? headMatch[1] : '';
-        let bodyContent = bodyMatch ? bodyMatch[1] : cleanDocumentContent;
+        let finalBodyContent = bodyMatch ? bodyMatch[1] : bodyContent;
         
         // If we have head content, extract just the styles
         let documentStyles = '';
@@ -305,11 +283,11 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create a single page for this customer using our enhanced template format
+        // Create a single page for this customer
         combinedHtml += `
     <div class="customer-page">
         ${documentStyles ? `<style>${documentStyles}</style>` : ''}
-        ${bodyContent}
+        ${finalBodyContent}
     </div>
 `;
 
@@ -325,7 +303,7 @@ export async function POST(request: NextRequest) {
         processedCount++;
         console.log(`✅ Added customer ${processedCount}: ${doc.sale.customerFirstName} ${doc.sale.customerLastName}`);
       } catch (error) {
-        console.error(`❌ Error processing file ${doc.filename}:`, error);
+        console.error(`❌ Error processing document ${doc.filename}:`, error);
         skippedFiles++;
         // Continue with other files
       }
