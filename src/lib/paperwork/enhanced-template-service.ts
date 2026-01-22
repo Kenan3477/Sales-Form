@@ -424,12 +424,27 @@ export class EnhancedTemplateService {
                 flex-direction: column;
             }
             
+            .header {
+                padding: 12px 24px;
+                margin: 0;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .footer {
+                padding: 12px 24px;
+                margin: 0;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            
             .content {
                 flex: 1;
+                padding: 20px 24px;
             }
             
             @page {
-                margin: 0;
+                margin: 15mm 10mm;
                 size: A4;
             }
         }
