@@ -506,7 +506,6 @@ export class EnhancedTemplateService {
                         <li>Subject to <strong>plan terms, conditions and exclusions</strong></li>
                         <li><strong>Annual boiler service:</strong> Contact us to book</li>
                         <li>All repairs subject to availability and assessment</li>
-                        <li>Engineer visits available Monday-Friday 8AM-6PM</li>
                         <li>Emergency cover available for qualifying issues</li>
                     </ul>
                 </div>
@@ -543,11 +542,9 @@ export class EnhancedTemplateService {
                 <div class="coverage-grid">
                     <div>
                         <p style="font-size: 10px; margin-bottom: 6px;"><strong>Cooling Off Period:</strong> You have 14 days to cancel this agreement for a full refund.</p>
-                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Customer Service:</strong> Available Monday-Friday 8AM-6PM, Saturday 9AM-1PM.</p>
                     </div>
                     <div>
                         <p style="font-size: 10px; margin-bottom: 6px;"><strong>Quality Guarantee:</strong> All work carried out by Gas Safe registered engineers.</p>
-                        <p style="font-size: 10px; margin-bottom: 6px;"><strong>Parts Warranty:</strong> 12 months on all replacement parts and labor.</p>
                     </div>
                 </div>
             </div>
