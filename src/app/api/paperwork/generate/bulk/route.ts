@@ -41,6 +41,15 @@ export async function POST(request: NextRequest) {
     const { saleIds, templateIds } = bulkGenerateSchema.parse(body);
     console.log('📄 Validated data:', { saleIds, templateIds });
 
+    // Limit batch size to prevent timeout
+    const totalCombinations = saleIds.length * templateIds.length;
+    if (totalCombinations > 50) {
+      return NextResponse.json({
+        error: `Batch too large (${totalCombinations} documents). Please select fewer items (max 50 documents per batch).`,
+        maxRecommended: Math.floor(50 / templateIds.length)
+      }, { status: 400 });
+    }
+
     // Debug: Check what templates exist in the database
     const { prisma } = await import('@/lib/prisma');
     const allTemplates = await prisma.documentTemplate.findMany({
@@ -193,9 +202,9 @@ export async function POST(request: NextRequest) {
             monthlyCost: templateData.monthlyCost,
             appliancesCount: templateData.appliances.length,
             hasBoilerCover: templateData.hasBoilerCover
-          });        // Generate document using database template or enhanced service as fallback
+          });        // Generate document using Enhanced Template Service
         console.log(`📄 Generating document for ${sale.customerFirstName} ${sale.customerLastName}...`);
-        console.log('🧪 Template data:', JSON.stringify(templateData, null, 2));
+        console.log('🧪 Template data prepared');
         let documentContent;
         
         try {
@@ -206,9 +215,6 @@ export async function POST(request: NextRequest) {
           documentContent = await enhancedTemplateService.generateDocument(templateIdForGeneration, templateData);
           
           console.log(`✅ Generated document content length: ${documentContent.length}`);
-          console.log('📄 Document preview (first 300 chars):', documentContent.substring(0, 300));
-          console.log('📄 Document contains Flash Team:', documentContent.includes('Flash Team'));
-          console.log('📄 Document contains CSS:', documentContent.includes('linear-gradient'));
           
           if (!documentContent || documentContent.length < 100) {
             throw new Error(`Generated content is too short (${documentContent?.length || 0} chars) - likely generation failed`);
@@ -218,21 +224,8 @@ export async function POST(request: NextRequest) {
           throw new Error(`Template generation failed: ${enhancedServiceError instanceof Error ? enhancedServiceError.message : 'Unknown template error'}`);
         }
         
-        // Generate PDF using Flash Team template instead of HTML
-        const pdfData = {
-          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
-          email: sale.email,
-          phone: sale.phoneNumber,
-          address: sale.mailingStreet || '',
-          postcode: sale.mailingPostalCode || '',
-          coverageStartDate: sale.createdAt.toLocaleDateString('en-GB'),
-          policyNumber: `FT${sale.id.toString().padStart(6, '0')}`,
-          monthlyCost: sale.totalPlanCost?.toString() || '0',
-          applianceCover: sale.applianceCoverSelected ? 'Yes' : 'No',
-          boilerCover: sale.boilerCoverSelected ? 'Yes' : 'No'
-        };
-
-        const pdfBytes = await generateFlashTeamPDF(pdfData);
+        // Generate PDF using the Enhanced Template Service HTML content
+        const pdfBytes = await generateFlashTeamPDF(templateData);
         
         // Generate PDF filename and metadata
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
