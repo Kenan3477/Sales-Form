@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { chromium } from 'playwright';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer';
 
 // ---------- Flash Team PDF Generator ----------
 function escapeHtml(v: any): string {
@@ -435,15 +436,38 @@ function buildHtml(data: any): string {
 async function generateProtectionPlanPdf(data: any): Promise<{ filename: string; contentType: string; bytes: Buffer }> {
   const html = buildHtml(data);
 
-  const browser = await chromium.launch({
+  // Configure for serverless environment
+  let executablePath: string | undefined;
+  let args: string[] = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu',
+    '--font-render-hinting=medium'
+  ];
+  
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    try {
+      executablePath = await chromium.executablePath();
+      args = (chromium as any).args.concat(args);
+    } catch (e) {
+      console.warn('Could not get chromium executable path:', e);
+    }
+  }
+
+  const browser = await puppeteer.launch({
     headless: true,
-    args: ["--font-render-hinting=medium"]
+    executablePath,
+    args,
   });
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle" });
-    await page.emulateMedia({ media: "print" });
+    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.emulateMediaType("print");
 
     const pdfBytes = await page.pdf({
       format: "A4",
