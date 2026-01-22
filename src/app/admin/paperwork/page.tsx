@@ -936,6 +936,70 @@ export default function AdminPaperworkPage() {
     }
   };
 
+  const handleDeleteAllDocuments = async () => {
+    const totalDocuments = documents.length;
+    
+    if (totalDocuments === 0) {
+      alert('No documents to delete');
+      return;
+    }
+
+    if (!confirm(`⚠️ DANGER ZONE ⚠️\n\nThis will permanently delete ALL ${totalDocuments} generated documents from the system.\n\nSales data will NOT be affected, but all PDF documents will be removed.\n\nThis action cannot be undone.\n\nAre you absolutely sure you want to proceed?`)) {
+      return;
+    }
+
+    // Double confirmation for safety
+    if (!confirm(`Final confirmation:\n\nDelete ALL ${totalDocuments} documents?\n\nType 'DELETE ALL' in the next prompt to confirm.`)) {
+      return;
+    }
+
+    const userInput = prompt('Type "DELETE ALL" (without quotes) to confirm:');
+    if (userInput !== 'DELETE ALL') {
+      alert('Deletion cancelled - confirmation text did not match.');
+      return;
+    }
+
+    setBulkDownloading(true);
+    setError(null);
+
+    try {
+      console.log('🗑️ Starting deletion of all documents...');
+      
+      const response = await fetch('/api/paperwork/delete-all-documents', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ All documents deleted successfully:', result);
+        
+        // Clear the local state
+        setDocuments([]);
+        setSelectedDocuments([]);
+        
+        // Refresh data to ensure UI is in sync
+        await fetchData();
+        
+        alert(`✅ Success!\n\nDeleted: ${result.documentsDeleted} documents\nReset flags: ${result.salesReset} sales records\n\nAll generated documents have been removed from the system.`);
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Failed to delete all documents:', errorData);
+        throw new Error(errorData.error || 'Failed to delete documents');
+      }
+
+    } catch (err) {
+      console.error('❌ Error deleting all documents:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Failed to delete all documents: ${errorMessage}`);
+      alert(`❌ Error: ${errorMessage}`);
+    } finally {
+      setBulkDownloading(false);
+    }
+  };
+
   const handleRegenerateDocument = async (documentId: string, saleId: string, templateId: string) => {
     try {
       setError(null);
@@ -1606,7 +1670,7 @@ export default function AdminPaperworkPage() {
                             </button>
 
                             {/* Delete All Button - Danger Zone */}
-                            <div className="border-l border-gray-300 pl-2 ml-2">
+                            <div className="border-l border-gray-300 pl-2 ml-2 space-x-2 flex">
                               <button
                                 onClick={handleDeleteSelectedDocuments}
                                 disabled={selectedDocuments.length === 0 || bulkDownloading}
@@ -1622,6 +1686,26 @@ export default function AdminPaperworkPage() {
                                   </>
                                 ) : (
                                   <>🗑️ Delete Selected ({selectedDocuments.length})</>
+                                )}
+                              </button>
+                              
+                              {/* Delete ALL Documents Button - EXTREME DANGER */}
+                              <button
+                                onClick={handleDeleteAllDocuments}
+                                disabled={documents.length === 0 || bulkDownloading}
+                                className="bg-red-900 text-white px-4 py-2 rounded-md hover:bg-red-950 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center font-bold border-2 border-red-700"
+                                title="⚠️ DANGER: This will delete ALL generated documents permanently"
+                              >
+                                {bulkDownloading ? (
+                                  <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Deleting ALL...
+                                  </>
+                                ) : (
+                                  <>💀 DELETE ALL ({documents.length})</>
                                 )}
                               </button>
                             </div>
