@@ -256,58 +256,6 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
     }
   }
 
-  const generateDirectPDF = async (templateType: string, templateId?: string) => {
-    console.log('🎯 Starting DIRECT PDF generation for:', templateType);
-    setGenerating(`${templateType}-pdf`)
-    setError('')
-    setSuccess('')
-
-    try {
-      const requestData = {
-        saleId,
-        templateType,
-        ...(templateId && { templateId }),
-      };
-
-      console.log('🎯 PDF Request data:', requestData);
-
-      const response = await fetch('/api/paperwork/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      })
-
-      console.log('🎯 PDF Response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('❌ PDF Response error:', errorData);
-        throw new Error(errorData.error || 'Failed to generate PDF')
-      }
-
-      // Handle PDF download
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${templateType}-${saleId}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      
-      setSuccess(`PDF "${templateType}" downloaded successfully!`)
-      setShowTemplateSelector(false)
-    } catch (error) {
-      console.error('❌ Error generating PDF:', error)
-      setError(error instanceof Error ? error.message : 'Failed to generate PDF')
-    } finally {
-      setGenerating(null)
-    }
-  }
-
   const previewDocument = async (templateType: string, format: 'html' | 'pdf' = 'html') => {
     try {
       const response = await fetch('/api/paperwork/preview', {
@@ -485,59 +433,35 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                 <div className="mt-4 space-y-3">
                   {templates.map((template) => (
                     <div key={template.id} className="relative border border-gray-300 rounded-lg overflow-hidden">
-                      {/* Generate Direct PDF - FEATURED */}
+                      {/* Generate Flash Team PDF */}
                       <button
-                        onClick={() => generateDirectPDF(template.templateType, template.id)}
+                        onClick={() => generateDocument(template.templateType, template.id)}
                         disabled={generating !== null}
-                        className="w-full text-left p-4 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-gradient-to-r from-blue-50 to-blue-100 border-b-2 border-blue-200"
+                        className="w-full text-left p-4 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-gradient-to-r from-blue-50 to-blue-100"
                       >
                         <div className="flex items-center">
                           <span className="text-3xl mr-3">📄</span>
                           <div className="flex-1">
                             <div className="text-sm font-bold text-blue-900">
-                              📥 Generate & Download PDF
+                              📥 Generate Flash Team PDF
                             </div>
                             <div className="text-xs text-blue-700 font-medium">
-                              Professional PDF with Flash Team branding - Ready to print
+                              Professional PDF with Flash Team branding - {template.description}
                             </div>
                           </div>
                           <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                            RECOMMENDED
-                          </div>
-                        </div>
-                      </button>
-                      
-                      {/* Generate HTML Document - Secondary option */}
-                      <button
-                        onClick={() => generateDocument(template.templateType, template.id)}
-                        disabled={generating !== null}
-                        className="w-full text-left p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50 bg-gray-50"
-                      >
-                        <div className="flex items-center">
-                          <span className="text-2xl mr-3 opacity-60">
-                            {getTemplateIcon(template.templateType)}
-                          </span>
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-gray-700">
-                              📄 Generate PDF Document
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Creates professional PDF for storage and download - {template.description}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-600 font-medium">
-                            PDF
+                            READY
                           </div>
                         </div>
                       </button>
                       
                       {/* Loading overlay */}
-                      {(generating === template.templateType || generating === `${template.templateType}-pdf`) && (
+                      {generating === template.templateType && (
                         <div className="absolute inset-0 bg-gray-50 bg-opacity-90 flex items-center justify-center rounded-lg">
                           <div className="text-center">
                             <div className="animate-spin text-2xl mb-2">⚙️</div>
                             <div className="text-sm font-medium text-gray-700">
-                              {generating?.includes('-pdf') ? 'Generating Professional PDF...' : 'Generating HTML...'}
+                              Generating Flash Team PDF...
                             </div>
                           </div>
                         </div>
