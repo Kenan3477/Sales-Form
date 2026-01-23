@@ -8,9 +8,18 @@ export async function OPTIONS(request: NextRequest) {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
+  });
+}
+
+export async function GET() {
+  return NextResponse.json({
+    status: 'endpoint_working',
+    message: 'bulk-merge-pdf endpoint is accessible',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    timestamp: new Date().toISOString()
   });
 }
 
