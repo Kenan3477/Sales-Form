@@ -579,13 +579,28 @@ async function handleImport(request: NextRequest, context: any) {
           saleData.totalPlanCost = calculatedCost || 1 // Minimum 1 for validation
         }
         
-        // Set default contact info if missing
+        // 🚨 CRITICAL DATA PROTECTION: Never generate fake customer data
+        // Set default contact info if missing - NEVER SIMULATE REAL DATA
         if (!hasPhone) {
-          saleData.phoneNumber = '00000000000' // Default placeholder
+          // Use empty string instead of fake phone number
+          saleData.phoneNumber = '' // NO fake numbers - customer data integrity is critical
         }
         if (!hasEmail) {
-          // Leave email blank instead of generating placeholder
-          saleData.email = ''
+          // 🔒 DATA PROTECTION: NEVER generate placeholder emails
+          // Leave email blank - NEVER create @placeholder.com, @example.com, or any fake emails
+          saleData.email = '' // Empty string only - preserves data integrity
+        }
+
+        // 🛡️ ADDITIONAL DATA VALIDATION: Check for accidentally imported fake data
+        if (saleData.email && (
+          saleData.email.includes('@placeholder.') ||
+          saleData.email.includes('@example.') ||
+          saleData.email.includes('@test.') ||
+          saleData.email.includes('@fake.') ||
+          saleData.email.includes('@demo.')
+        )) {
+          // Reject any fake emails that might have been imported
+          throw new Error(`CRITICAL: Fake email detected: ${saleData.email}. Customer data integrity violation.`)
         }
 
         // Process appliances
