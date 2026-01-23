@@ -568,7 +568,26 @@ export default function AdminPaperworkPage() {
     setError(null);
 
     try {
-      // Use PDF merge route for bulk downloads
+      // First test if the endpoint is accessible
+      console.log('🧪 Testing endpoint accessibility...');
+      const testResponse = await fetch('/api/paperwork/bulk-merge-pdf', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!testResponse.ok) {
+        console.error('❌ Endpoint test failed:', {
+          status: testResponse.status,
+          statusText: testResponse.statusText
+        });
+        throw new Error(`Endpoint not accessible: ${testResponse.status} ${testResponse.statusText}`);
+      }
+      
+      const testResult = await testResponse.json();
+      console.log('✅ Endpoint test passed:', testResult);
+      
+      // Now try the actual PDF merge request
+      console.log('📄 Starting PDF merge request...');
       const response = await fetch('/api/paperwork/bulk-merge-pdf', {
         method: 'POST',
         headers: {
