@@ -684,7 +684,17 @@ export default function AdminPaperworkPage() {
               
             } catch (batchError) {
               console.error(`Batch ${i} download error:`, batchError);
-              setError(`Failed to download PDF batch ${i}. Some files may be missing.`);
+              
+              // For debugging: log which batch failed and why
+              console.error(`❌ Batch ${i} details:`, {
+                batchNumber: i,
+                totalBatches: batchInfo.totalBatches,
+                batchSize: batchInfo.batchSize,
+                downloadAll: downloadAll,
+                error: batchError instanceof Error ? batchError.message : batchError
+              });
+              
+              setError(`Failed to download PDF batch ${i}. Some files may be missing. This batch may contain corrupted documents.`);
               // Continue with next batch even if one fails
             }
           }
