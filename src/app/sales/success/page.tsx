@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 function SuccessContent() {
   const searchParams = useSearchParams()
-  const saleId = searchParams.get('id')
+  const saleId = searchParams?.get('id')
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
