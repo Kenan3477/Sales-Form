@@ -3,17 +3,32 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   console.log('🔄 Starting batch PDF download...');
   
   try {
     // Authentication
     const session = await getServerSession(authOptions);
+    console.log('🔐 Session check:', { hasSession: !!session, userId: session?.user?.id, role: session?.user?.role });
+    
     if (!session?.user) {
+      console.log('❌ No session or user found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     if (session.user.role !== 'ADMIN' && session.user.role !== 'AGENT') {
+      console.log('❌ Insufficient permissions:', session.user.role);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -47,6 +62,8 @@ export async function GET(request: NextRequest) {
 
     // Get documents
     let documents;
+    console.log('📥 Fetching documents with params:', { downloadAll, documentIds: documentIds.length, filter, whereClause });
+    
     if (downloadAll) {
       documents = await prisma.generatedDocument.findMany({
         where: whereClause,
@@ -96,6 +113,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    console.log(`📊 Found ${documents.length} total documents`);
+
     // Get the specific batch
     const startIndex = (batch - 1) * batchSize;
     const endIndex = startIndex + batchSize;
@@ -127,9 +146,19 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Batch PDF download error:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Return more detailed error information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 5).join('\n') // First 5 lines of stack
+    } : { message: 'Unknown error type' };
+    
     return NextResponse.json({ 
       error: 'Failed to create batch PDF',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage,
+      debug: errorDetails
     }, { status: 500 });
   }
 }
