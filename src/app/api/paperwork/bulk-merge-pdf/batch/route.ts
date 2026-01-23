@@ -141,28 +141,39 @@ async function createMergedPDF(documents: any[], batchNumber: number, totalBatch
 
   const mergedPdf = await PDFDocument.create();
   let processedCount = 0;
+  let skippedFiles = 0;
 
   console.log(`📄 Creating merged PDF batch ${batchNumber}/${totalBatches} with ${documents.length} documents...`);
 
   for (const doc of documents) {
     try {
+      console.log(`📄 Processing document: ${doc.filename} for ${doc.sale.customerFirstName} ${doc.sale.customerLastName}`);
+      
+      // Get the PDF content from metadata
       if (doc.metadata && typeof doc.metadata === 'object' && 'documentContent' in doc.metadata) {
         const pdfContent = doc.metadata.documentContent as string;
         
+        // Convert base64 to buffer
         let pdfBuffer: Buffer;
         try {
           pdfBuffer = Buffer.from(pdfContent, 'base64');
+          
+          // Verify it's a valid PDF by checking the header
           if (!pdfBuffer.toString('ascii', 0, 4).includes('PDF')) {
             pdfBuffer = Buffer.from(pdfContent, 'binary');
           }
         } catch (error) {
           console.error(`❌ Error processing PDF content for ${doc.filename}:`, error);
+          skippedFiles++;
           continue;
         }
         
         try {
+          // Load the individual PDF
           const individualPdf = await PDFDocument.load(pdfBuffer);
           const pages = await mergedPdf.copyPages(individualPdf, individualPdf.getPageIndices());
+          
+          // Add pages to merged PDF
           pages.forEach((page) => mergedPdf.addPage(page));
           
           console.log(`✅ Added ${pages.length} page(s) from ${doc.filename} to batch ${batchNumber}`);
@@ -179,19 +190,25 @@ async function createMergedPDF(documents: any[], batchNumber: number, totalBatch
           
         } catch (pdfError) {
           console.error(`❌ Error merging PDF ${doc.filename}:`, pdfError);
+          skippedFiles++;
         }
+      } else {
+        console.error(`❌ No PDF content found in metadata for ${doc.filename}`);
+        skippedFiles++;
       }
     } catch (error) {
       console.error(`❌ Error processing document ${doc.filename}:`, error);
+      skippedFiles++;
     }
   }
 
-  console.log(`📊 Batch ${batchNumber} completed: ${processedCount} documents processed`);
+  console.log(`📊 Merged PDF batch ${batchNumber} completed: ${processedCount} documents processed, ${skippedFiles} files skipped`);
 
   if (processedCount === 0) {
     throw new Error('No PDF documents could be processed and merged');
   }
 
+  // Generate the merged PDF
   const pdfBytes = await mergedPdf.save();
   return Buffer.from(pdfBytes);
 }
