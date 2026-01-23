@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-01-23T13:48:25.422Z",
+  "totalSales": 2307,
+  "totalSystemValue": 82578.40000000068,
+  "metadata": {
+    "backupReason": "Initial backup after pricing recalculation fixes",
+    "createdBy": "System Setup",
+    "systemStats": {
+      "averagePerCustomer": 35.794711746857686,
+      "customersWithBoilers": 1294,
+      "totalAppliances": 8823
+    }
+  },
+  "topCustomers": [
+    {
+      "name": "Daphne Gibson",
+      "total": 85.42,
+      "applianceCount": 7
+    },
+    {
+      "name": "Daphne Gibson",
+      "total": 85.42,
+      "applianceCount": 7
+    },
+    {
+      "name": "Diane Sutton",
+      "total": 84.89,
+      "applianceCount": 10
+    },
+    {
+      "name": "Christine Skinner",
+      "total": 84.89,
+      "applianceCount": 10
+    },
+    {
+      "name": "Margaret Lloyd",
+      "total": 84.89,
+      "applianceCount": 10
+    },
+    {
+      "name": "Gareth James",
+      "total": 84.89,
+      "applianceCount": 10
+    },
+    {
+      "name": "Ann Maxwell",
+      "total": 84.88999999999999,
+      "applianceCount": 10
+    },
+    {
+      "name": "Margaret Prosser",
+      "total": 84.88999999999999,
+      "applianceCount": 10
+    },
+    {
+      "name": "Josephine Randell",
+      "total": 79.99,
+      "applianceCount": 10
+    },
+    {
+      "name": "Doreen Simmons",
+      "total": 78.93,
+      "applianceCount": 5
+    }
+  ]
+}
