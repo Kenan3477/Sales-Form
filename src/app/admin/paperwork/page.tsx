@@ -627,10 +627,14 @@ export default function AdminPaperworkPage() {
                 ...(selectedDocuments.length > 0 && { documentIds: selectedDocuments.join(',') })
               });
               
-              const batchResponse = await fetch(`/api/paperwork/bulk-merge-pdf/batch?${params}`);
+              const batchResponse = await fetch(`/api/paperwork/bulk-merge-pdf/batch?${params}`, {
+                credentials: 'include'
+              });
               
               if (!batchResponse.ok) {
-                throw new Error(`Batch ${i} failed to download`);
+                const errorText = await batchResponse.text();
+                console.error(`Batch ${i} error response:`, errorText);
+                throw new Error(`Batch ${i} failed to download: ${batchResponse.status} ${batchResponse.statusText}`);
               }
               
               const blob = await batchResponse.blob();
