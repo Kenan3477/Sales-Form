@@ -199,7 +199,11 @@ async function createMergedPDF(documents: any[], batchNumber: number, totalBatch
         
         try {
           // Load the individual PDF
+          console.log(`🔍 Loading PDF ${doc.filename} (${pdfBuffer.length} bytes)`);
           const individualPdf = await PDFDocument.load(pdfBuffer);
+          const pageCount = individualPdf.getPageCount();
+          console.log(`📖 PDF ${doc.filename} has ${pageCount} pages`);
+          
           const pages = await mergedPdf.copyPages(individualPdf, individualPdf.getPageIndices());
           
           // Add pages to merged PDF
@@ -218,7 +222,14 @@ async function createMergedPDF(documents: any[], batchNumber: number, totalBatch
           });
           
         } catch (pdfError) {
-          console.error(`❌ Error merging PDF ${doc.filename}:`, pdfError);
+          console.error(`❌ Error loading/merging PDF ${doc.filename}:`, {
+            filename: doc.filename,
+            docId: doc.id,
+            customerName: `${doc.sale.customerFirstName} ${doc.sale.customerLastName}`,
+            bufferSize: pdfBuffer?.length || 'unknown',
+            error: pdfError instanceof Error ? pdfError.message : pdfError,
+            stack: pdfError instanceof Error ? pdfError.stack?.split('\n').slice(0, 3) : []
+          });
           skippedFiles++;
         }
       } else {
@@ -226,7 +237,12 @@ async function createMergedPDF(documents: any[], batchNumber: number, totalBatch
         skippedFiles++;
       }
     } catch (error) {
-      console.error(`❌ Error processing document ${doc.filename}:`, error);
+      console.error(`❌ Error processing document ${doc.filename}:`, {
+        filename: doc.filename,
+        docId: doc.id,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3) : []
+      });
       skippedFiles++;
     }
   }
@@ -234,10 +250,14 @@ async function createMergedPDF(documents: any[], batchNumber: number, totalBatch
   console.log(`📊 Merged PDF batch ${batchNumber} completed: ${processedCount} documents processed, ${skippedFiles} files skipped`);
 
   if (processedCount === 0) {
-    throw new Error('No PDF documents could be processed and merged');
+    console.error(`❌ No documents could be processed in batch ${batchNumber}`);
+    throw new Error(`No PDF documents could be processed and merged in batch ${batchNumber}. All ${documents.length} documents were skipped due to errors.`);
   }
 
   // Generate the merged PDF
+  console.log(`📝 Generating final merged PDF for batch ${batchNumber}...`);
   const pdfBytes = await mergedPdf.save();
+  console.log(`✅ Batch ${batchNumber} PDF generated successfully: ${pdfBytes.length} bytes`);
+  
   return Buffer.from(pdfBytes);
 }
