@@ -60,6 +60,13 @@ export default function AdminPaperworkPage() {
   
   // Basic pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [paginationInfo, setPaginationInfo] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  } | null>(null);
 
   // Redirect if not admin
   if (status === 'loading') {
@@ -93,12 +100,13 @@ export default function AdminPaperworkPage() {
           url.searchParams.set('customerStatus', customerStatusFilter);
         }
         url.searchParams.set('page', currentPage.toString());
-        url.searchParams.set('limit', '1000'); // Increased from 100 to show more documents
+        url.searchParams.set('limit', '250'); // Set to 250 documents per page
         const response = await fetch(url.toString());
         if (!response.ok) throw new Error('Failed to fetch documents');
         const data = await response.json();
         console.log('📋 Documents response:', data);
         setDocuments(data.documents || []);
+        setPaginationInfo(data.pagination || null);
         console.log('📋 Pagination info:', data.pagination);
       } else if (activeTab === 'generate') {
         // Fetch both templates and sales data
@@ -2067,6 +2075,79 @@ export default function AdminPaperworkPage() {
                         ))}
                       </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    {paginationInfo && paginationInfo.totalPages > 1 && (
+                      <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-gray-200">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <span>
+                            Showing {((paginationInfo.page - 1) * paginationInfo.limit) + 1} to {Math.min(paginationInfo.page * paginationInfo.limit, paginationInfo.total)} of {paginationInfo.total} documents
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {/* Previous Button */}
+                          <button
+                            onClick={() => {
+                              if (currentPage > 1) {
+                                setCurrentPage(currentPage - 1);
+                              }
+                            }}
+                            disabled={currentPage <= 1}
+                            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Previous
+                          </button>
+
+                          {/* Page Numbers */}
+                          <div className="flex items-center space-x-1">
+                            {Array.from({ length: Math.min(paginationInfo.totalPages, 5) }, (_, i) => {
+                              // Calculate which pages to show (max 5 pages)
+                              let pageNumber;
+                              if (paginationInfo.totalPages <= 5) {
+                                // Show all pages if 5 or fewer
+                                pageNumber = i + 1;
+                              } else if (currentPage <= 3) {
+                                // Show first 5 pages
+                                pageNumber = i + 1;
+                              } else if (currentPage >= paginationInfo.totalPages - 2) {
+                                // Show last 5 pages
+                                pageNumber = paginationInfo.totalPages - 4 + i;
+                              } else {
+                                // Show current page and 2 pages on each side
+                                pageNumber = currentPage - 2 + i;
+                              }
+
+                              return (
+                                <button
+                                  key={pageNumber}
+                                  onClick={() => setCurrentPage(pageNumber)}
+                                  className={`px-3 py-2 text-sm font-medium rounded-md ${
+                                    currentPage === pageNumber
+                                      ? 'bg-blue-600 text-white border border-blue-600'
+                                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {pageNumber}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Next Button */}
+                          <button
+                            onClick={() => {
+                              if (currentPage < paginationInfo.totalPages) {
+                                setCurrentPage(currentPage + 1);
+                              }
+                            }}
+                            disabled={currentPage >= paginationInfo.totalPages}
+                            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
                 )}
