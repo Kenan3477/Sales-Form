@@ -13,7 +13,11 @@
     "db:push": "prisma db push",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "backup:create": "npx tsx scripts/backup-cli.ts create",
+    "backup:list": "npx tsx scripts/backup-cli.ts list",
+    "backup:restore": "npx tsx scripts/backup-cli.ts restore",
+    "backup:cleanup": "npx tsx scripts/backup-cli.ts cleanup"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

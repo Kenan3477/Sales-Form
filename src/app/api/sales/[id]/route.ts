@@ -68,6 +68,18 @@ export async function PUT(
     const saleId = id
     body = await request.json()
 
+    console.log('📝 Received sale update request:', {
+      saleId,
+      hasCustomerFirstName: !!body.customerFirstName,
+      hasCustomerLastName: !!body.customerLastName,
+      hasEmail: !!body.email,
+      hasPhoneNumber: !!body.phoneNumber,
+      hasTotalPlanCost: body.totalPlanCost !== undefined,
+      hasApplianceCoverSelected: body.applianceCoverSelected !== undefined,
+      hasBoilerCoverSelected: body.boilerCoverSelected !== undefined,
+      appliancesCount: body.appliances?.length || 0
+    })
+
     // Check if the sale exists and if the user has permission to edit it
     const existingSale = await prisma.sale.findUnique({
       where: { id: saleId },
@@ -83,39 +95,93 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden: You can only edit your own sales' }, { status: 403 })
     }
 
+    // Validate required fields based on field configuration (outside transaction)
+    console.log('🔍 Validating sale update fields:', {
+      customerFirstName: body.customerFirstName,
+      customerLastName: body.customerLastName,
+      email: body.email,
+      phoneNumber: body.phoneNumber,
+      accountName: body.accountName,
+      sortCode: body.sortCode,
+      accountNumber: body.accountNumber
+    })
+
+    // Get field configurations to check what's actually required
+    const fieldConfigs = await prisma.fieldConfiguration.findMany()
+    const isFieldRequired = (fieldName: string): boolean => {
+      const config = fieldConfigs.find(c => c.fieldName === fieldName)
+      return config?.isRequired || false
+    }
+
+    // Validate dynamic required fields
+    const missingFields: string[] = []
+    
+    if (isFieldRequired('customerFirstName') && !body.customerFirstName) {
+      missingFields.push('firstName')
+    }
+    if (isFieldRequired('customerLastName') && !body.customerLastName) {
+      missingFields.push('lastName')
+    }
+    if (isFieldRequired('email') && !body.email) {
+      missingFields.push('email')
+    }
+    if (isFieldRequired('phoneNumber') && !body.phoneNumber) {
+      missingFields.push('phoneNumber')
+    }
+    if (isFieldRequired('accountName') && !body.accountName && !existingSale.accountName) {
+      missingFields.push('accountName')
+    }
+    if (isFieldRequired('sortCode') && !body.sortCode && !existingSale.sortCode) {
+      missingFields.push('sortCode')
+    }
+    if (isFieldRequired('accountNumber') && !body.accountNumber && !existingSale.accountNumber) {
+      missingFields.push('accountNumber')
+    }
+
+    if (missingFields.length > 0) {
+      return NextResponse.json({ 
+        error: `Missing required fields: ${missingFields.join(', ')}. Please fill in all required fields.` 
+      }, { status: 400 })
+    }
+
+    // Additional validation for data integrity
+    if (body.totalPlanCost === undefined || body.totalPlanCost === null) {
+      return NextResponse.json({ 
+        error: 'Total plan cost is required' 
+      }, { status: 400 })
+    }
+
+    if (body.applianceCoverSelected === undefined || body.boilerCoverSelected === undefined) {
+      return NextResponse.json({ 
+        error: 'Appliance and boiler cover selections are required' 
+      }, { status: 400 })
+    }
+
+    // Validate appliances array if present
+    if (body.appliances && !Array.isArray(body.appliances)) {
+      return NextResponse.json({ 
+        error: 'Appliances must be an array' 
+      }, { status: 400 })
+    }
+
+    // Validate each appliance in the array
+    if (body.appliances) {
+      for (let i = 0; i < body.appliances.length; i++) {
+        const appliance = body.appliances[i]
+        if (!appliance.appliance || appliance.coverLimit === undefined || appliance.cost === undefined) {
+          return NextResponse.json({ 
+            error: `Appliance ${i + 1} is missing required fields (appliance, coverLimit, cost)` 
+          }, { status: 400 })
+        }
+      }
+    }
+
     // Update the sale and appliances in a transaction
     const updatedSale = await prisma.$transaction(async (prisma) => {
       // Delete existing appliances
       await prisma.appliance.deleteMany({
         where: { saleId }
       })
-
-      // Validate required fields
-      console.log('🔍 Validating sale update fields:', {
-        customerFirstName: body.customerFirstName,
-        customerLastName: body.customerLastName,
-        email: body.email,
-        phoneNumber: body.phoneNumber,
-        accountName: body.accountName,
-        sortCode: body.sortCode,
-        accountNumber: body.accountNumber
-      })
-
-      if (!body.customerFirstName || !body.customerLastName || !body.email || !body.phoneNumber) {
-        throw new Error(`Missing required customer fields. Received: firstName=${body.customerFirstName}, lastName=${body.customerLastName}, email=${body.email}, phone=${body.phoneNumber}`)
-      }
-
-      if (!body.accountName && !existingSale.accountName) {
-        throw new Error('Account name is required')
-      }
-
-      if (!body.sortCode && !existingSale.sortCode) {
-        throw new Error('Sort code is required')
-      }
-
-      if (!body.accountNumber && !existingSale.accountNumber) {
-        throw new Error('Account number is required')
-      }
 
       // Update the sale with new data
       return await prisma.sale.update({
