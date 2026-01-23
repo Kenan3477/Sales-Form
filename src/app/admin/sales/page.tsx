@@ -68,6 +68,22 @@ export default function AdminSalesPage() {
   const [duplicateExclusions, setDuplicateExclusions] = useState<string[]>([])
   const [duplicateCustomerCount, setDuplicateCustomerCount] = useState(0)
   const [duplicateCheckUploadError, setDuplicateCheckUploadError] = useState('')
+  
+  // Database Restore states
+  const [showRestoreModal, setShowRestoreModal] = useState(false)
+  const [availableBackups, setAvailableBackups] = useState<any[]>([])
+  const [selectedBackup, setSelectedBackup] = useState('')
+  const [restoreConfirmation, setRestoreConfirmation] = useState('')
+  const [restoreLoading, setRestoreLoading] = useState(false)
+  const [restoreError, setRestoreError] = useState('')
+
+  // Database Rollback states  
+  const [showRollbackModal, setShowRollbackModal] = useState(false)
+  const [availableRollbackPoints, setAvailableRollbackPoints] = useState<any[]>([])
+  const [selectedRollbackPoint, setSelectedRollbackPoint] = useState('')
+  const [rollbackConfirmation, setRollbackConfirmation] = useState('')
+  const [rollbackLoading, setRollbackLoading] = useState(false)
+  const [rollbackError, setRollbackError] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -511,6 +527,166 @@ export default function AdminSalesPage() {
     setDeleteAction(null)
   }
 
+  // Database Restore Functions
+  const fetchAvailableBackups = async () => {
+    try {
+      const response = await fetch('/api/admin/backups')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch backups')
+      }
+
+      setAvailableBackups(data.backups || [])
+    } catch (error) {
+      console.error('Error fetching backups:', error)
+      setRestoreError('Failed to fetch available backups')
+    }
+  }
+
+  const handleShowRestore = () => {
+    setShowRestoreModal(true)
+    setRestoreError('')
+    setSelectedBackup('')
+    setRestoreConfirmation('')
+    fetchAvailableBackups()
+  }
+
+  const handleRestoreDatabase = async () => {
+    if (!selectedBackup) {
+      setRestoreError('Please select a backup file')
+      return
+    }
+
+    if (restoreConfirmation !== 'RESTORE_CONFIRMED_EMERGENCY') {
+      setRestoreError('Please enter the correct confirmation code: RESTORE_CONFIRMED_EMERGENCY')
+      return
+    }
+
+    setRestoreLoading(true)
+    setRestoreError('')
+
+    try {
+      const response = await fetch('/api/admin/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          backupFilename: selectedBackup,
+          confirmationCode: restoreConfirmation
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Restore failed')
+      }
+
+      alert(`✅ Database restored successfully!\n\nRestored from: ${data.backupDate}\nRecords restored: ${data.totalRecordsRestored}\n\nThe page will now refresh to show the restored data.`)
+      
+      // Close modal and refresh page
+      setShowRestoreModal(false)
+      window.location.reload()
+
+    } catch (error) {
+      console.error('Error restoring database:', error)
+      setRestoreError(error instanceof Error ? error.message : 'Failed to restore database')
+    } finally {
+      setRestoreLoading(false)
+    }
+  }
+
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false)
+    setRestoreError('')
+    setSelectedBackup('')
+    setRestoreConfirmation('')
+  }
+
+  // 🔄 ROLLBACK FUNCTIONALITY
+  const fetchAvailableRollbackPoints = async () => {
+    try {
+      const response = await fetch('/api/admin/rollback/list')
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableRollbackPoints(data.rollbackPoints || [])
+      } else {
+        setRollbackError('Failed to load rollback points')
+      }
+    } catch (error) {
+      setRollbackError('Failed to load rollback points')
+      console.error('Error fetching rollback points:', error)
+    }
+  }
+
+  const openRollbackModal = () => {
+    setShowRollbackModal(true)
+    setRollbackError('')
+    setSelectedRollbackPoint('')
+    setRollbackConfirmation('')
+    fetchAvailableRollbackPoints()
+  }
+
+  const handleDatabaseRollback = async () => {
+    if (!selectedRollbackPoint) {
+      setRollbackError('Please select a rollback point')
+      return
+    }
+
+    if (rollbackConfirmation !== 'ROLLBACK_CONFIRMED_EMERGENCY') {
+      setRollbackError('Please enter the correct confirmation code: ROLLBACK_CONFIRMED_EMERGENCY')
+      return
+    }
+
+    // Extra confirmation for rollback (more dangerous than restore)
+    if (!confirm(`🚨 EMERGENCY DATABASE ROLLBACK\n\nThis will PERMANENTLY replace ALL current data with data from the selected backup point.\n\nSelected rollback point: ${selectedRollbackPoint}\n\nTHIS ACTION IS IRREVERSIBLE!\n\nAre you absolutely sure you want to proceed?`)) {
+      return
+    }
+
+    setRollbackLoading(true)
+    setRollbackError('')
+
+    try {
+      const response = await fetch('/api/admin/rollback/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          backupFilename: selectedRollbackPoint,
+          confirmationCode: rollbackConfirmation
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Rollback failed')
+      }
+
+      alert(`✅ Database rollback completed successfully!\n\nRolled back to: ${data.rolledBackTo}\nRecords restored: ${data.recordsRestored}\nData integrity verified: ${data.dataIntegrityVerified ? 'YES' : 'NO'}\n\nThe page will now refresh to show the rolled back data.`)
+      
+      // Close modal and refresh page
+      setShowRollbackModal(false)
+      window.location.reload()
+
+    } catch (error) {
+      console.error('Error performing rollback:', error)
+      setRollbackError(error instanceof Error ? error.message : 'Failed to perform rollback')
+    } finally {
+      setRollbackLoading(false)
+    }
+  }
+
+  const closeRollbackModal = () => {
+    setShowRollbackModal(false)
+    setRollbackError('')
+    setSelectedRollbackPoint('')
+    setRollbackConfirmation('')
+  }
+
   const deleteSale = async (saleId: string) => {
     const sale = sales.find(s => s.id === saleId)
     const customerName = sale ? `${sale.customerFirstName} ${sale.customerLastName}` : 'this customer'
@@ -708,6 +884,24 @@ export default function AdminSalesPage() {
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
               >
                 Delete All
+              </button>
+              <button
+                onClick={handleShowRestore}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Database Restore</span>
+              </button>
+              <button
+                onClick={openRollbackModal}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Emergency Rollback</span>
               </button>
             </div>
           </div>
@@ -1177,6 +1371,292 @@ export default function AdminSalesPage() {
                     Delete
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Database Restore Modal */}
+      {showRestoreModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center space-x-2">
+                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Database Restore</span>
+                </h3>
+                <button
+                  onClick={closeRestoreModal}
+                  className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      ⚠️ CRITICAL WARNING
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>This will <strong>REPLACE ALL CURRENT DATA</strong> with the selected backup.</p>
+                      <p className="mt-1">All current sales, customers, and system data will be permanently lost.</p>
+                      <p className="mt-1 font-semibold">This action cannot be undone!</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {availableBackups.length === 0 ? (
+                <div className="text-center py-6">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m8-5v2m0 6V9.5a2.5 2.5 0 00-5 0V16" />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No backups available</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    No backup files found. The backup system may not be configured or no backups have been created yet.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Backup to Restore:
+                    </label>
+                    <select
+                      value={selectedBackup}
+                      onChange={(e) => setSelectedBackup(e.target.value)}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">Choose a backup...</option>
+                      {availableBackups.map((backup, index) => (
+                        <option key={backup.filename} value={backup.filename}>
+                          {new Date(backup.timestamp).toLocaleString()} - {backup.records} records ({backup.size})
+                          {index === 0 ? ' [Most Recent]' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedBackup && (
+                    <div className="mb-4 bg-gray-50 p-3 rounded-md">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Backup Details:</h4>
+                      {(() => {
+                        const backup = availableBackups.find(b => b.filename === selectedBackup)
+                        if (!backup) return null
+                        return (
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p><strong>Date:</strong> {new Date(backup.timestamp).toLocaleString()}</p>
+                            <p><strong>Total Records:</strong> {backup.records.toLocaleString()}</p>
+                            <p><strong>File Size:</strong> {backup.size}</p>
+                            <div className="mt-2">
+                              <strong>Tables:</strong>
+                              <div className="grid grid-cols-2 gap-x-4 mt-1 text-xs">
+                                {Object.entries(backup.tables).map(([table, count]) => (
+                                  <div key={table}>• {table}: {count as number}</div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type confirmation code to proceed:
+                    </label>
+                    <input
+                      type="text"
+                      value={restoreConfirmation}
+                      onChange={(e) => setRestoreConfirmation(e.target.value)}
+                      placeholder="RESTORE_CONFIRMED_EMERGENCY"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Must type: <code className="bg-gray-100 px-1 py-0.5 rounded">RESTORE_CONFIRMED_EMERGENCY</code>
+                    </p>
+                  </div>
+
+                  {restoreError && (
+                    <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-red-800">{restoreError}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <button
+                  onClick={closeRestoreModal}
+                  disabled={restoreLoading}
+                  className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRestoreDatabase}
+                  disabled={!selectedBackup || restoreConfirmation !== 'RESTORE_CONFIRMED_EMERGENCY' || restoreLoading || availableBackups.length === 0}
+                  className="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {restoreLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Restoring...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span>Restore Database</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Emergency Database Rollback Modal */}
+      {showRollbackModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-orange-100">
+                    <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="ml-4 text-lg leading-6 font-medium text-gray-900">🚨 Emergency Database Rollback</h3>
+                </div>
+                <button onClick={closeRollbackModal} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-orange-800">⚠️ CRITICAL WARNING</h3>
+                    <div className="mt-2 text-sm text-orange-700">
+                      <p><strong>Emergency Rollback will:</strong></p>
+                      <ul className="list-disc ml-5 mt-1">
+                        <li>PERMANENTLY replace ALL current database data</li>
+                        <li>Create an emergency backup of current state first</li>
+                        <li>Restore data to the selected rollback point</li>
+                        <li>Verify data integrity throughout the process</li>
+                        <li><strong>THIS ACTION IS IRREVERSIBLE!</strong></li>
+                      </ul>
+                      <p className="mt-2"><strong>Use only in emergency situations when current data is corrupted!</strong></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {rollbackError && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                  <div className="text-sm text-red-600">{rollbackError}</div>
+                </div>
+              )}
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Rollback Point:
+                </label>
+                <select
+                  value={selectedRollbackPoint}
+                  onChange={(e) => setSelectedRollbackPoint(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  disabled={rollbackLoading}
+                >
+                  <option value="">Choose a rollback point...</option>
+                  {availableRollbackPoints.map((point) => (
+                    <option key={point.filename} value={point.filename}>
+                      {point.displayName} {point.dataIntegrityVerified ? '✅' : '⚠️ INTEGRITY ISSUES'}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Only verified rollback points are recommended. Points with integrity issues may contain corrupted data.
+                </p>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirmation Code:
+                  <span className="text-red-500 ml-1">ROLLBACK_CONFIRMED_EMERGENCY</span>
+                </label>
+                <input
+                  type="text"
+                  value={rollbackConfirmation}
+                  onChange={(e) => setRollbackConfirmation(e.target.value)}
+                  placeholder="Enter: ROLLBACK_CONFIRMED_EMERGENCY"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  disabled={rollbackLoading}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Type the exact confirmation code to proceed with rollback.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                <button
+                  onClick={closeRollbackModal}
+                  disabled={rollbackLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDatabaseRollback}
+                  disabled={rollbackLoading || !selectedRollbackPoint || rollbackConfirmation !== 'ROLLBACK_CONFIRMED_EMERGENCY'}
+                  className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-md disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {rollbackLoading ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span>Rolling Back Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Emergency Rollback</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
