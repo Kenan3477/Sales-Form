@@ -568,8 +568,8 @@ export default function AdminPaperworkPage() {
     setError(null);
 
     try {
-      // Use ZIP download route for bulk downloads
-      const response = await fetch('/api/paperwork/bulk-download-zip', {
+      // Use PDF merge route for bulk downloads
+      const response = await fetch('/api/paperwork/bulk-merge-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -577,29 +577,94 @@ export default function AdminPaperworkPage() {
         body: JSON.stringify({
           documentIds: selectedDocuments,
           downloadAll,
-          filter: documentFilter !== 'all' ? documentFilter : undefined
+          filter: documentFilter !== 'all' ? documentFilter : undefined,
+          batchSize: 300 // Documents per PDF file
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create ZIP archive');
+        throw new Error('Failed to merge PDFs');
       }
 
-      // Download the ZIP file
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
+      const contentType = response.headers.get('content-type');
       
-      // Get filename from response header or use default
-      const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || `PAPERWORK_${new Date().toISOString().slice(0, 10)}.zip`;
-      a.download = filename;
-      
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (contentType?.includes('application/pdf')) {
+        // Single PDF file - download directly
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        const contentDisposition = response.headers.get('content-disposition');
+        const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || `PAPERWORK_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.download = filename;
+        
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+      } else {
+        // Multiple batches - get batch info and download each
+        const batchInfo = await response.json();
+        console.log('📊 Batch info:', batchInfo);
+        
+        if (batchInfo.totalBatches > 1) {
+          setError(`Large document set: ${batchInfo.totalDocuments} documents will be downloaded as ${batchInfo.totalBatches} separate PDF files...`);
+          
+          // Download each batch sequentially
+          for (let i = 1; i <= batchInfo.totalBatches; i++) {
+            try {
+              console.log(`📄 Downloading batch ${i}/${batchInfo.totalBatches}...`);
+              setError(`Downloading PDF ${i} of ${batchInfo.totalBatches}...`);
+              
+              const params = new URLSearchParams({
+                batch: i.toString(),
+                totalBatches: batchInfo.totalBatches.toString(),
+                batchSize: batchInfo.batchSize.toString(),
+                downloadAll: downloadAll.toString(),
+                ...(documentFilter !== 'all' && { filter: documentFilter }),
+                ...(selectedDocuments.length > 0 && { documentIds: selectedDocuments.join(',') })
+              });
+              
+              const batchResponse = await fetch(`/api/paperwork/bulk-merge-pdf/batch?${params}`);
+              
+              if (!batchResponse.ok) {
+                throw new Error(`Batch ${i} failed to download`);
+              }
+              
+              const blob = await batchResponse.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              
+              const contentDisposition = batchResponse.headers.get('content-disposition');
+              const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || `PAPERWORK_BATCH_${i}.pdf`;
+              a.download = filename;
+              
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+              
+              // Brief delay between downloads
+              if (i < batchInfo.totalBatches) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+              
+            } catch (batchError) {
+              console.error(`Batch ${i} download error:`, batchError);
+              setError(`Failed to download PDF batch ${i}. Some files may be missing.`);
+              // Continue with next batch even if one fails
+            }
+          }
+          
+          setError('PDF downloads completed!');
+        } else {
+          // Should not reach here, but handle gracefully
+          throw new Error('Unexpected response format');
+        }
+      }
 
       // Reset selection and refetch to update download counts
       setSelectedDocuments([]);
