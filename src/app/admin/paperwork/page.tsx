@@ -574,6 +574,7 @@ export default function AdminPaperworkPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           documentIds: selectedDocuments,
           downloadAll,
@@ -583,7 +584,13 @@ export default function AdminPaperworkPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to merge PDFs');
+        const errorData = await response.text();
+        console.error('❌ PDF merge failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(`Failed to merge PDFs: ${response.status} ${response.statusText}`);
       }
 
       const contentType = response.headers.get('content-type');
