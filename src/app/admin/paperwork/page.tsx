@@ -578,7 +578,7 @@ export default function AdminPaperworkPage() {
           documentIds: selectedDocuments,
           downloadAll,
           filter: documentFilter !== 'all' ? documentFilter : undefined,
-          batchSize: 300 // Documents per PDF file
+          batchSize: 50 // Reduced batch size for testing
         }),
       });
 
