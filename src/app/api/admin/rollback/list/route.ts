@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-
-// Import rollback functionality
-const rollbackModule = require(process.cwd() + '/scripts/database-rollback.ts')
+import { listAvailableRollbackPoints } from '@/lib/rollback'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +14,7 @@ export async function GET(request: NextRequest) {
     console.log('🔄 Admin requesting rollback points list')
     console.log(`👤 Requested by: ${session.user.email}`)
 
-    const rollbackPoints = await rollbackModule.listAvailableRollbackPoints()
+    const rollbackPoints = await listAvailableRollbackPoints()
 
     return NextResponse.json({
       success: true,

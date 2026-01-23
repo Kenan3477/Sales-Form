@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-
-// Import rollback functionality
-const rollbackModule = require(process.cwd() + '/scripts/database-rollback.ts')
+import { performDatabaseRollback } from '@/lib/rollback'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +39,7 @@ export async function POST(request: NextRequest) {
     console.log('⚠️  PROCEEDING WITH DATABASE ROLLBACK - THIS IS IRREVERSIBLE')
     
     // Perform the rollback
-    const result = await rollbackModule.performDatabaseRollback(backupFilename, confirmationCode)
+    const result = await performDatabaseRollback(backupFilename, confirmationCode)
 
     if (result.success) {
       console.log('✅ DATABASE ROLLBACK COMPLETED SUCCESSFULLY')
