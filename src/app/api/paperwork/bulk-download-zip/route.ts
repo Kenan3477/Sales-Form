@@ -2,7 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import JSZip from 'jszip';
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
 
 export async function POST(request: NextRequest) {
   console.log('🔄 Starting bulk ZIP download request...');
@@ -128,6 +138,9 @@ export async function POST(request: NextRequest) {
 
     // Create ZIP file with all PDF documents
     console.log('📦 Creating ZIP archive with PDF documents...');
+    
+    // Dynamic import of JSZip for better compatibility
+    const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
     let processedCount = 0;
     let skippedFiles = 0;
