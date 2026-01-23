@@ -36,3 +36,8 @@ Thumbs.db
 # Testing
 coverage/
 .vercel
+
+# Debug scripts and temporary files
+debug-scripts/
+*.debug.js
+*.debug.ts
