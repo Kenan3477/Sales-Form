@@ -578,7 +578,7 @@ export default function AdminPaperworkPage() {
           documentIds: selectedDocuments,
           downloadAll,
           filter: documentFilter !== 'all' ? documentFilter : undefined,
-          batchSize: 50 // Reduced batch size for testing
+          batchSize: 250 // Minimum 250 documents per PDF file
         }),
       });
 
