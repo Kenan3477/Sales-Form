@@ -44,7 +44,13 @@ export default function AgentSaleDetailPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const params = useParams()
-  const saleId = params.id as string
+  const saleId = params?.id as string
+
+  if (!saleId) {
+    router.push('/sales')
+    return <div>Redirecting...</div>
+  }
+
   const [sale, setSale] = useState<Sale | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
