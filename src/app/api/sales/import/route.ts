@@ -352,6 +352,35 @@ async function handleImport(request: NextRequest, context: any) {
       'Appliance 9 Value': 'appliance9Cost',
       'Appliance 10 Type': 'appliance10',
       'Appliance 10 Value': 'appliance10Cost',
+      // ACTUAL CSV FIELD NAMES (based on real CSV structure)
+      'salesAgentId': 'salesAgentId',
+      'salesAgentName': 'salesAgentName',
+      'customerFirstName': 'customerFirstName',
+      'customerLastName': 'customerLastName',
+      'title': 'title',
+      'phoneNumber': 'phoneNumber',
+      'mailingStreet': 'mailingStreet',
+      'mailingCity': 'mailingCity',
+      'mailingPostalCode': 'mailingPostalCode',
+      'status': 'status',
+      'sortCode': 'sortCode',
+      'accountNumber': 'accountNumber',
+      'customerPackage': 'customerPackage',
+      'directDebitDate': 'directDebitDate',
+      'appliance1': 'appliance1',
+      'appliance2': 'appliance2',
+      'appliance3': 'appliance3',
+      'appliance4': 'appliance4',
+      'appliance1Cost': 'appliance1Cost',
+      'appliance2Cost': 'appliance2Cost',
+      'appliance3Cost': 'appliance3Cost',
+      'appliance4Cost': 'appliance4Cost',
+      'accountName': 'accountName',
+      'applianceCoverSelected': 'applianceCoverSelected',
+      'appliance1CoverLimit': 'appliance1CoverLimit',
+      'appliance2CoverLimit': 'appliance2CoverLimit',
+      'appliance3CoverLimit': 'appliance3CoverLimit',
+      'appliance4CoverLimit': 'appliance4CoverLimit',
       'Call Notes': 'notes',
       'Description': 'notes',
       'Customers Name': '_ignore', // Calculated field
@@ -516,6 +545,43 @@ async function handleImport(request: NextRequest, context: any) {
         console.log(`✅ Using boiler price as total cost: £${boilerPrice}`)
       } else {
         console.log(`⚠️ No pricing found in any price field`)
+        
+        // Try to calculate total from individual appliance costs
+        const applianceCosts = [
+          normalized.appliance1Cost,
+          normalized.appliance2Cost,
+          normalized.appliance3Cost,
+          normalized.appliance4Cost
+        ]
+        
+        let calculatedTotal = 0
+        const validCosts: number[] = []
+        
+        for (let i = 0; i < applianceCosts.length; i++) {
+          const cost = applianceCosts[i]
+          if (cost !== undefined && cost !== null && cost !== '') {
+            let parsedCost = 0
+            if (typeof cost === 'string') {
+              parsedCost = parseFloat(cost.replace(/[£$,\s]/g, '')) || 0
+            } else if (typeof cost === 'number') {
+              parsedCost = cost
+            }
+            
+            if (parsedCost > 0) {
+              validCosts.push(parsedCost)
+              calculatedTotal += parsedCost
+              console.log(`💰 Appliance ${i + 1} cost: £${parsedCost}`)
+            }
+          }
+        }
+        
+        if (calculatedTotal > 0) {
+          normalized.totalPlanCost = calculatedTotal
+          normalized.applianceCoverSelected = true
+          console.log(`✅ Calculated total from appliance costs: £${calculatedTotal} (from ${validCosts.length} appliances)`)
+        } else {
+          console.log(`❌ No valid appliance costs found either`)
+        }
       }
       
       // Handle Date of Sale vs Created Date with enhanced parsing
