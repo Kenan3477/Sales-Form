@@ -611,6 +611,15 @@ async function handleImport(request: NextRequest, context: any) {
         console.log(`⚠️ No date found in normalized fields, checking raw row data...`)
         console.log(`⚠️ Available raw fields:`, Object.keys(row))
         
+        // DEBUG: Look specifically for any field containing "date" or "sale"
+        const allFields = Object.keys(row)
+        const dateRelatedFields = allFields.filter(field => 
+          field.toLowerCase().includes('date') || 
+          field.toLowerCase().includes('sale') ||
+          field.toLowerCase().includes('created')
+        )
+        console.log(`🔍 Date-related fields found:`, dateRelatedFields)
+        
         // Check for common date field names in the raw CSV
         const rawDateFields = [
           'Date of Sale', 'Sale Date', 'Created Date', 'Date Created', 'Transaction Date', 'Order Date',
