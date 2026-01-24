@@ -8,18 +8,29 @@ export async function POST(request: NextRequest) {
     // Check authentication
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'ADMIN') {
+      console.error('❌ Rollback attempt - Unauthorized access')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { backupFilename, confirmationCode } = await request.json()
+    let requestBody
+    try {
+      requestBody = await request.json()
+    } catch (parseError) {
+      console.error('❌ Rollback request - Invalid JSON:', parseError)
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
+
+    const { backupFilename, confirmationCode } = requestBody
 
     console.log('🚨 EMERGENCY DATABASE ROLLBACK REQUEST')
     console.log(`👤 Requested by: ${session.user.email}`)
     console.log(`📁 Target backup: ${backupFilename}`)
     console.log(`🔐 Confirmation code provided: ${!!confirmationCode}`)
+    console.log(`🔐 Confirmation code value: "${confirmationCode}"`)
 
     // Safety check - require specific confirmation code
     if (confirmationCode !== 'ROLLBACK_CONFIRMED_EMERGENCY') {
+      console.error(`❌ Invalid confirmation code: expected "ROLLBACK_CONFIRMED_EMERGENCY", got "${confirmationCode}"`)
       return NextResponse.json(
         { 
           error: 'Invalid confirmation code. For safety, rollback requires confirmation code: ROLLBACK_CONFIRMED_EMERGENCY',
@@ -30,6 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!backupFilename) {
+      console.error('❌ Rollback request - Missing backup filename')
       return NextResponse.json(
         { error: 'Backup filename is required' },
         { status: 400 }

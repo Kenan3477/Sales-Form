@@ -85,6 +85,11 @@ export default function AdminSalesPage() {
   const [rollbackLoading, setRollbackLoading] = useState(false)
   const [rollbackError, setRollbackError] = useState('')
 
+  // Backup creation states
+  const [backupLoading, setBackupLoading] = useState(false)
+  const [backupSuccess, setBackupSuccess] = useState('')
+  const [backupError, setBackupError] = useState('')
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -527,6 +532,39 @@ export default function AdminSalesPage() {
     setDeleteAction(null)
   }
 
+  // Backup creation function
+  const handleCreateBackup = async () => {
+    setBackupLoading(true)
+    setBackupError('')
+    setBackupSuccess('')
+    
+    try {
+      const response = await fetch('/api/admin/create-backup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create backup')
+      }
+
+      setBackupSuccess(`Backup created successfully: ${data.backupName}`)
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setBackupSuccess(''), 5000)
+      
+    } catch (error) {
+      console.error('Error creating backup:', error)
+      setBackupError(error instanceof Error ? error.message : 'Failed to create backup')
+    } finally {
+      setBackupLoading(false)
+    }
+  }
+
   // Database Restore Functions
   const fetchAvailableBackups = async () => {
     try {
@@ -649,7 +687,7 @@ export default function AdminSalesPage() {
     setRollbackError('')
 
     try {
-      const response = await fetch('/api/admin/rollback/execute', {
+      const response = await fetch('/api/admin/rollback/debug', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -872,6 +910,16 @@ export default function AdminSalesPage() {
                 Export Selected ({selectedSales.length})
               </button>
               <button
+                onClick={handleCreateBackup}
+                disabled={backupLoading}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>{backupLoading ? 'Creating...' : 'Create Backup'}</span>
+              </button>
+              <button
                 onClick={handleDeleteSelected}
                 disabled={selectedSales.length === 0}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
@@ -1069,6 +1117,18 @@ export default function AdminSalesPage() {
           {error && (
             <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
               {error}
+            </div>
+          )}
+
+          {backupSuccess && (
+            <div className="bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+              {backupSuccess}
+            </div>
+          )}
+
+          {backupError && (
+            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+              {backupError}
             </div>
           )}
 
