@@ -687,7 +687,7 @@ export default function AdminSalesPage() {
     setRollbackError('')
 
     try {
-      const response = await fetch('/api/admin/rollback/debug', {
+      const response = await fetch('/api/admin/rollback/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
