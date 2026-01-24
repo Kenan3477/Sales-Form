@@ -309,6 +309,12 @@ async function handleImport(request: NextRequest, context: any) {
       'Customer Premium': 'totalPlanCost',
       'Customer Package': 'customerPackage', // Store what's covered for reference
       'DD Amount': 'totalPlanCost',
+      'App Bundle Price': 'totalPlanCost', // Map directly to totalPlanCost
+      'App Bundle Price (Internal)': 'totalPlanCost', // Alternative name
+      'Single App Price': 'totalPlanCost', // Map directly to totalPlanCost
+      'Single App Price (Internal)': 'totalPlanCost', // Alternative name
+      'Boiler Package Price': 'totalPlanCost', // Map directly to totalPlanCost
+      'Boiler Package Price (Internal)': 'boilerPriceSelected',
       'Total Cost': 'totalPlanCost',
       'Monthly Cost': 'totalPlanCost',
       'Premium': 'totalPlanCost',
@@ -318,9 +324,6 @@ async function handleImport(request: NextRequest, context: any) {
       'Monthly Premium': 'totalPlanCost',
       'Monthly Payment': 'totalPlanCost',
       'Payment Amount': 'totalPlanCost',
-      'Boiler Package Price (Internal)': 'boilerPriceSelected',
-      'Single App Price (Internal)': 'singleAppPrice',
-      'App Bundle Price (Internal)': 'appBundlePrice',
       'Appliance 1 Type': 'appliance1',
       'Appliance 1 Value': 'appliance1Cost',
       'Appliance 2 Type': 'appliance2',
@@ -419,11 +422,14 @@ async function handleImport(request: NextRequest, context: any) {
       
       // Check various price fields in order of priority
       const priceFields = [
-        'Boiler Package Price (Internal)', // Your actual pricing fields!
-        'Single App Price (Internal)',
+        'DD Amount', // High priority - direct pricing field
+        'App Bundle Price', // High priority - direct pricing field
         'App Bundle Price (Internal)', 
+        'Single App Price',
+        'Single App Price (Internal)',
+        'Boiler Package Price',
+        'Boiler Package Price (Internal)', 
         'Customer Premium', 
-        'DD Amount', 
         'totalPlanCost',
         'Total Cost',
         'Monthly Cost',
@@ -708,7 +714,9 @@ async function handleImport(request: NextRequest, context: any) {
           console.log(`⚠️ Row ${i + 1}: Missing or zero totalPlanCost, attempting to calculate from appliances...`)
           console.log(`⚠️ Row ${i + 1}: Current saleData.totalPlanCost = "${saleData.totalPlanCost}"`)
           console.log(`⚠️ Row ${i + 1}: All sale data keys:`, Object.keys(saleData))
-          console.log(`⚠️ Row ${i + 1}: All sale data:`, JSON.stringify(saleData, null, 2))
+          console.log(`⚠️ Row ${i + 1}: Raw CSV row (original field names):`, Object.keys(salesData[i] || {}))
+          console.log(`⚠️ Row ${i + 1}: Looking for DD Amount in raw data:`, (salesData[i] as any)?.['DD Amount'])
+          console.log(`⚠️ Row ${i + 1}: Looking for App Bundle Price in raw data:`, (salesData[i] as any)?.['App Bundle Price'])
           
           // Calculate from appliances if available
           let calculatedCost = 0
@@ -726,10 +734,11 @@ async function handleImport(request: NextRequest, context: any) {
           } else {
             // 🚨 CRITICAL: Never set arbitrary £1.00 - this corrupts pricing data
             console.error(`❌ Row ${i + 1}: No valid pricing found - SKIPPING to prevent data corruption`)
-            console.error(`❌ Row ${i + 1}: Available fields:`, Object.keys(saleData))
+            console.error(`❌ Row ${i + 1}: Available normalized fields:`, Object.keys(saleData))
+            console.error(`❌ Row ${i + 1}: Available raw CSV fields:`, Object.keys(salesData[i] || {}))
             errors.push({
               row: i + 1,
-              error: `Missing pricing information - no totalPlanCost or appliance costs found. Available fields: ${Object.keys(saleData).join(', ')}`
+              error: `Missing pricing information - no totalPlanCost or appliance costs found. Raw CSV fields: ${Object.keys(salesData[i] || {}).join(', ')}`
             })
             continue // Skip this row instead of corrupting pricing
           }
