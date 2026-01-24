@@ -4,10 +4,12 @@ export const applianceSchema = z.object({
   appliance: z.string().min(1, 'Appliance type is required'),
   otherText: z.string().optional(),
   coverLimit: z.number()
+    .min(1, 'Cover limit is required')
     .refine(val => [500, 600, 700, 800].includes(val), {
       message: 'Cover limit must be 500, 600, 700, or 800'
     }),
-  cost: z.number().min(0, 'Cost must be positive'),
+  cost: z.number()
+    .min(0.01, 'Cost per appliance is required and must be greater than 0'),
 })
 
 export const saleSchema = z.object({
@@ -33,6 +35,24 @@ export const saleSchema = z.object({
     return isNaN(num) ? null : num
   }),
   appliances: z.array(applianceSchema).max(10, 'Maximum of 10 appliances allowed'),
+}).superRefine((data, ctx) => {
+  // Make boiler price required when boiler cover is selected
+  if (data.boilerCoverSelected && (data.boilerPriceSelected === null || data.boilerPriceSelected === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Boiler price is required when boiler cover is selected',
+      path: ['boilerPriceSelected']
+    })
+  }
+  
+  // Make sure at least one appliance is provided when appliance cover is selected
+  if (data.applianceCoverSelected && data.appliances.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'At least one appliance is required when appliance cover is selected',
+      path: ['appliances']
+    })
+  }
 })
 
 export type ApplianceFormData = z.infer<typeof applianceSchema>

@@ -580,12 +580,12 @@ export class EnhancedTemplateService {
                 <div class="coverage-section">
                     <h4>What's Covered</h4>
                     <ul class="compact-list">
-                        <li>Central heating system repairs</li>
-                        <li>Boiler breakdown and servicing</li>
-                        <li>Radiator and pipework issues</li>
-                        <li>Thermostat and control faults</li>
-                        <li>Kitchen appliance breakdowns</li>
-                        <li>Washing machine and dishwasher</li>
+                        <li>Technical breakdowns are covered</li>
+                        <li>No call out charges</li>
+                        <li>Unlimited repairs</li>
+                        <li>Parts and labour covered</li>
+                        <li>Like for like replacements provided</li>
+                        <li>New for old or cash contribution available</li>
                     </ul>
                 </div>
                 

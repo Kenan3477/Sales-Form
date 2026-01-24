@@ -719,67 +719,77 @@ async function handleImport(request: NextRequest, context: any) {
       // CORRECTED PRICING LOGIC: Override the above with proper Customer Premium logic
       console.log(`💡 APPLYING CORRECTED PRICING LOGIC`)
       
-      // 1. Use Customer Premium as the final total cost
-      if (normalized['Customer Premium'] || normalized.customerPremium) {
-        const premiumValue = normalized['Customer Premium'] || normalized.customerPremium
-        let finalTotal = 0
-        if (typeof premiumValue === 'string') {
-          finalTotal = parseFloat(premiumValue.replace(/[£$,\s]/g, '')) || 0
-        } else if (typeof premiumValue === 'number') {
-          finalTotal = premiumValue
-        }
-        
-        if (finalTotal > 0) {
-          normalized.totalPlanCost = finalTotal
-          console.log(`💰 FINAL TOTAL from Customer Premium: £${finalTotal}`)
-        }
-      }
-      
-      // 2. Calculate per-appliance costs from Single App Price (Internal)
+      // 1. Get Single App Price (Internal) for appliance costs
       const singleAppInternal = normalized['Single App Price (Internal)'] || normalized.singleAppPriceInternal
       console.log(`🔍 Looking for Single App Price Internal:`, singleAppInternal)
       console.log(`🔍 Available pricing fields:`, Object.keys(normalized).filter(key => key.toLowerCase().includes('price') || key.toLowerCase().includes('app')))
       
+      let singleAppPrice = 0
       if (singleAppInternal) {
-        let singleAppPrice = 0
         if (typeof singleAppInternal === 'string') {
           singleAppPrice = parseFloat(singleAppInternal.replace(/[£$,\s]/g, '')) || 0
         } else if (typeof singleAppInternal === 'number') {
           singleAppPrice = singleAppInternal
         }
-        
+        console.log(`📊 Single App Price Internal parsed: £${singleAppPrice}`)
+      }
+      
+      // 2. Get Boiler Price
+      let finalBoilerPrice = 0
+      const boilerPriceField = normalized.boilerPriceSelected || normalized['Boiler Price Selected'] || 
+                               normalized['Boiler Package Price (Internal)'] || normalized['Landlord Boiler Package Price (Internal)'] || 0
+      if (boilerPriceField) {
+        if (typeof boilerPriceField === 'string') {
+          finalBoilerPrice = parseFloat(boilerPriceField.replace(/[£$,\s]/g, '')) || 0
+        } else if (typeof boilerPriceField === 'number') {
+          finalBoilerPrice = boilerPriceField
+        }
+        console.log(`� Boiler Price parsed: £${finalBoilerPrice}`)
+        if (finalBoilerPrice > 0) {
+          normalized.boilerCoverSelected = true
+          normalized.boilerPriceSelected = finalBoilerPrice
+        }
+      }
+      
+      // 3. Calculate total cost = Boiler + Single App Price Internal
+      const finalTotalCost = finalBoilerPrice + singleAppPrice
+      if (finalTotalCost > 0) {
+        normalized.totalPlanCost = finalTotalCost
+        console.log(`💰 TOTAL COST CALCULATED: Boiler(£${finalBoilerPrice}) + SingleApp(£${singleAppPrice}) = £${finalTotalCost}`)
+      }
+      
+      // 4. Calculate per-appliance costs from Single App Price (Internal)
+      if (singleAppPrice > 0) {
         console.log(`📊 Single App Price Internal parsed: £${singleAppPrice}`)
         
-        if (singleAppPrice > 0) {
-          // Count appliances
-          const appliances = [
-            normalized.appliance1,
-            normalized.appliance2, 
-            normalized.appliance3,
-            normalized.appliance4
-          ].filter(app => app && app.trim() !== '')
+        // Count appliances
+        const appliances = [
+          normalized.appliance1,
+          normalized.appliance2, 
+          normalized.appliance3,
+          normalized.appliance4
+        ].filter(app => app && app.trim() !== '')
+        
+        console.log(`🏠 Found ${appliances.length} appliances:`, appliances)
+        
+        if (appliances.length > 0) {
+          const perAppCost = singleAppPrice / appliances.length
+          console.log(`🧮 APPLIANCE COSTS: £${singleAppPrice} ÷ ${appliances.length} appliances = £${perAppCost.toFixed(2)} each`)
           
-          console.log(`🏠 Found ${appliances.length} appliances:`, appliances)
+          // FORCE SET individual costs (override any previous values)
+          normalized.appliance1Cost = null // Clear first
+          normalized.appliance2Cost = null
+          normalized.appliance3Cost = null
+          normalized.appliance4Cost = null
           
-          if (appliances.length > 0) {
-            const perAppCost = singleAppPrice / appliances.length
-            console.log(`🧮 APPLIANCE COSTS: £${singleAppPrice} ÷ ${appliances.length} appliances = £${perAppCost.toFixed(2)} each`)
-            
-            // FORCE SET individual costs (override any previous values)
-            normalized.appliance1Cost = null // Clear first
-            normalized.appliance2Cost = null
-            normalized.appliance3Cost = null
-            normalized.appliance4Cost = null
-            
-            if (normalized.appliance1) normalized.appliance1Cost = perAppCost
-            if (normalized.appliance2) normalized.appliance2Cost = perAppCost
-            if (normalized.appliance3) normalized.appliance3Cost = perAppCost
-            if (normalized.appliance4) normalized.appliance4Cost = perAppCost
-            
-            console.log(`✅ SET appliance costs: 1=${normalized.appliance1Cost}, 2=${normalized.appliance2Cost}, 3=${normalized.appliance3Cost}, 4=${normalized.appliance4Cost}`)
-            
-            normalized.applianceCoverSelected = true
-          }
+          if (normalized.appliance1) normalized.appliance1Cost = perAppCost
+          if (normalized.appliance2) normalized.appliance2Cost = perAppCost
+          if (normalized.appliance3) normalized.appliance3Cost = perAppCost
+          if (normalized.appliance4) normalized.appliance4Cost = perAppCost
+          
+          console.log(`✅ SET appliance costs: 1=${normalized.appliance1Cost}, 2=${normalized.appliance2Cost}, 3=${normalized.appliance3Cost}, 4=${normalized.appliance4Cost}`)
+          
+          normalized.applianceCoverSelected = true
         }
       } else {
         console.log(`❌ No Single App Price Internal found`)
