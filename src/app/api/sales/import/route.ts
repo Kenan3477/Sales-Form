@@ -247,6 +247,10 @@ async function handleImport(request: NextRequest, context: any) {
     const file = formData.get('file') as File
     const format = formData.get('format') as string
     
+    console.log('🚀 IMPORT PROCESS STARTED')
+    console.log('📁 File:', file?.name)
+    console.log('📋 Format:', format)
+    
     if (!file) {
       return NextResponse.json({ 
         success: false,
@@ -280,6 +284,10 @@ async function handleImport(request: NextRequest, context: any) {
 
     const fileContent = await file.text()
     let salesData: ImportSaleData[] = []
+
+    // DEBUG: Show raw file content (first 500 characters)
+    console.log('🔍 RAW FILE CONTENT (first 500 chars):', fileContent.substring(0, 500))
+    console.log('🔍 FILE CONTENT LINES COUNT:', fileContent.split('\n').length)
 
     // Field mapping from CRM export format to database format
     const fieldMapping: Record<string, string> = {
@@ -626,6 +634,18 @@ async function handleImport(request: NextRequest, context: any) {
       console.log('📋 Raw CSV Headers (first 5 rows):', parseResult.data.slice(0, 5))
       console.log('📋 All CSV Headers found:', parseResult.meta?.fields || 'No headers detected')
       console.log('📋 Total rows parsed:', parseResult.data.length)
+      
+      // DEBUG: Show actual CSV header line
+      const csvLines = fileContent.split('\n')
+      console.log('🔍 ACTUAL CSV HEADER LINE:', csvLines[0])
+      console.log('🔍 SECOND CSV LINE (first data):', csvLines[1])
+      
+      // DEBUG: Show specific rows around Row 194
+      if (parseResult.data.length > 193) {
+        const row194 = parseResult.data[193] as any
+        console.log('🔍 ROW 194 RAW DATA:', JSON.stringify(row194, null, 2))
+        console.log('🔍 ROW 194 AVAILABLE KEYS:', Object.keys(row194))
+      }
       
       if (parseResult.errors && parseResult.errors.length > 0) {
         console.error('🚨 CSV Parsing Errors:', parseResult.errors)
