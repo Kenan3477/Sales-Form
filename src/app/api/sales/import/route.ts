@@ -343,6 +343,10 @@ async function handleImport(request: NextRequest, context: any) {
       'Sales Agent': 'salesAgentName',
       'Agent': 'salesAgentName',
       'Sold By': 'salesAgentName',
+      'Rep': 'salesAgentName',
+      'Representative': 'salesAgentName',
+      'Advisor': 'salesAgentName',
+      'Sales Rep': 'salesAgentName',
       'Date of Birth': '_ignore',
       'Modified By.id': '_ignore',
       'Modified By': '_ignore',
@@ -404,46 +408,88 @@ async function handleImport(request: NextRequest, context: any) {
       const priceFields = [
         'Customer Premium', 
         'DD Amount', 
+        'totalPlanCost',
+        'Total Cost',
+        'Monthly Cost',
+        'Premium',
+        'Price',
         'App Bundle Price (Internal)',
         'Single App Price (Internal)', 
         'Boiler Package Price (Internal)'
       ]
       
+      console.log(`🔍 Checking pricing fields for row:`, Object.keys(normalized))
+      
       for (const priceField of priceFields) {
-        if (normalized[priceField]) {
-          const price = normalized[priceField]
+        const mappedField = fieldMapping[priceField] || priceField
+        if (normalized[mappedField] || normalized[priceField]) {
+          const price = normalized[mappedField] || normalized[priceField]
+          console.log(`💰 Found price field "${priceField}" -> "${mappedField}": ${price}`)
+          
           if (typeof price === 'string') {
-            const parsedPrice = parseFloat(price.replace(/[£$,]/g, '')) || 0
+            const parsedPrice = parseFloat(price.replace(/[£$,\s]/g, '')) || 0
             if (parsedPrice > 0) {
+              console.log(`💰 Parsed price: £${parsedPrice}`)
               if (priceField === 'Boiler Package Price (Internal)') {
                 boilerPrice = parsedPrice
                 normalized.boilerPriceSelected = parsedPrice
                 normalized.boilerCoverSelected = true
+                console.log(`🔧 Set boiler price: £${parsedPrice}`)
               } else {
                 totalCost = parsedPrice
+                console.log(`💷 Set total cost: £${parsedPrice}`)
+                break // Stop on first valid total cost found
               }
             }
+          } else if (typeof price === 'number' && price > 0) {
+            console.log(`💰 Found numeric price: £${price}`)
+            if (priceField === 'Boiler Package Price (Internal)') {
+              boilerPrice = price
+              normalized.boilerPriceSelected = price
+              normalized.boilerCoverSelected = true
+              console.log(`🔧 Set boiler price: £${price}`)
+            } else {
+              totalCost = price
+              console.log(`💷 Set total cost: £${price}`)
+              break // Stop on first valid total cost found
+            }
           }
+          // Clean up the original field
           delete normalized[priceField]
+          delete normalized[mappedField]
         }
       }
       
       // Set total cost from the highest priority field found
       if (totalCost > 0) {
         normalized.totalPlanCost = totalCost
+        console.log(`✅ Final total cost set: £${totalCost}`)
       } else if (boilerPrice > 0) {
         normalized.totalPlanCost = boilerPrice
+        console.log(`✅ Using boiler price as total cost: £${boilerPrice}`)
+      } else {
+        console.log(`⚠️ No pricing found in any price field`)
       }
       
-      // Handle Date of Sale vs Created Date
-      if (normalized.createdAt) {
-        // Parse the date of sale for when the record was actually created
-        const saleDate = new Date(normalized.createdAt)
-        if (!isNaN(saleDate.getTime())) {
-          normalized._saleDate = saleDate // Store for later use
+      // Handle Date of Sale vs Created Date with enhanced parsing
+      const dateFields = ['Date of Sale', 'Created Date', 'Sale Date', 'createdAt', '_saleDate']
+      for (const dateField of dateFields) {
+        if (normalized[dateField]) {
+          console.log(`📅 Processing date field "${dateField}": ${normalized[dateField]}`)
+          // Parse the date of sale for when the record was actually created
+          const saleDate = new Date(normalized[dateField])
+          if (!isNaN(saleDate.getTime())) {
+            normalized._saleDate = saleDate // Store for later use
+            console.log(`✅ Parsed sale date: ${saleDate.toISOString()}`)
+            break // Use first valid date found
+          } else {
+            console.log(`❌ Invalid date format: ${normalized[dateField]}`)
+          }
         }
-        delete normalized.createdAt // Remove from data to avoid confusion
       }
+      
+      // Clean up date fields to avoid confusion
+      dateFields.forEach(field => delete normalized[field])
       
       // Set account name from customer name if missing
       if (!normalized.accountName && normalized.customerFirstName && normalized.customerLastName) {
@@ -557,7 +603,9 @@ async function handleImport(request: NextRequest, context: any) {
           customerLastName: saleData.customerLastName,
           email: saleData.email,
           phoneNumber: saleData.phoneNumber,
-          salesAgentName: saleData.salesAgentName
+          salesAgentName: saleData.salesAgentName,
+          totalPlanCost: saleData.totalPlanCost,
+          dateOfSale: (saleData as any)._saleDate || 'Not specified'
         })
         
         // Check for critical fields (name)
@@ -709,35 +757,72 @@ async function handleImport(request: NextRequest, context: any) {
 
         // Create sale object with proper date handling
         const saleDate = (saleData as any)._saleDate || new Date() // Use Date of Sale or current date as fallback
+        console.log(`📅 Final sale date for ${saleData.customerFirstName} ${saleData.customerLastName}: ${saleDate.toISOString()}`)
         
-        // Resolve sales agent ID
+        // Resolve sales agent ID with enhanced lookup
         let salesAgentId = user.id // Default to importing user
+        let resolvedAgentInfo = `${user.email} (importing user)`
         
-        if (saleData.salesAgentName) {
-          console.log(`🔍 Looking up sales agent: ${saleData.salesAgentName}`)
+        if (saleData.salesAgentName && saleData.salesAgentName.trim() !== '') {
+          console.log(`🔍 Looking up sales agent: "${saleData.salesAgentName}"`)
           
-          // Try to find user by email (assuming agent name is email or contains email)
-          const salesAgent = await prisma.user.findFirst({
+          // Multiple lookup strategies for sales agent resolution
+          const agentSearchTerm = saleData.salesAgentName.trim()
+          
+          // Strategy 1: Direct email match
+          let salesAgent = await prisma.user.findFirst({
             where: {
-              OR: [
-                { email: { equals: saleData.salesAgentName, mode: 'insensitive' } },
-                // Handle case where agent name contains the email
-                { email: { contains: saleData.salesAgentName.toLowerCase().replace(/\s+/g, ''), mode: 'insensitive' } }
-              ]
+              email: { equals: agentSearchTerm, mode: 'insensitive' }
             },
-            select: {
-              id: true,
-              email: true
-            }
+            select: { id: true, email: true }
           })
+          
+          // Strategy 2: Partial email search if direct lookup failed
+          if (!salesAgent) {
+            // Extract potential email parts from the search term
+            const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/
+            const emailMatch = agentSearchTerm.match(emailPattern)
+            
+            if (emailMatch) {
+              salesAgent = await prisma.user.findFirst({
+                where: {
+                  email: { equals: emailMatch[1], mode: 'insensitive' }
+                },
+                select: { id: true, email: true }
+              })
+            } else {
+              // Try partial email matching by assuming the search term might be part of an email
+              salesAgent = await prisma.user.findFirst({
+                where: {
+                  email: { contains: agentSearchTerm.toLowerCase().replace(/\s+/g, ''), mode: 'insensitive' }
+                },
+                select: { id: true, email: true }
+              })
+            }
+          }
+          
+          // Strategy 3: Look for emails that start with the search term (for names like "John Smith" -> "john.smith@")
+          if (!salesAgent) {
+            const nameToEmail = agentSearchTerm.toLowerCase().replace(/\s+/g, '.')
+            salesAgent = await prisma.user.findFirst({
+              where: {
+                email: { startsWith: nameToEmail, mode: 'insensitive' }
+              },
+              select: { id: true, email: true }
+            })
+          }
           
           if (salesAgent) {
             salesAgentId = salesAgent.id
-            console.log(`✅ Found sales agent: ${salesAgent.email}`)
+            resolvedAgentInfo = `${salesAgent.email}`
+            console.log(`✅ Found sales agent: ${resolvedAgentInfo}`)
           } else {
-            console.log(`⚠️ Sales agent not found: ${saleData.salesAgentName}, defaulting to importing user`)
+            console.log(`⚠️ Sales agent not found: "${agentSearchTerm}", defaulting to importing user`)
+            resolvedAgentInfo = `${user.email} (importing user - original: "${agentSearchTerm}")`
           }
         }
+        
+        console.log(`👤 Using sales agent: ${resolvedAgentInfo}`)
         
         const processedSale = {
           customerFirstName: saleData.customerFirstName,
@@ -760,6 +845,7 @@ async function handleImport(request: NextRequest, context: any) {
           boilerPriceSelected: saleData.boilerPriceSelected ? Number(saleData.boilerPriceSelected) : null,
           totalPlanCost: Number(saleData.totalPlanCost),
           createdById: salesAgentId,
+          agentName: saleData.salesAgentName || null, // Store original agent name for reference
           createdAt: saleDate, // Set the actual sale date
           appliances: appliances,
           originalRowNumber: i + 2 // Keep for duplicate tracking only, don't save to DB
