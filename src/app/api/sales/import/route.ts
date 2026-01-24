@@ -302,9 +302,20 @@ async function handleImport(request: NextRequest, context: any) {
       'SortCode': 'sortCode',
       'Acc Number': 'accountNumber',
       'First DD Date': 'directDebitDate',
-      'Date of Sale': 'createdAt', // Use Date of Sale instead of First DD Date for sale date
+      'Date of Sale': 'saleDate', // Use special field name for sale date
+      'Sale Date': 'saleDate',
+      'Created Date': 'saleDate',
       'Customer Premium': 'totalPlanCost',
       'DD Amount': 'totalPlanCost',
+      'Total Cost': 'totalPlanCost',
+      'Monthly Cost': 'totalPlanCost',
+      'Premium': 'totalPlanCost',
+      'Price': 'totalPlanCost',
+      'Cost': 'totalPlanCost',
+      'Amount': 'totalPlanCost',
+      'Monthly Premium': 'totalPlanCost',
+      'Monthly Payment': 'totalPlanCost',
+      'Payment Amount': 'totalPlanCost',
       'Boiler Package Price (Internal)': 'boilerPriceSelected',
       'Single App Price (Internal)': 'singleAppPrice',
       'App Bundle Price (Internal)': 'appBundlePrice',
@@ -359,8 +370,7 @@ async function handleImport(request: NextRequest, context: any) {
       'Change Log Time': '_ignore',
       'Locked': '_ignore',
       'Last Enriched Time': '_ignore',
-      'Enrich Status': '_ignore',
-      'Created Date': '_ignore'
+      'Enrich Status': '_ignore'
     }
 
     // Function to normalize data from CRM export format to import format
@@ -413,46 +423,47 @@ async function handleImport(request: NextRequest, context: any) {
         'Monthly Cost',
         'Premium',
         'Price',
+        'Cost',
+        'Amount',
+        'Monthly Premium',
+        'Monthly Payment',
+        'Payment Amount',
         'App Bundle Price (Internal)',
         'Single App Price (Internal)', 
         'Boiler Package Price (Internal)'
       ]
       
       console.log(`🔍 Checking pricing fields for row:`, Object.keys(normalized))
+      console.log(`🔍 Available data:`, JSON.stringify(normalized, null, 2))
       
       for (const priceField of priceFields) {
         const mappedField = fieldMapping[priceField] || priceField
-        if (normalized[mappedField] || normalized[priceField]) {
-          const price = normalized[mappedField] || normalized[priceField]
-          console.log(`💰 Found price field "${priceField}" -> "${mappedField}": ${price}`)
+        const value = normalized[mappedField] || normalized[priceField]
+        
+        if (value !== undefined && value !== null && value !== '') {
+          console.log(`💰 Found price field "${priceField}" -> "${mappedField}": "${value}" (type: ${typeof value})`)
           
-          if (typeof price === 'string') {
-            const parsedPrice = parseFloat(price.replace(/[£$,\s]/g, '')) || 0
-            if (parsedPrice > 0) {
-              console.log(`💰 Parsed price: £${parsedPrice}`)
-              if (priceField === 'Boiler Package Price (Internal)') {
-                boilerPrice = parsedPrice
-                normalized.boilerPriceSelected = parsedPrice
-                normalized.boilerCoverSelected = true
-                console.log(`🔧 Set boiler price: £${parsedPrice}`)
-              } else {
-                totalCost = parsedPrice
-                console.log(`💷 Set total cost: £${parsedPrice}`)
-                break // Stop on first valid total cost found
-              }
-            }
-          } else if (typeof price === 'number' && price > 0) {
-            console.log(`💰 Found numeric price: £${price}`)
+          let parsedPrice = 0
+          if (typeof value === 'string') {
+            parsedPrice = parseFloat(value.replace(/[£$,\s]/g, '')) || 0
+          } else if (typeof value === 'number') {
+            parsedPrice = value
+          }
+          
+          if (parsedPrice > 0) {
+            console.log(`💰 Parsed price: £${parsedPrice}`)
             if (priceField === 'Boiler Package Price (Internal)') {
-              boilerPrice = price
-              normalized.boilerPriceSelected = price
+              boilerPrice = parsedPrice
+              normalized.boilerPriceSelected = parsedPrice
               normalized.boilerCoverSelected = true
-              console.log(`🔧 Set boiler price: £${price}`)
+              console.log(`🔧 Set boiler price: £${parsedPrice}`)
             } else {
-              totalCost = price
-              console.log(`💷 Set total cost: £${price}`)
+              totalCost = parsedPrice
+              console.log(`💷 Set total cost: £${parsedPrice}`)
               break // Stop on first valid total cost found
             }
+          } else {
+            console.log(`⚠️ Price field "${priceField}" has invalid value: "${value}" -> ${parsedPrice}`)
           }
           // Clean up the original field
           delete normalized[priceField]
@@ -472,7 +483,7 @@ async function handleImport(request: NextRequest, context: any) {
       }
       
       // Handle Date of Sale vs Created Date with enhanced parsing
-      const dateFields = ['Date of Sale', 'Created Date', 'Sale Date', 'createdAt', '_saleDate']
+      const dateFields = ['saleDate', 'Date of Sale', 'Sale Date', 'createdAt', '_saleDate']
       for (const dateField of dateFields) {
         if (normalized[dateField]) {
           console.log(`📅 Processing date field "${dateField}": ${normalized[dateField]}`)
@@ -647,6 +658,9 @@ async function handleImport(request: NextRequest, context: any) {
         }
         if (!saleData.totalPlanCost || saleData.totalPlanCost === 0) {
           console.log(`⚠️ Row ${i + 1}: Missing or zero totalPlanCost, attempting to calculate from appliances...`)
+          console.log(`⚠️ Row ${i + 1}: Current saleData.totalPlanCost = "${saleData.totalPlanCost}"`)
+          console.log(`⚠️ Row ${i + 1}: All sale data keys:`, Object.keys(saleData))
+          console.log(`⚠️ Row ${i + 1}: All sale data:`, JSON.stringify(saleData, null, 2))
           
           // Calculate from appliances if available
           let calculatedCost = 0
@@ -664,9 +678,10 @@ async function handleImport(request: NextRequest, context: any) {
           } else {
             // 🚨 CRITICAL: Never set arbitrary £1.00 - this corrupts pricing data
             console.error(`❌ Row ${i + 1}: No valid pricing found - SKIPPING to prevent data corruption`)
+            console.error(`❌ Row ${i + 1}: Available fields:`, Object.keys(saleData))
             errors.push({
               row: i + 1,
-              error: `Missing pricing information - no totalPlanCost or appliance costs found`
+              error: `Missing pricing information - no totalPlanCost or appliance costs found. Available fields: ${Object.keys(saleData).join(', ')}`
             })
             continue // Skip this row instead of corrupting pricing
           }
