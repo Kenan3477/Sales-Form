@@ -343,25 +343,25 @@ async function handleImport(request: NextRequest, context: any) {
       
       // Appliance information (CRM format)
       'Appliance 1 Type': 'appliance1',
-      'Appliance 1 Value': 'appliance1Cost',
+      'Appliance 1 Value': 'appliance1CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 2 Type': 'appliance2',
-      'Appliance 2 Value': 'appliance2Cost',
+      'Appliance 2 Value': 'appliance2CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 3 Type': 'appliance3',
-      'Appliance 3 Value': 'appliance3Cost',
+      'Appliance 3 Value': 'appliance3CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 4 Type': 'appliance4',
-      'Appliance 4 Value': 'appliance4Cost',
+      'Appliance 4 Value': 'appliance4CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 5 Type': 'appliance5',
-      'Appliance 5 Value': 'appliance5Cost',
+      'Appliance 5 Value': 'appliance5CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 6 Type': 'appliance6',
-      'Appliance 6 Value': 'appliance6Cost',
+      'Appliance 6 Value': 'appliance6CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 7 Type': 'appliance7',
-      'Appliance 7 Value': 'appliance7Cost',
+      'Appliance 7 Value': 'appliance7CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 8 Type': 'appliance8',
-      'Appliance 8 Value': 'appliance8Cost',
+      'Appliance 8 Value': 'appliance8CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 9 Type': 'appliance9',
-      'Appliance 9 Value': 'appliance9Cost',
+      'Appliance 9 Value': 'appliance9CoverLimit', // This is cover limit, NOT monthly cost
       'Appliance 10 Type': 'appliance10',
-      'Appliance 10 Value': 'appliance10Cost',
+      'Appliance 10 Value': 'appliance10CoverLimit', // This is cover limit, NOT monthly cost
       
       // Sales agent information
       'Customers Owner.id': 'salesAgentId',
@@ -737,6 +737,9 @@ async function handleImport(request: NextRequest, context: any) {
       
       // 2. Calculate per-appliance costs from Single App Price (Internal)
       const singleAppInternal = normalized['Single App Price (Internal)'] || normalized.singleAppPriceInternal
+      console.log(`🔍 Looking for Single App Price Internal:`, singleAppInternal)
+      console.log(`🔍 Available pricing fields:`, Object.keys(normalized).filter(key => key.toLowerCase().includes('price') || key.toLowerCase().includes('app')))
+      
       if (singleAppInternal) {
         let singleAppPrice = 0
         if (typeof singleAppInternal === 'string') {
@@ -744,6 +747,8 @@ async function handleImport(request: NextRequest, context: any) {
         } else if (typeof singleAppInternal === 'number') {
           singleAppPrice = singleAppInternal
         }
+        
+        console.log(`📊 Single App Price Internal parsed: £${singleAppPrice}`)
         
         if (singleAppPrice > 0) {
           // Count appliances
@@ -754,19 +759,30 @@ async function handleImport(request: NextRequest, context: any) {
             normalized.appliance4
           ].filter(app => app && app.trim() !== '')
           
+          console.log(`🏠 Found ${appliances.length} appliances:`, appliances)
+          
           if (appliances.length > 0) {
             const perAppCost = singleAppPrice / appliances.length
-            console.log(`🏠 APPLIANCE COSTS: £${singleAppPrice} ÷ ${appliances.length} appliances = £${perAppCost.toFixed(2)} each`)
+            console.log(`🧮 APPLIANCE COSTS: £${singleAppPrice} ÷ ${appliances.length} appliances = £${perAppCost.toFixed(2)} each`)
             
-            // Set individual costs (NOT from limits!)
+            // FORCE SET individual costs (override any previous values)
+            normalized.appliance1Cost = null // Clear first
+            normalized.appliance2Cost = null
+            normalized.appliance3Cost = null
+            normalized.appliance4Cost = null
+            
             if (normalized.appliance1) normalized.appliance1Cost = perAppCost
             if (normalized.appliance2) normalized.appliance2Cost = perAppCost
             if (normalized.appliance3) normalized.appliance3Cost = perAppCost
             if (normalized.appliance4) normalized.appliance4Cost = perAppCost
             
+            console.log(`✅ SET appliance costs: 1=${normalized.appliance1Cost}, 2=${normalized.appliance2Cost}, 3=${normalized.appliance3Cost}, 4=${normalized.appliance4Cost}`)
+            
             normalized.applianceCoverSelected = true
           }
         }
+      } else {
+        console.log(`❌ No Single App Price Internal found`)
       }
       
       console.log(`💡 CORRECTED PRICING COMPLETE`)
