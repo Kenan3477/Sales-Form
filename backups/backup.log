@@ -1,0 +1,33 @@
+(node:20118) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/zenan/Sales%20Form/scripts/database-backup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/zenan/Sales Form/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+prisma:warn In production, we recommend using `prisma generate --no-engine` (See: `prisma generate --help`)
+🔄 STARTING AUTOMATED DATABASE BACKUP
+====================================
+📅 Backup Date: 2026-01-24T02:00:02.460Z
+📊 Fetching all database tables...
+🔒 Performing customer data integrity validation before backup...
+✅ Customer data integrity validation passed
+✅ DATABASE BACKUP COMPLETE
+==========================
+📁 Backup file: database-backup-2026-01-24T02-00-02-462Z.json
+📊 Total records: 9429
+💾 File size: 5.42MB
+
+📋 Table breakdown:
+  - users: 12 records
+  - sales: 1974 records
+  - appliances: 7423 records
+  - fieldConfigurations: 18 records
+  - documentTemplates: 2 records
+  - generatedDocuments: 0 records
+  - smsLogs: 0 records
+  - leads: 0 records
+  - leadAppliances: 0 records
+  - leadDispositionHistory: 0 records
+  - leadToSaleLinks: 0 records
+  - leadImportBatches: 0 records
+
+🔒 Data Protection: All customer data backed up safely without modification
+✅ Backup completed successfully: /Users/zenan/Sales Form/backups/database/database-backup-2026-01-24T02-00-02-462Z.json

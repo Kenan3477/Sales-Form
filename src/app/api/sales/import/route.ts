@@ -66,67 +66,29 @@ async function checkForDuplicate(customerData: {
   customerLastName: string
   email: string
   phoneNumber: string
+  mailingStreet?: string
+  mailingCity?: string
+  mailingPostalCode?: string
 }): Promise<DuplicateCheckResult> {
-  const { customerFirstName, customerLastName, email, phoneNumber } = customerData
+  const { customerFirstName, customerLastName, email, phoneNumber, mailingStreet, mailingCity, mailingPostalCode } = customerData
+
+  console.log(`🔍 Checking for duplicate: ${customerFirstName} ${customerLastName}, Phone: ${phoneNumber}, Address: ${mailingStreet}, ${mailingCity}, ${mailingPostalCode}`)
+
+  // Skip duplicate checking if essential fields are missing
+  if (!customerFirstName || !customerLastName || !phoneNumber) {
+    console.log(`⚠️ Skipping duplicate check due to missing required fields (name or phone)`)
+    return {
+      isDuplicate: false,
+      existingCustomer: undefined,
+      duplicateReason: undefined
+    }
+  }
 
   // Normalize phone number for comparison (remove spaces, dashes, etc.)
-  const normalizedPhone = phoneNumber.replace(/[\s\-\(\)]/g, '')
-  
-  // Check for exact email match (most reliable)
-  const emailMatch = await prisma.sale.findFirst({
-    where: {
-      email: {
-        equals: email,
-        mode: 'insensitive'
-      }
-    },
-    select: {
-      id: true,
-      customerFirstName: true,
-      customerLastName: true,
-      email: true,
-      phoneNumber: true,
-      createdAt: true
-    }
-  })
+  const normalizedPhone = phoneNumber.replace(/[\s\-\(\)+]/g, '')
 
-  if (emailMatch) {
-    return {
-      isDuplicate: true,
-      existingCustomer: emailMatch,
-      duplicateReason: 'Email address already exists'
-    }
-  }
-
-  // Check for phone number match
-  const phoneMatch = await prisma.sale.findFirst({
-    where: {
-      OR: [
-        { phoneNumber: phoneNumber },
-        { phoneNumber: normalizedPhone },
-        { phoneNumber: { contains: normalizedPhone.slice(-10) } }, // Last 10 digits for UK numbers
-      ]
-    },
-    select: {
-      id: true,
-      customerFirstName: true,
-      customerLastName: true,
-      email: true,
-      phoneNumber: true,
-      createdAt: true
-    }
-  })
-
-  if (phoneMatch) {
-    return {
-      isDuplicate: true,
-      existingCustomer: phoneMatch,
-      duplicateReason: 'Phone number already exists'
-    }
-  }
-
-  // Check for name + similar contact info combination
-  const nameMatch = await prisma.sale.findFirst({
+  // Check for duplicate based on: same name + same phone + same address
+  const duplicateMatch = await prisma.sale.findFirst({
     where: {
       AND: [
         {
@@ -140,7 +102,27 @@ async function checkForDuplicate(customerData: {
             equals: customerLastName,
             mode: 'insensitive'
           }
-        }
+        },
+        {
+          OR: [
+            { phoneNumber: phoneNumber },
+            { phoneNumber: normalizedPhone },
+            { phoneNumber: { contains: normalizedPhone.slice(-10) } } // Last 10 digits for different formats
+          ]
+        },
+        // Address matching (if provided)
+        ...(mailingStreet ? [{
+          mailingStreet: {
+            equals: mailingStreet,
+            mode: 'insensitive' as const
+          }
+        }] : []),
+        ...(mailingPostalCode ? [{
+          mailingPostalCode: {
+            equals: mailingPostalCode,
+            mode: 'insensitive' as const
+          }
+        }] : [])
       ]
     },
     select: {
@@ -149,23 +131,23 @@ async function checkForDuplicate(customerData: {
       customerLastName: true,
       email: true,
       phoneNumber: true,
-      createdAt: true
+      createdAt: true,
+      mailingStreet: true,
+      mailingCity: true,
+      mailingPostalCode: true
     }
   })
 
-  if (nameMatch) {
-    // Additional check: if names match and emails/phones are similar
-    const emailSimilar = nameMatch.email.toLowerCase().includes(email.split('@')[0].toLowerCase()) ||
-                        email.toLowerCase().includes(nameMatch.email.split('@')[0].toLowerCase())
-    
-    if (emailSimilar) {
-      return {
-        isDuplicate: true,
-        existingCustomer: nameMatch,
-        duplicateReason: 'Same name with similar email address'
-      }
+  if (duplicateMatch) {
+    console.log(`❌ Duplicate found: ${duplicateMatch.customerFirstName} ${duplicateMatch.customerLastName}, Phone: ${duplicateMatch.phoneNumber}, Address: ${duplicateMatch.mailingStreet}`)
+    return {
+      isDuplicate: true,
+      existingCustomer: duplicateMatch,
+      duplicateReason: 'Same name, phone number, and address'
     }
   }
+
+  console.log(`✅ No duplicate found for: ${customerFirstName} ${customerLastName}`)
 
   return {
     isDuplicate: false
@@ -181,6 +163,10 @@ interface ImportSaleData {
   email: string
   notes?: string
   status?: string
+
+  // Sales agent information
+  salesAgentName?: string
+  salesAgentId?: string
 
   // Address information
   mailingStreet?: string
@@ -298,11 +284,16 @@ async function handleImport(request: NextRequest, context: any) {
     const fieldMapping: Record<string, string> = {
       'First Name': 'customerFirstName',
       'Last Name': 'customerLastName', 
+      'Name': 'fullName', // For simple CSV format - will be split later
+      'Full Name': 'fullName', // Alternative full name field
+      'Customer Name': 'fullName', // Another alternative
       'Title': 'title',
       'Phone': 'phoneNumber',
+      'Phone Number': 'phoneNumber',
       'Plain Phone': 'phoneNumber',
       'Mobile': 'phoneNumber', // Alternative phone field
       'Email': 'email',
+      'Email Address': 'email', // Alternative email field
       'Mailing Street': 'mailingStreet',
       'First Line Add': 'mailingStreet',
       'Mailing City': 'mailingCity',
@@ -346,8 +337,12 @@ async function handleImport(request: NextRequest, context: any) {
       'Brand': '_ignore',
       'Processor': '_ignore',
       'Record Id': '_ignore',
-      'Customers Owner.id': '_ignore',
-      'Customers Owner': '_ignore',
+      'Customers Owner.id': 'salesAgentId',
+      'Customers Owner': 'salesAgentName',
+      'Lead Sales Agent': 'salesAgentName',
+      'Sales Agent': 'salesAgentName',
+      'Agent': 'salesAgentName',
+      'Sold By': 'salesAgentName',
       'Date of Birth': '_ignore',
       'Modified By.id': '_ignore',
       'Modified By': '_ignore',
@@ -368,8 +363,12 @@ async function handleImport(request: NextRequest, context: any) {
     const normalizeDataRow = (row: any): any => {
       const normalized: any = {}
       
+      console.log(`🔧 Normalizing row with keys:`, Object.keys(row))
+      
       for (const [key, value] of Object.entries(row)) {
         const mappedKey = fieldMapping[key as string] || key
+        
+        console.log(`🗺️ Mapping "${key}" -> "${mappedKey}" (value: "${value}")`)
         
         // Skip fields marked to ignore
         if (mappedKey === '_ignore') {
@@ -382,6 +381,19 @@ async function handleImport(request: NextRequest, context: any) {
         }
         
         normalized[mappedKey] = value
+      }
+      
+      // Handle fullName field (split into first and last name)
+      if (normalized.fullName && !normalized.customerFirstName && !normalized.customerLastName) {
+        const nameParts = normalized.fullName.trim().split(/\s+/)
+        if (nameParts.length >= 2) {
+          normalized.customerFirstName = nameParts[0]
+          normalized.customerLastName = nameParts.slice(1).join(' ') // Everything after first name as last name
+        } else if (nameParts.length === 1) {
+          normalized.customerFirstName = nameParts[0]
+          normalized.customerLastName = '' // Set empty last name
+        }
+        delete normalized.fullName // Remove the fullName field
       }
       
       // Handle special cases for currency fields and pricing
@@ -468,6 +480,14 @@ async function handleImport(request: NextRequest, context: any) {
         }
       }
       
+      console.log(`✅ Normalized result:`, {
+        customerFirstName: normalized.customerFirstName,
+        customerLastName: normalized.customerLastName,
+        email: normalized.email,
+        phoneNumber: normalized.phoneNumber,
+        fullName: normalized.fullName
+      })
+      
       return normalized
     }
 
@@ -478,6 +498,9 @@ async function handleImport(request: NextRequest, context: any) {
         skipEmptyLines: true,
         transformHeader: (header) => header.trim()
       })
+
+      console.log('🔍 CSV Headers found:', parseResult.meta.fields)
+      console.log('🔧 Field mapping available:', Object.keys(fieldMapping))
 
       if (parseResult.errors.length > 0) {
         logSecurityEvent('IMPORT_CSV_ERROR', securityContext, { 
@@ -529,6 +552,13 @@ async function handleImport(request: NextRequest, context: any) {
         const contactFields = ['phoneNumber', 'email']
         
         console.log(`Processing row ${i + 1}:`, Object.keys(saleData))
+        console.log(`🔄 Raw data for row ${i + 1}:`, {
+          customerFirstName: saleData.customerFirstName,
+          customerLastName: saleData.customerLastName,
+          email: saleData.email,
+          phoneNumber: saleData.phoneNumber,
+          salesAgentName: saleData.salesAgentName
+        })
         
         // Check for critical fields (name)
         const missingCritical = criticalFields.filter(field => !saleData[field as keyof ImportSaleData] || saleData[field as keyof ImportSaleData] === '')
@@ -568,15 +598,30 @@ async function handleImport(request: NextRequest, context: any) {
           saleData.directDebitDate = new Date().toISOString().split('T')[0] // Today's date
         }
         if (!saleData.totalPlanCost || saleData.totalPlanCost === 0) {
+          console.log(`⚠️ Row ${i + 1}: Missing or zero totalPlanCost, attempting to calculate from appliances...`)
+          
           // Calculate from appliances if available
           let calculatedCost = 0
           for (let j = 1; j <= 10; j++) {
             const costField = saleData[`appliance${j}Cost` as keyof ImportSaleData] as number
             if (costField && !isNaN(costField)) {
               calculatedCost += Number(costField)
+              console.log(`  - appliance${j}Cost: £${costField}`)
             }
           }
-          saleData.totalPlanCost = calculatedCost || 1 // Minimum 1 for validation
+          
+          if (calculatedCost > 0) {
+            saleData.totalPlanCost = calculatedCost
+            console.log(`✅ Row ${i + 1}: Calculated total cost from appliances: £${calculatedCost}`)
+          } else {
+            // 🚨 CRITICAL: Never set arbitrary £1.00 - this corrupts pricing data
+            console.error(`❌ Row ${i + 1}: No valid pricing found - SKIPPING to prevent data corruption`)
+            errors.push({
+              row: i + 1,
+              error: `Missing pricing information - no totalPlanCost or appliance costs found`
+            })
+            continue // Skip this row instead of corrupting pricing
+          }
         }
         
         // 🚨 CRITICAL DATA PROTECTION: Never generate fake customer data
@@ -665,6 +710,35 @@ async function handleImport(request: NextRequest, context: any) {
         // Create sale object with proper date handling
         const saleDate = (saleData as any)._saleDate || new Date() // Use Date of Sale or current date as fallback
         
+        // Resolve sales agent ID
+        let salesAgentId = user.id // Default to importing user
+        
+        if (saleData.salesAgentName) {
+          console.log(`🔍 Looking up sales agent: ${saleData.salesAgentName}`)
+          
+          // Try to find user by email (assuming agent name is email or contains email)
+          const salesAgent = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: { equals: saleData.salesAgentName, mode: 'insensitive' } },
+                // Handle case where agent name contains the email
+                { email: { contains: saleData.salesAgentName.toLowerCase().replace(/\s+/g, ''), mode: 'insensitive' } }
+              ]
+            },
+            select: {
+              id: true,
+              email: true
+            }
+          })
+          
+          if (salesAgent) {
+            salesAgentId = salesAgent.id
+            console.log(`✅ Found sales agent: ${salesAgent.email}`)
+          } else {
+            console.log(`⚠️ Sales agent not found: ${saleData.salesAgentName}, defaulting to importing user`)
+          }
+        }
+        
         const processedSale = {
           customerFirstName: saleData.customerFirstName,
           customerLastName: saleData.customerLastName,
@@ -685,7 +759,7 @@ async function handleImport(request: NextRequest, context: any) {
           boilerCoverSelected: Boolean(saleData.boilerCoverSelected) || Boolean(saleData.boilerPriceSelected),
           boilerPriceSelected: saleData.boilerPriceSelected ? Number(saleData.boilerPriceSelected) : null,
           totalPlanCost: Number(saleData.totalPlanCost),
-          createdById: user.id,
+          createdById: salesAgentId,
           createdAt: saleDate, // Set the actual sale date
           appliances: appliances,
           originalRowNumber: i + 2 // Keep for duplicate tracking only, don't save to DB
@@ -721,7 +795,10 @@ async function handleImport(request: NextRequest, context: any) {
           customerFirstName: saleData.customerFirstName,
           customerLastName: saleData.customerLastName,
           email: saleData.email,
-          phoneNumber: saleData.phoneNumber
+          phoneNumber: saleData.phoneNumber,
+          mailingStreet: saleData.mailingStreet || undefined,
+          mailingCity: saleData.mailingCity || undefined,
+          mailingPostalCode: saleData.mailingPostalCode || undefined
         })
 
         if (duplicateCheck.isDuplicate) {
