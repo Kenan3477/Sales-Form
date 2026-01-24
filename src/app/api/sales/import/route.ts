@@ -716,6 +716,61 @@ async function handleImport(request: NextRequest, context: any) {
         console.log(`❌ No valid pricing found anywhere`)
       }
       
+      // CORRECTED PRICING LOGIC: Override the above with proper Customer Premium logic
+      console.log(`💡 APPLYING CORRECTED PRICING LOGIC`)
+      
+      // 1. Use Customer Premium as the final total cost
+      if (normalized['Customer Premium'] || normalized.customerPremium) {
+        const premiumValue = normalized['Customer Premium'] || normalized.customerPremium
+        let finalTotal = 0
+        if (typeof premiumValue === 'string') {
+          finalTotal = parseFloat(premiumValue.replace(/[£$,\s]/g, '')) || 0
+        } else if (typeof premiumValue === 'number') {
+          finalTotal = premiumValue
+        }
+        
+        if (finalTotal > 0) {
+          normalized.totalPlanCost = finalTotal
+          console.log(`💰 FINAL TOTAL from Customer Premium: £${finalTotal}`)
+        }
+      }
+      
+      // 2. Calculate per-appliance costs from Single App Price (Internal)
+      const singleAppInternal = normalized['Single App Price (Internal)'] || normalized.singleAppPriceInternal
+      if (singleAppInternal) {
+        let singleAppPrice = 0
+        if (typeof singleAppInternal === 'string') {
+          singleAppPrice = parseFloat(singleAppInternal.replace(/[£$,\s]/g, '')) || 0
+        } else if (typeof singleAppInternal === 'number') {
+          singleAppPrice = singleAppInternal
+        }
+        
+        if (singleAppPrice > 0) {
+          // Count appliances
+          const appliances = [
+            normalized.appliance1,
+            normalized.appliance2, 
+            normalized.appliance3,
+            normalized.appliance4
+          ].filter(app => app && app.trim() !== '')
+          
+          if (appliances.length > 0) {
+            const perAppCost = singleAppPrice / appliances.length
+            console.log(`🏠 APPLIANCE COSTS: £${singleAppPrice} ÷ ${appliances.length} appliances = £${perAppCost.toFixed(2)} each`)
+            
+            // Set individual costs (NOT from limits!)
+            if (normalized.appliance1) normalized.appliance1Cost = perAppCost
+            if (normalized.appliance2) normalized.appliance2Cost = perAppCost
+            if (normalized.appliance3) normalized.appliance3Cost = perAppCost
+            if (normalized.appliance4) normalized.appliance4Cost = perAppCost
+            
+            normalized.applianceCoverSelected = true
+          }
+        }
+      }
+      
+      console.log(`💡 CORRECTED PRICING COMPLETE`)
+      
       // Handle Date of Sale vs Created Date with enhanced parsing
       const dateFields = [
         'saleDate', 'Date of Sale', 'Sale Date', 'Created Date', 'createdAt', '_saleDate',
