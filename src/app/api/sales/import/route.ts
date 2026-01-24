@@ -585,7 +585,10 @@ async function handleImport(request: NextRequest, context: any) {
       }
       
       // Handle Date of Sale vs Created Date with enhanced parsing
-      const dateFields = ['saleDate', 'Date of Sale', 'Sale Date', 'Created Date', 'createdAt', '_saleDate']
+      const dateFields = [
+        'saleDate', 'Date of Sale', 'Sale Date', 'Created Date', 'createdAt', '_saleDate',
+        'directDebitDate' // Add directDebitDate as potential sale date
+      ]
       let foundDate = false
       
       for (const dateField of dateFields) {
@@ -609,7 +612,10 @@ async function handleImport(request: NextRequest, context: any) {
         console.log(`⚠️ Available raw fields:`, Object.keys(row))
         
         // Check for common date field names in the raw CSV
-        const rawDateFields = ['Date of Sale', 'Sale Date', 'Created Date', 'Date Created', 'Transaction Date', 'Order Date']
+        const rawDateFields = [
+          'Date of Sale', 'Sale Date', 'Created Date', 'Date Created', 'Transaction Date', 'Order Date',
+          'directDebitDate' // Add directDebitDate for raw CSV checking too
+        ]
         for (const rawDateField of rawDateFields) {
           if (row[rawDateField] && !foundDate) {
             console.log(`📅 Found raw date field "${rawDateField}": ${row[rawDateField]}`)
@@ -624,7 +630,24 @@ async function handleImport(request: NextRequest, context: any) {
       }
       
       if (!foundDate) {
-        console.log(`⚠️ No valid sale date found, will use current date as fallback`)
+        console.log(`⚠️ No valid sale date found, checking if directDebitDate can be used...`)
+        
+        // Try to use directDebitDate as sale date if no other date is available
+        if (normalized.directDebitDate) {
+          console.log(`📅 Trying to use directDebitDate as sale date: ${normalized.directDebitDate}`)
+          const directDebitDate = new Date(normalized.directDebitDate)
+          if (!isNaN(directDebitDate.getTime())) {
+            normalized._saleDate = directDebitDate
+            console.log(`✅ Using directDebitDate as sale date: ${directDebitDate.toISOString()}`)
+            foundDate = true
+          } else {
+            console.log(`❌ Invalid directDebitDate format: ${normalized.directDebitDate}`)
+          }
+        }
+      }
+      
+      if (!foundDate) {
+        console.log(`⚠️ No valid sale date found anywhere, will use current date as fallback`)
       }
       
       // Clean up date fields to avoid confusion
