@@ -184,6 +184,7 @@ interface ImportSaleData {
   applianceCoverSelected: boolean
   boilerCoverSelected: boolean
   boilerPriceSelected?: number
+  customerPackage?: string // Store what's covered for reference
 
   // Total cost
   totalPlanCost: number
@@ -306,6 +307,7 @@ async function handleImport(request: NextRequest, context: any) {
       'Sale Date': 'saleDate',
       'Created Date': 'saleDate',
       'Customer Premium': 'totalPlanCost',
+      'Customer Package': 'customerPackage', // Store what's covered for reference
       'DD Amount': 'totalPlanCost',
       'Total Cost': 'totalPlanCost',
       'Monthly Cost': 'totalPlanCost',
@@ -378,6 +380,7 @@ async function handleImport(request: NextRequest, context: any) {
       const normalized: any = {}
       
       console.log(`🔧 Normalizing row with keys:`, Object.keys(row))
+      console.log(`🔧 Raw row data:`, JSON.stringify(row, null, 2))
       
       for (const [key, value] of Object.entries(row)) {
         const mappedKey = fieldMapping[key as string] || key
@@ -416,6 +419,9 @@ async function handleImport(request: NextRequest, context: any) {
       
       // Check various price fields in order of priority
       const priceFields = [
+        'Boiler Package Price (Internal)', // Your actual pricing fields!
+        'Single App Price (Internal)',
+        'App Bundle Price (Internal)', 
         'Customer Premium', 
         'DD Amount', 
         'totalPlanCost',
@@ -427,10 +433,7 @@ async function handleImport(request: NextRequest, context: any) {
         'Amount',
         'Monthly Premium',
         'Monthly Payment',
-        'Payment Amount',
-        'App Bundle Price (Internal)',
-        'Single App Price (Internal)', 
-        'Boiler Package Price (Internal)'
+        'Payment Amount'
       ]
       
       console.log(`🔍 Checking pricing fields for row:`, Object.keys(normalized))
@@ -456,7 +459,14 @@ async function handleImport(request: NextRequest, context: any) {
               boilerPrice = parsedPrice
               normalized.boilerPriceSelected = parsedPrice
               normalized.boilerCoverSelected = true
-              console.log(`🔧 Set boiler price: £${parsedPrice}`)
+              totalCost = parsedPrice // Use boiler price as total cost
+              console.log(`🔧 Set boiler price and total cost: £${parsedPrice}`)
+              break // Found boiler pricing, use this as total
+            } else if (priceField === 'Single App Price (Internal)' || priceField === 'App Bundle Price (Internal)') {
+              totalCost = parsedPrice
+              normalized.applianceCoverSelected = true // Set appliance cover for app pricing
+              console.log(`🔧 Set appliance total cost: £${parsedPrice}`)
+              break // Found appliance pricing, use this as total
             } else {
               totalCost = parsedPrice
               console.log(`💷 Set total cost: £${parsedPrice}`)
@@ -483,20 +493,46 @@ async function handleImport(request: NextRequest, context: any) {
       }
       
       // Handle Date of Sale vs Created Date with enhanced parsing
-      const dateFields = ['saleDate', 'Date of Sale', 'Sale Date', 'createdAt', '_saleDate']
+      const dateFields = ['saleDate', 'Date of Sale', 'Sale Date', 'Created Date', 'createdAt', '_saleDate']
+      let foundDate = false
+      
       for (const dateField of dateFields) {
-        if (normalized[dateField]) {
+        if (normalized[dateField] && !foundDate) {
           console.log(`📅 Processing date field "${dateField}": ${normalized[dateField]}`)
           // Parse the date of sale for when the record was actually created
           const saleDate = new Date(normalized[dateField])
           if (!isNaN(saleDate.getTime())) {
             normalized._saleDate = saleDate // Store for later use
             console.log(`✅ Parsed sale date: ${saleDate.toISOString()}`)
-            break // Use first valid date found
+            foundDate = true // Stop after finding first valid date
           } else {
             console.log(`❌ Invalid date format: ${normalized[dateField]}`)
           }
         }
+      }
+      
+      // If no valid sale date found, check raw row data for common date patterns
+      if (!foundDate) {
+        console.log(`⚠️ No date found in normalized fields, checking raw row data...`)
+        console.log(`⚠️ Available raw fields:`, Object.keys(row))
+        
+        // Check for common date field names in the raw CSV
+        const rawDateFields = ['Date of Sale', 'Sale Date', 'Created Date', 'Date Created', 'Transaction Date', 'Order Date']
+        for (const rawDateField of rawDateFields) {
+          if (row[rawDateField] && !foundDate) {
+            console.log(`📅 Found raw date field "${rawDateField}": ${row[rawDateField]}`)
+            const saleDate = new Date(row[rawDateField])
+            if (!isNaN(saleDate.getTime())) {
+              normalized._saleDate = saleDate
+              console.log(`✅ Parsed raw sale date: ${saleDate.toISOString()}`)
+              foundDate = true
+            }
+          }
+        }
+      }
+      
+      if (!foundDate) {
+        console.log(`⚠️ No valid sale date found, will use current date as fallback`)
       }
       
       // Clean up date fields to avoid confusion
@@ -514,6 +550,18 @@ async function handleImport(request: NextRequest, context: any) {
       
       if (!normalized.boilerCoverSelected && normalized.boilerPriceSelected) {
         normalized.boilerCoverSelected = true
+      }
+      
+      // Set coverage based on Customer Package field
+      if (normalized.customerPackage) {
+        const packageLower = normalized.customerPackage.toLowerCase()
+        if (packageLower.includes('boiler')) {
+          normalized.boilerCoverSelected = true
+        }
+        if (packageLower.includes('appliance') || packageLower.includes('app')) {
+          normalized.applianceCoverSelected = true
+        }
+        console.log(`📦 Customer Package: "${normalized.customerPackage}" -> Boiler: ${normalized.boilerCoverSelected}, Appliances: ${normalized.applianceCoverSelected}`)
       }
       
       // Add cover limits for appliances (default to common values if missing)
