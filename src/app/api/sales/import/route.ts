@@ -291,11 +291,13 @@ async function handleImport(request: NextRequest, context: any) {
 
     // Field mapping from CRM export format to database format
     const fieldMapping: Record<string, string> = {
+      // Basic customer information
       'First Name': 'customerFirstName',
       'Last Name': 'customerLastName', 
       'Name': 'fullName', // For simple CSV format - will be split later
       'Full Name': 'fullName', // Alternative full name field
       'Customer Name': 'fullName', // Another alternative
+      'Customers Name': 'fullName', // CRM format
       'Title': 'title',
       'Phone': 'phoneNumber',
       'Phone Number': 'phoneNumber',
@@ -303,26 +305,32 @@ async function handleImport(request: NextRequest, context: any) {
       'Mobile': 'phoneNumber', // Alternative phone field
       'Email': 'email',
       'Email Address': 'email', // Alternative email field
+      
+      // Address information
       'Mailing Street': 'mailingStreet',
-      'First Line Add': 'mailingStreet',
+      'First Line Add': 'mailingStreet', // CRM format
       'Mailing City': 'mailingCity',
       'Mailing Province': 'mailingProvince',
       'Mailing Postal Code': 'mailingPostalCode',
+      
+      // Payment information
       'SortCode': 'sortCode',
       'Acc Number': 'accountNumber',
       'First DD Date': 'directDebitDate',
+      
+      // Date fields
       'Date of Sale': 'saleDate', // Use special field name for sale date
       'Sale Date': 'saleDate',
       'Created Date': 'saleDate',
+      
+      // Package and pricing
       'Customer Premium': 'totalPlanCost',
       'Customer Package': 'customerPackage', // Store what's covered for reference
       'DD Amount': 'totalPlanCost',
-      'App Bundle Price': 'totalPlanCost', // Map directly to totalPlanCost
-      'App Bundle Price (Internal)': 'totalPlanCost', // Alternative name
-      'Single App Price': 'totalPlanCost', // Map directly to totalPlanCost
-      'Single App Price (Internal)': 'totalPlanCost', // Alternative name
-      'Boiler Package Price': 'totalPlanCost', // Map directly to totalPlanCost
-      'Boiler Package Price (Internal)': 'boilerPriceSelected',
+      'App Bundle Price (Internal)': 'totalPlanCost', // CRM internal pricing
+      'Single App Price (Internal)': 'totalPlanCost', // CRM internal pricing
+      'Boiler Package Price (Internal)': 'boilerPriceSelected', // CRM internal boiler pricing
+      'Landlord Boiler Package Price (Internal)': 'boilerPriceSelected',
       'Total Cost': 'totalPlanCost',
       'Monthly Cost': 'totalPlanCost',
       'Premium': 'totalPlanCost',
@@ -332,6 +340,8 @@ async function handleImport(request: NextRequest, context: any) {
       'Monthly Premium': 'totalPlanCost',
       'Monthly Payment': 'totalPlanCost',
       'Payment Amount': 'totalPlanCost',
+      
+      // Appliance information (CRM format)
       'Appliance 1 Type': 'appliance1',
       'Appliance 1 Value': 'appliance1Cost',
       'Appliance 2 Type': 'appliance2',
@@ -352,7 +362,129 @@ async function handleImport(request: NextRequest, context: any) {
       'Appliance 9 Value': 'appliance9Cost',
       'Appliance 10 Type': 'appliance10',
       'Appliance 10 Value': 'appliance10Cost',
-      // ACTUAL CSV FIELD NAMES (based on real CSV structure)
+      
+      // Sales agent information
+      'Customers Owner.id': 'salesAgentId',
+      'Customers Owner': 'salesAgentName',
+      'Lead Sales Agent': 'salesAgentName', // CRM format
+      'Sales Agent': 'salesAgentName',
+      'Agent': 'salesAgentName',
+      'Sold By': 'salesAgentName',
+      'Rep': 'salesAgentName',
+      'Representative': 'salesAgentName',
+      'Advisor': 'salesAgentName',
+      'Sales Rep': 'salesAgentName',
+      
+      // Status and notes
+      'Status': 'status',
+      'Call Notes': 'notes',
+      'Description': 'notes',
+      
+      // Fields to ignore (CRM metadata)
+      'Record Id': '_ignore',
+      'Lead Source': '_ignore',
+      'Payment Method': '_ignore',
+      'Brand': '_ignore',
+      'Processor': '_ignore',
+      'Date of Birth': '_ignore',
+      'Modified By.id': '_ignore',
+      'Modified By': '_ignore',
+      'Modified Time': '_ignore',
+      'Salutation': '_ignore',
+      'Last Activity Time': '_ignore',
+      'Tag': '_ignore',
+      'Unsubscribed Mode': '_ignore',
+      'Unsubscribed Time': '_ignore',
+      'Change Log Time': '_ignore',
+      'Locked': '_ignore',
+      'Last Enriched Time': '_ignore',
+      'Enrich Status': '_ignore',
+      'CVC': '_ignore',
+      'EXP Date': '_ignore',
+      'Card Number': '_ignore',
+      'LeadIdCPY': '_ignore',
+      'Package Excess': '_ignore',
+      'Last Service Date': '_ignore',
+      'Boiler Make': '_ignore',
+      'Pre Existing Issue': '_ignore',
+      'Boiler Age': '_ignore',
+      'Cancellation Notes': '_ignore',
+      'Renewal Date': '_ignore',
+      'Cancellation Fee': '_ignore',
+      'Date of renewal notification': '_ignore',
+      'Cancellation status': '_ignore',
+      'Type of renewal notification': '_ignore',
+      'Residential Status': '_ignore',
+      'Plan Reference Number': '_ignore',
+      'TV Value': '_ignore',
+      'TV Brand': '_ignore',
+      'TV Size': '_ignore',
+      'TV Age': '_ignore',
+      'Sales Office Name': '_ignore',
+      'Affiliate Reference': '_ignore',
+      'Free Offer Period_Months': '_ignore',
+      'Cancellation Agent': '_ignore',
+      'Remaining Payments Due': '_ignore',
+      'Cancellation Reason': '_ignore',
+      'Welcome Letter Sent Date': '_ignore',
+      'Date of CNR': '_ignore',
+      'Contact Attempts': '_ignore',
+      'Last Contact Date': '_ignore',
+      'Resend Welcome Pack': '_ignore',
+      'Resend Method': '_ignore',
+      'Cancelled Date': '_ignore',
+      'Product sold': '_ignore',
+      'Customer Upgraded': '_ignore',
+      'Preferred Payment Date': '_ignore',
+      'Last 2 Acc Number (Post Docs)': '_ignore',
+      'DD Originator Reference': '_ignore',
+      'Authorised Persons on Account': '_ignore',
+      'Customer Preferences': '_ignore',
+      'Details of Vulnerabilities (if any)': '_ignore',
+      'POA': '_ignore',
+      'Reduced price exp date': '_ignore',
+      'Reduced Price': '_ignore',
+      'TV Model Number': '_ignore',
+      'Contacted for TV Information': '_ignore',
+      'Boiler 2 Age': '_ignore',
+      'Boiler 2 Make': '_ignore',
+      'TV 2 Value': '_ignore',
+      'TV 2 -Age': '_ignore',
+      'TV 2 Model Number': '_ignore',
+      'TV 2 Brand': '_ignore',
+      'TV 2 - Size': '_ignore',
+      'Multi Package Discount': '_ignore',
+      'TV Monthly Premium': '_ignore',
+      'Boiler 3-Months Free': '_ignore',
+      'GC Mandate ID': '_ignore',
+      'Reinstated Date': '_ignore',
+      'Payment Status': '_ignore',
+      'Date of last payment status': '_ignore',
+      'Plan Start Date': '_ignore',
+      'Months Free Provided': '_ignore',
+      'Sale Approved': '_ignore',
+      'GC Bank Account ID': '_ignore',
+      'GC Customer ID': '_ignore',
+      'Connected To.module': '_ignore',
+      'Connected To.id': '_ignore',
+      'GC Subscription Status': '_ignore',
+      'GC Subscription ID': '_ignore',
+      'GC API Status': '_ignore',
+      'GC Mandate Status': '_ignore',
+      'GC Payment Status Update': '_ignore',
+      'GC Payment ID': '_ignore',
+      'GC Last Event ID': '_ignore',
+      'GC Last Webhook ID': '_ignore',
+      'GC Last Cause': '_ignore',
+      'GC Last Description': '_ignore',
+      'GC Last Received At Date': '_ignore',
+      'GC Last Resource Type': '_ignore',
+      'GS Manual Update All Status': '_ignore',
+      'GC Payment ID Scheduled To Refund': '_ignore',
+      'GC Last Payment Refunded': '_ignore',
+      'Cancellation Fee Taken': '_ignore',
+      
+      // SIMPLIFIED CSV FIELD NAMES (for compatibility with older formats)
       'salesAgentId': 'salesAgentId',
       'salesAgentName': 'salesAgentName',
       'customerFirstName': 'customerFirstName',
@@ -380,39 +512,7 @@ async function handleImport(request: NextRequest, context: any) {
       'appliance1CoverLimit': 'appliance1CoverLimit',
       'appliance2CoverLimit': 'appliance2CoverLimit',
       'appliance3CoverLimit': 'appliance3CoverLimit',
-      'appliance4CoverLimit': 'appliance4CoverLimit',
-      'Call Notes': 'notes',
-      'Description': 'notes',
-      'Customers Name': '_ignore', // Calculated field
-      'Lead Source': '_ignore',
-      'Payment Method': '_ignore',
-      'Status': 'status',
-      'Brand': '_ignore',
-      'Processor': '_ignore',
-      'Record Id': '_ignore',
-      'Customers Owner.id': 'salesAgentId',
-      'Customers Owner': 'salesAgentName',
-      'Lead Sales Agent': 'salesAgentName',
-      'Sales Agent': 'salesAgentName',
-      'Agent': 'salesAgentName',
-      'Sold By': 'salesAgentName',
-      'Rep': 'salesAgentName',
-      'Representative': 'salesAgentName',
-      'Advisor': 'salesAgentName',
-      'Sales Rep': 'salesAgentName',
-      'Date of Birth': '_ignore',
-      'Modified By.id': '_ignore',
-      'Modified By': '_ignore',
-      'Modified Time': '_ignore',
-      'Salutation': '_ignore',
-      'Last Activity Time': '_ignore',
-      'Tag': '_ignore',
-      'Unsubscribed Mode': '_ignore',
-      'Unsubscribed Time': '_ignore',
-      'Change Log Time': '_ignore',
-      'Locked': '_ignore',
-      'Last Enriched Time': '_ignore',
-      'Enrich Status': '_ignore'
+      'appliance4CoverLimit': 'appliance4CoverLimit'
     }
 
     // Function to normalize data from CRM export format to import format
@@ -469,16 +569,17 @@ async function handleImport(request: NextRequest, context: any) {
       let totalCost = 0
       let boilerPrice = 0
       
-      // Check various price fields in order of priority
+      // Check various price fields in order of priority (CRM format first)
       const priceFields = [
-        'DD Amount', // High priority - direct pricing field
-        'App Bundle Price', // High priority - direct pricing field
-        'App Bundle Price (Internal)', 
-        'Single App Price',
-        'Single App Price (Internal)',
-        'Boiler Package Price',
-        'Boiler Package Price (Internal)', 
-        'Customer Premium', 
+        'DD Amount', // High priority - direct pricing field from CRM
+        'App Bundle Price (Internal)', // High priority - CRM internal pricing
+        'Single App Price (Internal)', // High priority - CRM internal pricing
+        'Boiler Package Price (Internal)', // High priority - CRM internal pricing
+        'Landlord Boiler Package Price (Internal)', // CRM internal pricing
+        'Customer Premium', // CRM field
+        'App Bundle Price', // Alternative naming
+        'Single App Price', // Alternative naming
+        'Boiler Package Price', // Alternative naming
         'totalPlanCost',
         'Total Cost',
         'Monthly Cost',
