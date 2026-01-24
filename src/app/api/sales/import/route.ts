@@ -538,8 +538,13 @@ async function handleImport(request: NextRequest, context: any) {
         // Track pricing-related fields
         if (key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || 
             key.toLowerCase().includes('cost') || key.toLowerCase().includes('premium') ||
-            key.toLowerCase().includes('dd')) {
+            key.toLowerCase().includes('dd') || key.toLowerCase().includes('value')) {
           foundPricingFields.push(`${key}: "${value}"`)
+        }
+        
+        // Special debugging for appliance fields
+        if (key.toLowerCase().includes('appliance') && key.toLowerCase().includes('value')) {
+          console.log(`🏠 APPLIANCE COST DETECTED: "${key}" -> "${mappedKey}" = "${value}"`)
         }
         
         // Skip fields marked to ignore
@@ -662,12 +667,9 @@ async function handleImport(request: NextRequest, context: any) {
       totalCost = boilerPrice + appliancePrice
       console.log(`🧮 Calculated total: boiler(£${boilerPrice}) + appliances(£${appliancePrice}) = £${totalCost}`)
       
-      // Set total cost from combined pricing
-      if (totalCost > 0) {
-        normalized.totalPlanCost = totalCost
-        console.log(`✅ Final total cost set: £${totalCost}`)
-      } else {
-        console.log(`⚠️ No pricing found in any price field`)
+      // If we don't have appliance bundle pricing, try individual appliance costs
+      if (appliancePrice === 0) {
+        console.log(`⚠️ No appliance bundle price found, checking individual appliance costs...`)
         
         // Try to calculate total from individual appliance costs
         const applianceCosts = [
@@ -700,16 +702,18 @@ async function handleImport(request: NextRequest, context: any) {
         
         if (calculatedAppliances > 0) {
           // Add appliance costs to existing boiler price
-          const finalTotal = boilerPrice + calculatedAppliances
-          normalized.totalPlanCost = finalTotal
+          totalCost = boilerPrice + calculatedAppliances
           normalized.applianceCoverSelected = true
-          console.log(`✅ Calculated total: boiler(£${boilerPrice}) + appliances(£${calculatedAppliances}) = £${finalTotal} (from ${validCosts.length} appliances)`)
-        } else if (boilerPrice > 0) {
-          normalized.totalPlanCost = boilerPrice
-          console.log(`✅ Using only boiler price as total cost: £${boilerPrice}`)
-        } else {
-          console.log(`❌ No valid pricing found anywhere`)
+          console.log(`✅ Added individual appliance costs: boiler(£${boilerPrice}) + appliances(£${calculatedAppliances}) = £${totalCost} (from ${validCosts.length} appliances)`)
         }
+      }
+      
+      // Set final total cost
+      if (totalCost > 0) {
+        normalized.totalPlanCost = totalCost
+        console.log(`✅ Final total cost set: £${totalCost}`)
+      } else {
+        console.log(`❌ No valid pricing found anywhere`)
       }
       
       // Handle Date of Sale vs Created Date with enhanced parsing
