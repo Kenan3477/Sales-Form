@@ -383,12 +383,22 @@ async function handleImport(request: NextRequest, context: any) {
       const normalized: any = {}
       
       console.log(`🔧 Normalizing row with keys:`, Object.keys(row))
-      console.log(`🔧 Raw row data:`, JSON.stringify(row, null, 2))
+      console.log(`🔧 Raw row data sample:`, JSON.stringify(row, null, 2).substring(0, 500) + '...')
+      
+      // Track pricing fields specifically
+      const foundPricingFields: string[] = []
       
       for (const [key, value] of Object.entries(row)) {
         const mappedKey = fieldMapping[key as string] || key
         
         console.log(`🗺️ Mapping "${key}" -> "${mappedKey}" (value: "${value}")`)
+        
+        // Track pricing-related fields
+        if (key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || 
+            key.toLowerCase().includes('cost') || key.toLowerCase().includes('premium') ||
+            key.toLowerCase().includes('dd')) {
+          foundPricingFields.push(`${key}: "${value}"`)
+        }
         
         // Skip fields marked to ignore
         if (mappedKey === '_ignore') {
@@ -402,6 +412,8 @@ async function handleImport(request: NextRequest, context: any) {
         
         normalized[mappedKey] = value
       }
+      
+      console.log(`💰 Found pricing fields in this row:`, foundPricingFields)
       
       // Handle fullName field (split into first and last name)
       if (normalized.fullName && !normalized.customerFirstName && !normalized.customerLastName) {
@@ -610,6 +622,15 @@ async function handleImport(request: NextRequest, context: any) {
         transformHeader: (header) => header.trim()
       })
 
+      console.log('🔍 CSV PARSING DEBUG:')
+      console.log('📋 Raw CSV Headers (first 5 rows):', parseResult.data.slice(0, 5))
+      console.log('📋 All CSV Headers found:', parseResult.meta?.fields || 'No headers detected')
+      console.log('📋 Total rows parsed:', parseResult.data.length)
+      
+      if (parseResult.errors && parseResult.errors.length > 0) {
+        console.error('🚨 CSV Parsing Errors:', parseResult.errors)
+      }
+
       console.log('🔍 CSV Headers found:', parseResult.meta.fields)
       console.log('🔧 Field mapping available:', Object.keys(fieldMapping))
 
@@ -711,12 +732,27 @@ async function handleImport(request: NextRequest, context: any) {
           saleData.directDebitDate = new Date().toISOString().split('T')[0] // Today's date
         }
         if (!saleData.totalPlanCost || saleData.totalPlanCost === 0) {
+          const rawRow = salesData[i] as any // Get the actual raw CSV row
+          
           console.log(`⚠️ Row ${i + 1}: Missing or zero totalPlanCost, attempting to calculate from appliances...`)
           console.log(`⚠️ Row ${i + 1}: Current saleData.totalPlanCost = "${saleData.totalPlanCost}"`)
-          console.log(`⚠️ Row ${i + 1}: All sale data keys:`, Object.keys(saleData))
-          console.log(`⚠️ Row ${i + 1}: Raw CSV row (original field names):`, Object.keys(salesData[i] || {}))
-          console.log(`⚠️ Row ${i + 1}: Looking for DD Amount in raw data:`, (salesData[i] as any)?.['DD Amount'])
-          console.log(`⚠️ Row ${i + 1}: Looking for App Bundle Price in raw data:`, (salesData[i] as any)?.['App Bundle Price'])
+          console.log(`🔍 Row ${i + 1}: RAW CSV DATA:`, JSON.stringify(rawRow, null, 2))
+          console.log(`🔍 Row ${i + 1}: Raw CSV Headers:`, Object.keys(rawRow))
+          console.log(`💰 Row ${i + 1}: DD Amount in raw:`, rawRow['DD Amount'])
+          console.log(`💰 Row ${i + 1}: App Bundle Price in raw:`, rawRow['App Bundle Price'])
+          console.log(`💰 Row ${i + 1}: Customer Premium in raw:`, rawRow['Customer Premium'])
+          console.log(`🔍 Row ${i + 1}: All price-related fields in raw:`)
+          
+          // Show all fields that might contain pricing
+          Object.keys(rawRow).forEach(key => {
+            if (key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || 
+                key.toLowerCase().includes('cost') || key.toLowerCase().includes('premium') ||
+                key.toLowerCase().includes('dd')) {
+              console.log(`  💷 "${key}": "${rawRow[key]}"`)
+            }
+          })
+          
+          console.log(`⚠️ Row ${i + 1}: Normalized sale data keys:`, Object.keys(saleData))
           
           // Calculate from appliances if available
           let calculatedCost = 0
@@ -734,11 +770,10 @@ async function handleImport(request: NextRequest, context: any) {
           } else {
             // 🚨 CRITICAL: Never set arbitrary £1.00 - this corrupts pricing data
             console.error(`❌ Row ${i + 1}: No valid pricing found - SKIPPING to prevent data corruption`)
-            console.error(`❌ Row ${i + 1}: Available normalized fields:`, Object.keys(saleData))
-            console.error(`❌ Row ${i + 1}: Available raw CSV fields:`, Object.keys(salesData[i] || {}))
+            console.error(`❌ Row ${i + 1}: Actual CSV column headers:`, Object.keys(rawRow))
             errors.push({
               row: i + 1,
-              error: `Missing pricing information - no totalPlanCost or appliance costs found. Raw CSV fields: ${Object.keys(salesData[i] || {}).join(', ')}`
+              error: `Missing pricing information. Raw CSV headers: ${Object.keys(rawRow).join(', ')}`
             })
             continue // Skip this row instead of corrupting pricing
           }
