@@ -816,7 +816,7 @@ export default function NewSalePage() {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
-                            Cover Limit (£)
+                            Cover Limit (£) <span className="text-red-500">*</span>
                           </label>
                           <select
                             {...register(`appliances.${index}.coverLimit`, { valueAsNumber: true })}
@@ -828,20 +828,26 @@ export default function NewSalePage() {
                             <option value={700}>£700</option>
                             <option value={800}>£800</option>
                           </select>
+                          {errors.appliances?.[index]?.coverLimit && (
+                            <p className="mt-1 text-sm text-red-600">{errors.appliances[index]?.coverLimit?.message}</p>
+                          )}
                         </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
-                            Cost (£/month)
+                            Cost (£/month) <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="number"
                             step="0.01"
-                            min="0"
+                            min="0.01"
                             {...register(`appliances.${index}.cost`, { valueAsNumber: true })}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                             onWheel={(e) => e.currentTarget.blur()}
                           />
+                          {errors.appliances?.[index]?.cost && (
+                            <p className="mt-1 text-sm text-red-600">{errors.appliances[index]?.cost?.message}</p>
+                          )}
                         </div>
                       </div>
                       
@@ -871,7 +877,7 @@ export default function NewSalePage() {
               {/* Boiler Cover Section */}
               {boilerCoverSelected && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Boiler Cover Options</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Boiler Cover Options <span className="text-red-500">*</span></h3>
                   <div className="space-y-3">
                     {BOILER_OPTIONS.map((option: { value: number; label: string }) => (
                       <div key={option.value} className="flex items-center">

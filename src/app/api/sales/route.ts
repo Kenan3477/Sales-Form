@@ -237,11 +237,11 @@ export async function POST(request: NextRequest) {
     )
     
     // Create dynamic schema based on field configuration
-    const dynamicSaleSchema = saleSchema.extend({
+    const dynamicSaleSchema = saleSchema.merge(z.object({
       email: fieldConfigMap.email 
         ? z.string().email('Valid email is required') 
         : z.string().email('Valid email is required').optional().or(z.literal(''))
-    })
+    }))
 
     const validatedData = dynamicSaleSchema.parse(body)
 
