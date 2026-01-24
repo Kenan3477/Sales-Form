@@ -530,6 +530,11 @@ async function handleImport(request: NextRequest, context: any) {
         
         console.log(`🗺️ Mapping "${key}" -> "${mappedKey}" (value: "${value}")`)
         
+        // Special debugging for date fields
+        if (key === 'Date of Sale' || key.toLowerCase().includes('date') || key.toLowerCase().includes('sale')) {
+          console.log(`📅 DATE FIELD DETECTED: "${key}" -> "${mappedKey}" = "${value}"`)
+        }
+        
         // Track pricing-related fields
         if (key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || 
             key.toLowerCase().includes('cost') || key.toLowerCase().includes('premium') ||
@@ -760,8 +765,12 @@ async function handleImport(request: NextRequest, context: any) {
         console.log(`⚠️ No valid sale date found anywhere, will use current date as fallback`)
       }
       
-      // Clean up date fields to avoid confusion
-      dateFields.forEach(field => delete normalized[field])
+      // Clean up date fields to avoid confusion (but preserve _saleDate)
+      dateFields.forEach(field => {
+        if (field !== '_saleDate') { // Preserve the processed sale date
+          delete normalized[field]
+        }
+      })
       
       // Set account name from customer name if missing
       if (!normalized.accountName && normalized.customerFirstName && normalized.customerLastName) {
@@ -1084,6 +1093,9 @@ async function handleImport(request: NextRequest, context: any) {
         // Create sale object with proper date handling
         const saleDate = (saleData as any)._saleDate || new Date() // Use Date of Sale or current date as fallback
         console.log(`📅 Final sale date for ${saleData.customerFirstName} ${saleData.customerLastName}: ${saleDate.toISOString()}`)
+        console.log(`📅 _saleDate field value:`, (saleData as any)._saleDate)
+        console.log(`📅 saleData.saleDate field value:`, (saleData as any).saleDate)
+        console.log(`📅 Using fallback to current date?`, !(saleData as any)._saleDate)
         
         // Resolve sales agent ID with enhanced lookup
         let salesAgentId = user.id // Default to importing user
