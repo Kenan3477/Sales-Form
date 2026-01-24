@@ -1,4 +1,4 @@
 customerFirstName,customerLastName,email,phoneNumber,Lead Sales Agent,Customer Premium,Date of Sale,mailingStreet,mailingCity,mailingPostalCode,appliance1,appliance1Cost
-John,Doe,john.doe@example.com,07123456789,admin@salesportal.com,25.99,2026-01-20,123 Test Street,London,SW1A 1AA,Washing Machine,19.99
-Jane,Smith,jane.smith@example.com,07987654321,agent@salesportal.com,35.50,2026-01-21,456 Sample Road,Manchester,M1 2AB,Dishwasher,15.00
-Test,Customer,test@example.com,07555666777,NonExistentAgent,45.00,2026-01-22,789 Example Ave,Birmingham,B1 3CD,Refrigerator,10.00
+John,Doe,john.doe@example.com,07123456789,admin@salesportal.com,25.99,2025-12-15,123 Test Street,London,SW1A 1AA,Washing Machine,19.99
+Jane,Smith,jane.smith@example.com,07987654321,agent@salesportal.com,35.50,2025-11-20,456 Sample Road,Manchester,M1 2AB,Dishwasher,15.00
+Test,Customer,test@example.com,07555666777,NonExistentAgent,29.99,2025-10-10,789 Example Ave,Birmingham,B1 3CD,Refrigerator,10.00
