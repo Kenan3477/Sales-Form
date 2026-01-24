@@ -573,18 +573,16 @@ async function handleImport(request: NextRequest, context: any) {
       // Handle special cases for currency fields and pricing
       let totalCost = 0
       let boilerPrice = 0
+      let appliancePrice = 0
       
       // Check various price fields in order of priority (CRM format first)
       const priceFields = [
         'DD Amount', // High priority - direct pricing field from CRM
         'App Bundle Price (Internal)', // High priority - CRM internal pricing
         'Single App Price (Internal)', // High priority - CRM internal pricing
-        'Boiler Package Price (Internal)', // High priority - CRM internal pricing
-        'Landlord Boiler Package Price (Internal)', // CRM internal pricing
         'Customer Premium', // CRM field
         'App Bundle Price', // Alternative naming
         'Single App Price', // Alternative naming
-        'Boiler Package Price', // Alternative naming
         'totalPlanCost',
         'Total Cost',
         'Monthly Cost',
@@ -597,9 +595,43 @@ async function handleImport(request: NextRequest, context: any) {
         'Payment Amount'
       ]
       
+      // Separate boiler price fields
+      const boilerPriceFields = [
+        'Boiler Package Price (Internal)', // High priority - CRM internal pricing
+        'Landlord Boiler Package Price (Internal)', // CRM internal pricing
+        'Boiler Package Price' // Alternative naming
+      ]
+      
       console.log(`🔍 Checking pricing fields for row:`, Object.keys(normalized))
       console.log(`🔍 Available data:`, JSON.stringify(normalized, null, 2))
       
+      // First check for boiler pricing
+      for (const priceField of boilerPriceFields) {
+        const mappedField = fieldMapping[priceField] || priceField
+        const value = normalized[mappedField] || normalized[priceField]
+        
+        if (value !== undefined && value !== null && value !== '') {
+          console.log(`� Found boiler price field "${priceField}" -> "${mappedField}": "${value}" (type: ${typeof value})`)
+          
+          let parsedPrice = 0
+          if (typeof value === 'string') {
+            parsedPrice = parseFloat(value.replace(/[£$,\s]/g, '')) || 0
+          } else if (typeof value === 'number') {
+            parsedPrice = value
+          }
+          
+          if (parsedPrice > 0) {
+            console.log(`� Parsed boiler price: £${parsedPrice}`)
+            boilerPrice = parsedPrice
+            normalized.boilerPriceSelected = parsedPrice
+            normalized.boilerCoverSelected = true
+            console.log(`🔧 Set boiler price: £${parsedPrice}`)
+            break // Stop on first valid boiler price found
+          }
+        }
+      }
+      
+      // Then check for appliance/general pricing
       for (const priceField of priceFields) {
         const mappedField = fieldMapping[priceField] || priceField
         const value = normalized[mappedField] || normalized[priceField]
@@ -615,40 +647,25 @@ async function handleImport(request: NextRequest, context: any) {
           }
           
           if (parsedPrice > 0) {
-            console.log(`💰 Parsed price: £${parsedPrice}`)
-            if (priceField === 'Boiler Package Price (Internal)') {
-              boilerPrice = parsedPrice
-              normalized.boilerPriceSelected = parsedPrice
-              normalized.boilerCoverSelected = true
-              totalCost = parsedPrice // Use boiler price as total cost
-              console.log(`🔧 Set boiler price and total cost: £${parsedPrice}`)
-              break // Found boiler pricing, use this as total
-            } else if (priceField === 'Single App Price (Internal)' || priceField === 'App Bundle Price (Internal)') {
-              totalCost = parsedPrice
-              normalized.applianceCoverSelected = true // Set appliance cover for app pricing
-              console.log(`🔧 Set appliance total cost: £${parsedPrice}`)
-              break // Found appliance pricing, use this as total
-            } else {
-              totalCost = parsedPrice
-              console.log(`💷 Set total cost: £${parsedPrice}`)
-              break // Stop on first valid total cost found
-            }
+            console.log(`� Parsed appliance/general price: £${parsedPrice}`)
+            appliancePrice = parsedPrice
+            normalized.applianceCoverSelected = true // Set appliance cover for app pricing
+            console.log(`� Set appliance price: £${parsedPrice}`)
+            break // Stop on first valid appliance price found
           } else {
             console.log(`⚠️ Price field "${priceField}" has invalid value: "${value}" -> ${parsedPrice}`)
           }
-          // Clean up the original field
-          delete normalized[priceField]
-          delete normalized[mappedField]
         }
       }
       
-      // Set total cost from the highest priority field found
+      // Calculate total from boiler + appliance pricing
+      totalCost = boilerPrice + appliancePrice
+      console.log(`🧮 Calculated total: boiler(£${boilerPrice}) + appliances(£${appliancePrice}) = £${totalCost}`)
+      
+      // Set total cost from combined pricing
       if (totalCost > 0) {
         normalized.totalPlanCost = totalCost
         console.log(`✅ Final total cost set: £${totalCost}`)
-      } else if (boilerPrice > 0) {
-        normalized.totalPlanCost = boilerPrice
-        console.log(`✅ Using boiler price as total cost: £${boilerPrice}`)
       } else {
         console.log(`⚠️ No pricing found in any price field`)
         
@@ -660,7 +677,7 @@ async function handleImport(request: NextRequest, context: any) {
           normalized.appliance4Cost
         ]
         
-        let calculatedTotal = 0
+        let calculatedAppliances = 0
         const validCosts: number[] = []
         
         for (let i = 0; i < applianceCosts.length; i++) {
@@ -675,18 +692,23 @@ async function handleImport(request: NextRequest, context: any) {
             
             if (parsedCost > 0) {
               validCosts.push(parsedCost)
-              calculatedTotal += parsedCost
+              calculatedAppliances += parsedCost
               console.log(`💰 Appliance ${i + 1} cost: £${parsedCost}`)
             }
           }
         }
         
-        if (calculatedTotal > 0) {
-          normalized.totalPlanCost = calculatedTotal
+        if (calculatedAppliances > 0) {
+          // Add appliance costs to existing boiler price
+          const finalTotal = boilerPrice + calculatedAppliances
+          normalized.totalPlanCost = finalTotal
           normalized.applianceCoverSelected = true
-          console.log(`✅ Calculated total from appliance costs: £${calculatedTotal} (from ${validCosts.length} appliances)`)
+          console.log(`✅ Calculated total: boiler(£${boilerPrice}) + appliances(£${calculatedAppliances}) = £${finalTotal} (from ${validCosts.length} appliances)`)
+        } else if (boilerPrice > 0) {
+          normalized.totalPlanCost = boilerPrice
+          console.log(`✅ Using only boiler price as total cost: £${boilerPrice}`)
         } else {
-          console.log(`❌ No valid appliance costs found either`)
+          console.log(`❌ No valid pricing found anywhere`)
         }
       }
       
