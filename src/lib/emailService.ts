@@ -1,0 +1,351 @@
+import nodemailer from 'nodemailer'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+// Email service configuration
+const createEmailTransporter = () => {
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_USER || 'Hello@theflashteam.co.uk',
+      pass: process.env.EMAIL_PASSWORD // App-specific password
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  })
+}
+
+interface EmailOptions {
+  to: string
+  subject: string
+  htmlContent: string
+  textContent?: string
+  attachments?: Array<{
+    filename: string
+    path?: string
+    content?: Buffer
+    contentType?: string
+  }>
+  saleId?: string
+  documentId?: string
+  emailType?: 'document_delivery' | 'welcome' | 'manual' | 'bulk'
+}
+
+interface EmailResult {
+  success: boolean
+  messageId?: string
+  error?: string
+  logId?: string
+}
+
+export class EmailService {
+  private transporter: nodemailer.Transporter
+
+  constructor() {
+    this.transporter = createEmailTransporter()
+  }
+
+  /**
+   * Send an email and log the result
+   */
+  async sendEmail(options: EmailOptions): Promise<EmailResult> {
+    try {
+      // Validate email configuration
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+        throw new Error('Email configuration missing')
+      }
+
+      // Create email log entry
+      const emailLog = await prisma.emailLog.create({
+        data: {
+          saleId: options.saleId || null,
+          documentId: options.documentId || null,
+          recipientEmail: options.to,
+          senderEmail: process.env.EMAIL_USER,
+          subject: options.subject,
+          emailType: options.emailType || 'manual',
+          status: 'PENDING',
+          metadata: {
+            hasAttachments: !!options.attachments?.length,
+            attachmentCount: options.attachments?.length || 0
+          }
+        }
+      })
+
+      // Prepare email message
+      const mailOptions = {
+        from: {
+          name: 'The Flash Team',
+          address: process.env.EMAIL_USER || 'Hello@theflashteam.co.uk'
+        },
+        to: options.to,
+        subject: options.subject,
+        html: options.htmlContent,
+        text: options.textContent,
+        attachments: options.attachments || []
+      }
+
+      console.log('📧 Sending email:', {
+        to: options.to,
+        subject: options.subject,
+        attachments: options.attachments?.length || 0
+      })
+
+      // Send email
+      const result = await this.transporter.sendMail(mailOptions)
+
+      // Update log with success
+      await prisma.emailLog.update({
+        where: { id: emailLog.id },
+        data: {
+          status: 'SENT',
+          sentAt: new Date(),
+          metadata: {
+            ...emailLog.metadata,
+            messageId: result.messageId,
+            response: result.response
+          }
+        }
+      })
+
+      console.log('✅ Email sent successfully:', result.messageId)
+
+      return {
+        success: true,
+        messageId: result.messageId,
+        logId: emailLog.id
+      }
+
+    } catch (error) {
+      console.error('❌ Email send failed:', error)
+
+      // Update log with error if we have a log entry
+      try {
+        if (options.saleId || options.documentId) {
+          await prisma.emailLog.updateMany({
+            where: {
+              recipientEmail: options.to,
+              status: 'PENDING'
+            },
+            data: {
+              status: 'FAILED',
+              errorMessage: error instanceof Error ? error.message : 'Unknown error'
+            }
+          })
+        }
+      } catch (logError) {
+        console.error('Failed to update email log:', logError)
+      }
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  /**
+   * Send document to customer
+   */
+  async sendDocumentEmail(
+    saleId: string, 
+    documentId: string, 
+    customerEmail: string,
+    customerName: string
+  ): Promise<EmailResult> {
+    try {
+      // Fetch document and sale data
+      const document = await prisma.generatedDocument.findUnique({
+        where: { id: documentId },
+        include: {
+          sale: {
+            select: {
+              customerFirstName: true,
+              customerLastName: true,
+              email: true
+            }
+          },
+          template: {
+            select: {
+              name: true,
+              templateType: true
+            }
+          }
+        }
+      })
+
+      if (!document) {
+        throw new Error('Document not found')
+      }
+
+      // Read document file
+      const fs = require('fs')
+      const path = require('path')
+      
+      let documentContent: Buffer | undefined
+      let documentPath: string | undefined
+
+      if (fs.existsSync(document.filePath)) {
+        documentContent = fs.readFileSync(document.filePath)
+        documentPath = document.filePath
+      }
+
+      // Create email content
+      const htmlContent = this.createDocumentDeliveryEmail(customerName, document.template.name)
+      const textContent = this.createDocumentDeliveryEmailText(customerName, document.template.name)
+
+      // Prepare attachments
+      const attachments = []
+      if (documentContent || documentPath) {
+        attachments.push({
+          filename: document.filename,
+          path: documentPath,
+          content: documentContent,
+          contentType: document.mimeType
+        })
+      }
+
+      return await this.sendEmail({
+        to: customerEmail,
+        subject: `Your Documents from The Flash Team`,
+        htmlContent,
+        textContent,
+        attachments,
+        saleId,
+        documentId,
+        emailType: 'document_delivery'
+      })
+
+    } catch (error) {
+      console.error('❌ Document email failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  /**
+   * Create professional document delivery email HTML
+   */
+  private createDocumentDeliveryEmail(customerName: string, documentName: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #1f2937; color: white; padding: 20px; text-align: center; }
+          .content { padding: 30px 20px; background: #f9f9f9; }
+          .footer { padding: 20px; text-align: center; background: #f1f1f1; font-size: 12px; }
+          .btn { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🏠 The Flash Team</h1>
+            <p>Your Home Protection Specialists</p>
+          </div>
+          
+          <div class="content">
+            <h2>Dear ${customerName},</h2>
+            
+            <p>Thank you for choosing The Flash Team for your home protection needs.</p>
+            
+            <p><strong>Your documents are ready!</strong></p>
+            
+            <p>Please find your <strong>${documentName}</strong> attached to this email. This document contains important information about your cover, so please keep it safe for your records.</p>
+            
+            <p><strong>Important reminders:</strong></p>
+            <ul>
+              <li>Keep these documents in a safe place</li>
+              <li>Your cover is now active and protecting your home</li>
+              <li>Contact us anytime if you have questions</li>
+            </ul>
+            
+            <p>If you need any assistance or have questions about your cover, please don't hesitate to get in touch.</p>
+            
+            <p>Best regards,<br>
+            <strong>The Flash Team</strong><br>
+            📧 Hello@theflashteam.co.uk</p>
+          </div>
+          
+          <div class="footer">
+            <p>© 2026 The Flash Team. All rights reserved.</p>
+            <p>This email was sent regarding your home protection cover. Please keep this for your records.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  }
+
+  /**
+   * Create plain text version of document delivery email
+   */
+  private createDocumentDeliveryEmailText(customerName: string, documentName: string): string {
+    return `
+Dear ${customerName},
+
+Thank you for choosing The Flash Team for your home protection needs.
+
+Your documents are ready!
+
+Please find your ${documentName} attached to this email. This document contains important information about your cover, so please keep it safe for your records.
+
+Important reminders:
+- Keep these documents in a safe place
+- Your cover is now active and protecting your home
+- Contact us anytime if you have questions
+
+If you need any assistance or have questions about your cover, please don't hesitate to get in touch.
+
+Best regards,
+The Flash Team
+Email: Hello@theflashteam.co.uk
+
+---
+© 2026 The Flash Team. All rights reserved.
+This email was sent regarding your home protection cover. Please keep this for your records.
+    `
+  }
+
+  /**
+   * Test email configuration
+   */
+  async testEmailConfiguration(testEmail: string = 'Ken@simpleemails.co.uk'): Promise<EmailResult> {
+    try {
+      await this.transporter.verify()
+
+      const testResult = await this.sendEmail({
+        to: testEmail,
+        subject: 'Test Email from The Flash Team Sales System',
+        htmlContent: `
+          <h2>✅ Email Test Successful!</h2>
+          <p>This is a test email from The Flash Team sales system.</p>
+          <p>Email configuration is working correctly.</p>
+          <p>Sent at: ${new Date().toLocaleString()}</p>
+        `,
+        textContent: `Email Test Successful! This is a test email from The Flash Team sales system. Email configuration is working correctly. Sent at: ${new Date().toLocaleString()}`,
+        emailType: 'manual'
+      })
+
+      return testResult
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Email configuration test failed'
+      }
+    }
+  }
+}
+
+export const emailService = new EmailService()

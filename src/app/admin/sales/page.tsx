@@ -90,6 +90,13 @@ export default function AdminSalesPage() {
   const [backupSuccess, setBackupSuccess] = useState('')
   const [backupError, setBackupError] = useState('')
 
+  // Bulk email states
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [emailSuccess, setEmailSuccess] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [emailProgress, setEmailProgress] = useState({ sent: 0, total: 0, errors: 0 })
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false)
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
@@ -473,6 +480,11 @@ export default function AdminSalesPage() {
     }
   }
 
+  const handleSelectCustomersWithEmail = () => {
+    const salesWithEmail = filteredSales.filter(sale => sale.email).map(sale => sale.id)
+    setSelectedSales(salesWithEmail)
+  }
+
   const handleSelectSale = (saleId: string, checked: boolean) => {
     if (checked) {
       setSelectedSales(prev => [...prev, saleId])
@@ -532,18 +544,116 @@ export default function AdminSalesPage() {
     setDeleteAction(null)
   }
 
-  // Backup creation function
+  // Bulk email functions
+  const handleBulkEmail = () => {
+    const salesWithEmail = selectedSales
+      .map(saleId => sales.find(sale => sale.id === saleId))
+      .filter(sale => sale && sale.email)
+
+    if (salesWithEmail.length === 0) {
+      setEmailError('No selected customers have email addresses')
+      setTimeout(() => setEmailError(''), 3000)
+      return
+    }
+
+    setShowEmailConfirm(true)
+  }
+
+  const confirmBulkEmail = async () => {
+    setEmailLoading(true)
+    setEmailError('')
+    setEmailSuccess('')
+    setEmailProgress({ sent: 0, total: 0, errors: 0 })
+    setShowEmailConfirm(false)
+
+    try {
+      // Get sales with email addresses
+      const salesWithEmail = selectedSales
+        .map(saleId => sales.find(sale => sale.id === saleId))
+        .filter(sale => sale && sale.email)
+        .map(sale => sale!.id)
+
+      if (salesWithEmail.length === 0) {
+        setEmailError('No selected customers have email addresses')
+        return
+      }
+
+      setEmailProgress({ sent: 0, total: salesWithEmail.length, errors: 0 })
+
+      // Use the bulk send API
+      const response = await fetch('/api/admin/emails-simple', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'bulk_send',
+          saleIds: salesWithEmail
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send bulk emails')
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        const details = data.details
+        setEmailSuccess(`Successfully sent documents to ${details.successfulCustomers} customer(s). ${details.successfulDocuments} documents sent.`)
+        setEmailProgress({ 
+          sent: details.successfulCustomers, 
+          total: details.totalCustomers, 
+          errors: details.failedCustomers 
+        })
+      } else {
+        const details = data.details
+        if (details) {
+          setEmailSuccess(`Sent to ${details.successfulCustomers} of ${details.totalCustomers} customers. ${details.failedDocuments} documents failed.`)
+          setEmailProgress({ 
+            sent: details.successfulCustomers, 
+            total: details.totalCustomers, 
+            errors: details.failedCustomers 
+          })
+        } else {
+          throw new Error(data.error || 'Bulk email failed')
+        }
+      }
+
+    } catch (error) {
+      console.error('Bulk email error:', error)
+      setEmailError(error instanceof Error ? error.message : 'Failed to send bulk emails. Please try again.')
+    } finally {
+      setEmailLoading(false)
+      // Clear progress after 5 seconds
+      setTimeout(() => {
+        setEmailProgress({ sent: 0, total: 0, errors: 0 })
+        setEmailSuccess('')
+        setEmailError('')
+      }, 5000)
+    }
+  }
+
+  const cancelBulkEmail = () => {
+    setShowEmailConfirm(false)
+  }
+
+  // Backup creation function - Updated to use comprehensive backup
   const handleCreateBackup = async () => {
     setBackupLoading(true)
     setBackupError('')
     setBackupSuccess('')
     
     try {
-      const response = await fetch('/api/admin/create-backup', {
+      const response = await fetch('/api/admin/comprehensive-backup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          reason: 'Manual backup from admin sales page'
+        })
       })
 
       const data = await response.json()
@@ -552,10 +662,13 @@ export default function AdminSalesPage() {
         throw new Error(data.error || 'Failed to create backup')
       }
 
-      setBackupSuccess(`Backup created successfully: ${data.backupName}`)
+      setBackupSuccess(`✅ Comprehensive backup created successfully!
+📁 File: ${data.backupFileName}
+💾 Size: ${data.fileSize}
+📊 Records: ${data.totalRecords.toLocaleString()}`)
       
-      // Clear success message after 5 seconds
-      setTimeout(() => setBackupSuccess(''), 5000)
+      // Clear success message after 10 seconds
+      setTimeout(() => setBackupSuccess(''), 10000)
       
     } catch (error) {
       console.error('Error creating backup:', error)
@@ -883,6 +996,15 @@ export default function AdminSalesPage() {
 
           <div className="mb-6 flex justify-between items-start">
             <div className="flex space-x-3">
+              <button
+                onClick={handleSelectCustomersWithEmail}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>Select Email Customers ({filteredSales.filter(sale => sale.email).length})</span>
+              </button>
               <Link
                 href="/admin/sales/sms"
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -908,6 +1030,18 @@ export default function AdminSalesPage() {
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
               >
                 Export Selected ({selectedSales.length})
+              </button>
+              <button
+                onClick={handleBulkEmail}
+                disabled={selectedSales.length === 0 || emailLoading}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>
+                  {emailLoading ? 'Emailing...' : `Email Documents (${selectedSales.filter(saleId => sales.find(sale => sale.id === saleId)?.email).length})`}
+                </span>
               </button>
               <button
                 onClick={handleCreateBackup}
@@ -1433,6 +1567,107 @@ export default function AdminSalesPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Confirmation Dialog */}
+      {showEmailConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-purple-100">
+                <svg
+                  className="h-6 w-6 text-purple-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
+                Send Documents via Email
+              </h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  Send documents to {selectedSales.filter(saleId => sales.find(sale => sale.id === saleId)?.email).length} customer(s) who have email addresses?
+                  <br /><br />
+                  <span className="font-medium">This will:</span>
+                  <br />• Find all documents for selected customers
+                  <br />• Send professional emails with download links
+                  <br />• Email from Hello@theflashteam.co.uk
+                </p>
+              </div>
+              <div className="items-center px-4 py-3">
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={cancelBulkEmail}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmBulkEmail}
+                    className="px-4 py-2 bg-purple-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-purple-700 focus:outline-none"
+                  >
+                    Send Emails
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Progress Display */}
+      {emailLoading && (
+        <div className="fixed bottom-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 min-w-[300px]">
+          <div className="flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Sending emails...</p>
+              <p className="text-xs text-gray-600">
+                {emailProgress.sent} of {emailProgress.total} sent
+                {emailProgress.errors > 0 && ` (${emailProgress.errors} errors)`}
+              </p>
+            </div>
+          </div>
+          {emailProgress.total > 0 && (
+            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(emailProgress.sent / emailProgress.total) * 100}%` }}
+              ></div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Email Success/Error Messages */}
+      {emailSuccess && (
+        <div className="fixed bottom-4 right-4 bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 z-50 min-w-[300px]">
+          <div className="flex items-center space-x-3">
+            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <p className="text-sm font-medium text-green-900">{emailSuccess}</p>
+          </div>
+        </div>
+      )}
+
+      {emailError && (
+        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg shadow-lg p-4 z-50 min-w-[300px]">
+          <div className="flex items-center space-x-3">
+            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm font-medium text-red-900">{emailError}</p>
           </div>
         </div>
       )}

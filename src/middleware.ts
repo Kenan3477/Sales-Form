@@ -91,9 +91,9 @@ export async function middleware(req: NextRequest) {
     }
   }
   
-  // Rate limiting for API endpoints (skip for admin document deletion)
+  // Rate limiting for API endpoints (skip for admin document deletion and sales creation)
   if (req.nextUrl.pathname.startsWith('/api/')) {
-    // Check if this is an admin performing document deletion
+    // Check if this is an admin performing document deletion or sales creation
     const token = await getToken({ 
       req,
       secret: process.env.NEXTAUTH_SECRET,
@@ -103,8 +103,10 @@ export async function middleware(req: NextRequest) {
     const isAdminDocumentDeletion = token?.role === 'ADMIN' && 
                                    req.nextUrl.pathname === '/api/paperwork/delete-document';
     
+    const isSalesCreation = req.nextUrl.pathname === '/api/sales' && req.method === 'POST';
+    
     let rateLimitResult;
-    if (!isAdminDocumentDeletion) {
+    if (!isAdminDocumentDeletion && !isSalesCreation) {
       rateLimitResult = await checkApiRateLimit(securityContext.ip)
       
       if (rateLimitResult.blocked) {
@@ -121,7 +123,7 @@ export async function middleware(req: NextRequest) {
         )
       }
     } else {
-      // For admin document deletion, create a mock rate limit result
+      // For admin document deletion and sales creation, create a mock rate limit result
       rateLimitResult = { success: true, remaining: 999, reset: Date.now() + 3600000, blocked: false };
     }
     

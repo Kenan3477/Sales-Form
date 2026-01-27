@@ -12,8 +12,9 @@ const RATE_LIMIT_CONFIGS = {
   login: { requests: 5, window: '15 m', blockDuration: '15 m' },
   signup: { requests: 3, window: '1 h', blockDuration: '1 h' },
   passwordReset: { requests: 3, window: '1 h', blockDuration: '1 h' },
-  api: { requests: 100, window: '1 h' },
-  adminActions: { requests: 10, window: '1 h', blockDuration: '1 h' }
+  api: { requests: 1000, window: '1 h' }, // Increased from 100 to 1000 for normal API usage
+  adminActions: { requests: 100, window: '1 h', blockDuration: '1 h' }, // Increased from 10 to 100 for admin actions
+  salesCreation: { requests: 50, window: '1 h' } // New: specific rate limit for sales creation
 } as const
 
 // Parse time window strings into milliseconds

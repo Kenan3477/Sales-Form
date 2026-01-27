@@ -107,13 +107,27 @@ export async function POST(request: NextRequest) {
     // Track which sales have been processed for document status
     const processedSales = new Set<string>();
 
-    // Generate documents for each sale and template combination
+    // Generate documents for each sale (limiting to ONE document per customer)
     for (const saleId of saleIds) {
-      for (const templateId of templateIds) {
-        try {
-          console.log(`📄 Processing sale ID: ${saleId} with template ID: ${templateId}`);
-          
-          // Load sale data
+      // SAFEGUARD 3: Only process each customer once
+      if (processedSales.has(saleId)) {
+        console.log(`⏭️  Skipping sale ${saleId} - Already processed`);
+        continue;
+      }
+      
+      // Use the first available template ID (should only be one after cleanup)
+      const templateId = templateIds[0];
+      if (!templateId) {
+        console.log(`❌ No template available for sale ${saleId}`);
+        results.failed++;
+        results.errors.push(`Sale ${saleId.slice(-6)}: No template available`);
+        continue;
+      }
+      
+      try {
+        console.log(`📄 Processing sale ID: ${saleId} with template ID: ${templateId}`);
+        
+        // Load sale data
           const sale = await prisma.sale.findUnique({
             where: { id: saleId },
             include: {
@@ -132,6 +146,29 @@ export async function POST(request: NextRequest) {
           }
           
           console.log(`✅ Found sale: ${sale.customerFirstName} ${sale.customerLastName}`);
+          
+          // SAFEGUARD 1: Skip customers with £0.00 total cost
+          if (sale.totalPlanCost === 0) {
+            console.log(`⏭️  Skipping ${sale.customerFirstName} ${sale.customerLastName} - £0.00 total cost`);
+            results.failed++;
+            results.errors.push(`Sale ${saleId.slice(-6)}: Skipped - £0.00 total cost`);
+            continue;
+          }
+          
+          // SAFEGUARD 2: Check if document already exists for this customer
+          const existingDocument = await prisma.generatedDocument.findFirst({
+            where: { 
+              saleId: saleId,
+              templateId: templateId 
+            }
+          });
+          
+          if (existingDocument) {
+            console.log(`⏭️  Skipping ${sale.customerFirstName} ${sale.customerLastName} - Document already exists (${existingDocument.filename})`);
+            results.failed++;
+            results.errors.push(`Sale ${saleId.slice(-6)}: Document already exists`);
+            continue;
+          }
 
           // Find the template in database OR use EnhancedTemplateService template
           let template;
@@ -350,12 +387,14 @@ export async function POST(request: NextRequest) {
           console.log(`✅ Sale ${sale.id} marked as having documents generated`);
         }
         
+        // Mark this sale as processed
+        processedSales.add(saleId);
+        
       } catch (error) {
         results.failed++;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         results.errors.push(`Sale ${saleId.slice(-6)}: ${errorMessage}`);
         console.error(`❌ Bulk generation error for sale ${saleId}:`, error);
-      }
       }
     }
 
@@ -364,7 +403,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       ...results,
-      total: saleIds.length * templateIds.length // Updated to reflect sale x template combinations
+      total: saleIds.length // Updated to reflect one document per sale
     });
 
   } catch (error) {

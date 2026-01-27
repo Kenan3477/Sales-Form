@@ -1,0 +1,291 @@
+{
+  "timestamp": "2026-01-24T16-01-17-868Z",
+  "version": "2.0.0-emergency",
+  "tables": {
+    "users": [
+      {
+        "id": "cmkfyoun90000kk62g97wyhsx",
+        "email": "admin@salesportal.com",
+        "password": "$2a$12$nyoNsszf0.vujMo0wp7YaeaipnHFoUCd60N0A43t1WMtyY9YK2RRC",
+        "role": "ADMIN",
+        "createdAt": "2026-01-15T21:28:35.877Z",
+        "updatedAt": "2026-01-22T20:56:18.916Z"
+      },
+      {
+        "id": "cmkices4p000lm0tihjuy0ndt",
+        "email": "tj@theflashteam.co.uk",
+        "password": "$2a$12$oogCRRWGObU/aVM00oTK1.6Fl8DMto3FS4fUyI2DTGqClyIq9ZkeK",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T13:28:13.033Z",
+        "updatedAt": "2026-01-17T13:28:13.033Z"
+      },
+      {
+        "id": "cmkiksh2y0000sjngyf1t2nuj",
+        "email": "curtis@theflashteam.co.uk",
+        "password": "$2a$12$1FpNMxYfaFqqq2KhsqUtX.6TuElCed1MsL43IgwwiQoIPTnwGBsLu",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T17:22:48.826Z",
+        "updatedAt": "2026-01-17T17:22:48.826Z"
+      },
+      {
+        "id": "cmkiksz500001sjngm8a8nndc",
+        "email": "francis@theflashteam.co.uk",
+        "password": "$2a$12$LJrGODmKyBIkUsLFpqCfwOjg/fVS1WNqTig64uVFofxH0gqQfOCVy",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T17:23:12.228Z",
+        "updatedAt": "2026-01-17T17:23:12.228Z"
+      },
+      {
+        "id": "cmkiktskw0002sjng4jb5kiun",
+        "email": "danh@theflashteam.co.uk",
+        "password": "$2a$12$IUStwFAKggiwCVLjBFe4Be8CbMs/I6QkP8lGtF0JJO7DEJfc44/QC",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T17:23:50.384Z",
+        "updatedAt": "2026-01-19T09:01:47.333Z"
+      },
+      {
+        "id": "cmkikugl20003sjngp28uxgow",
+        "email": "arvin@theflashteam.co.uk",
+        "password": "$2a$12$kMBA2Zg3RHlk3Q6LP59QsObu4Osi9dB0iFSV1ZWorDyVQKsDhNMD6",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T17:24:21.494Z",
+        "updatedAt": "2026-01-17T17:24:21.494Z"
+      },
+      {
+        "id": "cmkikyc290004sjng2hz658t0",
+        "email": "aaron@theflashteam.co.uk",
+        "password": "$2a$12$jcD2toNPWpQtesUBObZA4OJbwPM/nw2/Z8wbHzT8RwYDUdwmeqDBa",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T17:27:22.257Z",
+        "updatedAt": "2026-01-17T17:27:22.257Z"
+      },
+      {
+        "id": "cmkikz5wj0000to78h8kiet1k",
+        "email": "grundy@theflashteam.co.uk",
+        "password": "$2a$12$5TCdvFTLeTAECG26hgnOAOy7vE6WYwW9CdkB6wt5t/YeYI69FZx7e",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T17:28:00.932Z",
+        "updatedAt": "2026-01-17T17:28:00.932Z"
+      },
+      {
+        "id": "cmkil20zh0001to78wcqxhj4z",
+        "email": "danyal@theflashteam.co.uk",
+        "password": "$2a$12$mFInodgW27ZCSz0PsVKjrOYZuX8Y9E82xM3y6nAjD757Uz2RPxqG2",
+        "role": "AGENT",
+        "createdAt": "2026-01-17T17:30:14.526Z",
+        "updatedAt": "2026-01-17T17:30:14.526Z"
+      },
+      {
+        "id": "cmkkzukxt0001juolxu6gz731",
+        "email": "agent@salesportal.com",
+        "password": "$2a$12$ogkfPD9LuwxnAsLls549ru.GtnD/rjs9FsIQF1Y64rHba.WqeLJDC",
+        "role": "AGENT",
+        "createdAt": "2026-01-19T09:59:53.730Z",
+        "updatedAt": "2026-01-19T09:59:53.730Z"
+      },
+      {
+        "id": "cmkpa3t5e0004j1puvuftmuwo",
+        "email": "test@flashteam.com",
+        "password": "hashed_test_password",
+        "role": "AGENT",
+        "createdAt": "2026-01-22T09:58:05.074Z",
+        "updatedAt": "2026-01-22T09:58:05.074Z"
+      },
+      {
+        "id": "cmkpxlivw0000m7se4ld3g2ci",
+        "email": "kennen_02@icloud.com",
+        "password": "$2a$12$Esok.2t.H.ZXuO8v38aTVuylrkzmjkEdGydSaoeq5B5kby91eGR.i",
+        "role": "ADMIN",
+        "createdAt": "2026-01-22T20:55:42.812Z",
+        "updatedAt": "2026-01-22T20:55:42.812Z"
+      }
+    ],
+    "sales": [],
+    "appliances": [],
+    "fieldConfigurations": [
+      {
+        "id": "cmkfyoxcb0006kk62s0q74bt4",
+        "fieldName": "email",
+        "isRequired": false,
+        "createdAt": "2026-01-15T21:28:39.372Z",
+        "updatedAt": "2026-01-19T13:28:04.513Z"
+      },
+      {
+        "id": "cmkfyozk8000ckk628g1l6xyn",
+        "fieldName": "accountName",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:42.248Z",
+        "updatedAt": "2026-01-18T17:27:46.224Z"
+      },
+      {
+        "id": "cmkfyp0de000ekk620cd6xrt9",
+        "fieldName": "accountNumber",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:43.299Z",
+        "updatedAt": "2026-01-18T17:27:46.339Z"
+      },
+      {
+        "id": "cmkfyp16l000gkk623z64tr95",
+        "fieldName": "applianceCover",
+        "isRequired": false,
+        "createdAt": "2026-01-15T21:28:44.349Z",
+        "updatedAt": "2026-01-18T17:27:46.350Z"
+      },
+      {
+        "id": "cmkfyp1zo000ikk62te59yye3",
+        "fieldName": "applianceRows",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:45.397Z",
+        "updatedAt": "2026-01-18T17:27:46.359Z"
+      },
+      {
+        "id": "cmkfyp1l4000hkk623eybfdhd",
+        "fieldName": "boilerCover",
+        "isRequired": false,
+        "createdAt": "2026-01-15T21:28:44.873Z",
+        "updatedAt": "2026-01-18T17:27:46.369Z"
+      },
+      {
+        "id": "cmkfyp2e9000jkk6235qcb0xx",
+        "fieldName": "boilerOption",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:45.921Z",
+        "updatedAt": "2026-01-18T17:27:46.379Z"
+      },
+      {
+        "id": "cmkfyovqi0002kk62702scd18",
+        "fieldName": "customerFirstName",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:37.290Z",
+        "updatedAt": "2026-01-18T17:27:46.388Z"
+      },
+      {
+        "id": "cmkfyowaq0003kk62izjtc859",
+        "fieldName": "customerLastName",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:38.018Z",
+        "updatedAt": "2026-01-18T17:27:46.398Z"
+      },
+      {
+        "id": "cmkfyp0ry000fkk62htuc39ht",
+        "fieldName": "directDebitDate",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:43.823Z",
+        "updatedAt": "2026-01-18T17:27:46.409Z"
+      },
+      {
+        "id": "cmkfyoyfl0009kk62qpda7l44",
+        "fieldName": "mailingCity",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:40.785Z",
+        "updatedAt": "2026-01-18T17:27:46.432Z"
+      },
+      {
+        "id": "cmkfyoz70000bkk62n9s9dyko",
+        "fieldName": "mailingPostalCode",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:41.772Z",
+        "updatedAt": "2026-01-18T17:27:46.442Z"
+      },
+      {
+        "id": "cmkfyoysz000akk62mup0f9t6",
+        "fieldName": "mailingProvince",
+        "isRequired": false,
+        "createdAt": "2026-01-15T21:28:41.268Z",
+        "updatedAt": "2026-01-18T17:27:46.451Z"
+      },
+      {
+        "id": "cmkfyoy1w0008kk62as4qtqtn",
+        "fieldName": "mailingStreet",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:40.292Z",
+        "updatedAt": "2026-01-18T17:27:46.461Z"
+      },
+      {
+        "id": "cmkfyoxov0007kk62qbh1dtop",
+        "fieldName": "notes",
+        "isRequired": false,
+        "createdAt": "2026-01-15T21:28:39.824Z",
+        "updatedAt": "2026-01-18T17:27:46.470Z"
+      },
+      {
+        "id": "cmkfyowzt0005kk623hdgtopm",
+        "fieldName": "phoneNumber",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:38.921Z",
+        "updatedAt": "2026-01-18T17:27:46.479Z"
+      },
+      {
+        "id": "cmkfyozyv000dkk62zjuai7fn",
+        "fieldName": "sortCode",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:42.775Z",
+        "updatedAt": "2026-01-18T17:27:46.489Z"
+      },
+      {
+        "id": "cmkfyown90004kk62yo5g8mrm",
+        "fieldName": "title",
+        "isRequired": true,
+        "createdAt": "2026-01-15T21:28:38.469Z",
+        "updatedAt": "2026-01-18T17:27:46.499Z"
+      }
+    ],
+    "documentTemplates": [
+      {
+        "id": "cmklqsubs000150ei1f1mij3b",
+        "name": "[DELETED] Welcome Letter",
+        "description": "Flash Team welcome letter for new customers",
+        "templateType": "welcome_letter",
+        "htmlContent": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <style>\n        body { font-family: Arial, sans-serif; margin: 40px; }\n        .header { text-align: center; margin-bottom: 30px; }\n        .logo { font-size: 24px; font-weight: bold; color: #ff6500; }\n        .lightning { color: #3498db; }\n        .content { line-height: 1.6; }\n        .signature { margin-top: 30px; }\n    </style>\n</head>\n<body>\n    <div class=\"header\">\n        <div class=\"logo\">⚡ Flash Team</div>\n        <p>Home Emergency & Boiler Cover</p>\n    </div>\n    \n    <div class=\"content\">\n        <p>Dear {{customerName}},</p>\n        \n        <p>Welcome to Flash Team! Thank you for choosing our home emergency and boiler cover services.</p>\n        \n        <p><strong>Your Plan Details:</strong></p>\n        <ul>\n            <li>Plan Number: {{planNumber}}</li>\n            <li>Monthly Payment: £{{monthlyCost}}</li>\n            <li>Direct Debit Date: {{directDebitDate}}</li>\n        </ul>\n        \n        <p>Your cover is now active and ready to protect your home.</p>\n        \n        <div class=\"signature\">\n            <p>Best regards,<br>The Flash Team</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "isActive": false,
+        "version": 1,
+        "createdAt": "2026-01-19T22:34:22.217Z",
+        "updatedAt": "2026-01-22T09:31:14.788Z",
+        "createdById": "cmkfyoun90000kk62g97wyhsx"
+      },
+      {
+        "id": "cmkp95ehw0001i0d5l8kl3jnj",
+        "name": "Welcome Letter",
+        "description": "Auto-created template for Welcome Letter",
+        "templateType": "welcome_letter",
+        "htmlContent": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Flash Team Protection Plan</title>\n    <style>\n        * {\n            margin: 0;\n            padding: 0;\n            box-sizing: border-box;\n        }\n        \n        body {\n            font-family: 'Segoe UI', Arial, sans-serif;\n            line-height: 1.4;\n            color: #333;\n            background: #f5f5f5;\n            padding: 20px;\n        }\n        \n        .document-container {\n            max-width: 800px;\n            margin: 0 auto;\n            background: white;\n            border-radius: 8px;\n            overflow: hidden;\n            box-shadow: 0 4px 12px rgba(0,0,0,0.1);\n        }\n        \n        .header {\n            background: linear-gradient(135deg, #1a365d 0%, #2c5282 30%, #1e4c72 70%, #1a365d 100%);\n            color: white;\n            padding: 30px 40px;\n            position: relative;\n        }\n        \n        .header::after {\n            content: '';\n            position: absolute;\n            bottom: 0;\n            left: 0;\n            right: 0;\n            height: 8px;\n            background: linear-gradient(90deg, #ff4500 0%, #ff6500 50%, #ff4500 100%);\n        }\n        \n        .logo-section {\n            display: flex;\n            align-items: center;\n            gap: 15px;\n        }\n        \n        .lightning-icon {\n            width: 32px;\n            height: 32px;\n            background: linear-gradient(45deg, #ff6500, #ffa500);\n            border-radius: 6px;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n            font-size: 20px;\n            color: white;\n            box-shadow: 0 0 10px rgba(255,101,0,0.4);\n        }\n        \n        .lightning-icon::before {\n            content: '⚡';\n        }\n        \n        .logo-text {\n            font-size: 36px;\n            font-weight: bold;\n            letter-spacing: 2px;\n        }\n        \n        .tagline {\n            font-size: 14px;\n            opacity: 0.95;\n            margin-top: 2px;\n            font-style: italic;\n            letter-spacing: 0.5px;\n        }\n        \n        .content {\n            padding: 40px;\n        }\n        \n        .main-title {\n            font-size: 28px;\n            font-weight: bold;\n            color: #1a365d;\n            margin-bottom: 25px;\n            border-bottom: 3px solid #ff6500;\n            padding-bottom: 10px;\n        }\n        \n        .intro-text {\n            font-size: 15px;\n            margin-bottom: 25px;\n            line-height: 1.6;\n        }\n        \n        .activation-banner {\n            background: linear-gradient(135deg, #ff6500 0%, #ff8500 100%);\n            color: white;\n            padding: 20px;\n            margin-bottom: 30px;\n            border-radius: 8px;\n            text-align: center;\n            position: relative;\n            overflow: hidden;\n        }\n        \n        .activation-banner::before {\n            content: '';\n            position: absolute;\n            top: 0;\n            left: 0;\n            right: 0;\n            bottom: 0;\n            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);\n        }\n        \n        .activation-banner .lightning-small {\n            width: 20px;\n            height: 20px;\n            background: white;\n            border-radius: 4px;\n            display: inline-flex;\n            align-items: center;\n            justify-content: center;\n            margin-right: 10px;\n            vertical-align: middle;\n            font-size: 12px;\n            color: #ff6500;\n        }\n        \n        .activation-banner .lightning-small::before {\n            content: '⚡';\n        }\n        \n        .activation-text {\n            font-size: 18px;\n            font-weight: bold;\n            position: relative;\n            z-index: 1;\n        }\n        \n        .activation-subtext {\n            background: #1a365d;\n            margin: 15px -20px -20px -20px;\n            padding: 12px 20px;\n            font-size: 14px;\n            position: relative;\n            z-index: 1;\n        }\n        \n        .two-column {\n            display: grid;\n            grid-template-columns: 1fr 1fr;\n            gap: 25px;\n            margin-bottom: 25px;\n        }\n        \n        .card {\n            border: 1px solid #e2e8f0;\n            border-radius: 6px;\n            overflow: hidden;\n            background: #fafbfc;\n        }\n        \n        .card-header {\n            background: #1a365d;\n            color: white;\n            padding: 15px 20px;\n            font-weight: bold;\n            font-size: 16px;\n        }\n        \n        .card-content {\n            padding: 20px;\n            background: white;\n        }\n        \n        .detail-row {\n            display: flex;\n            justify-content: space-between;\n            align-items: flex-start;\n            padding: 10px 0;\n            border-bottom: 1px solid #f0f4f7;\n        }\n        \n        .detail-row:last-child {\n            border-bottom: none;\n        }\n        \n        .detail-label {\n            font-weight: 600;\n            color: #4a5568;\n            text-transform: uppercase;\n            font-size: 11px;\n            letter-spacing: 0.5px;\n            width: 35%;\n        }\n        \n        .detail-value {\n            font-weight: bold;\n            color: #1a365d;\n            text-align: right;\n            width: 60%;\n            font-size: 14px;\n        }\n        \n        .checklist-item {\n            display: flex;\n            align-items: flex-start;\n            gap: 12px;\n            margin-bottom: 10px;\n            font-size: 14px;\n        }\n        \n        .checklist-item:last-child {\n            margin-bottom: 0;\n        }\n        \n        .check-icon {\n            width: 18px;\n            height: 18px;\n            background: #ff6500;\n            border-radius: 50%;\n            position: relative;\n            flex-shrink: 0;\n            margin-top: 2px;\n        }\n        \n        .check-icon::after {\n            content: '✓';\n            position: absolute;\n            top: 50%;\n            left: 50%;\n            transform: translate(-50%, -50%);\n            color: white;\n            font-size: 12px;\n            font-weight: bold;\n        }\n        \n        .single-column-card {\n            margin-bottom: 25px;\n        }\n        \n        .numbered-list {\n            counter-reset: step-counter;\n        }\n        \n        .numbered-item {\n            display: flex;\n            align-items: flex-start;\n            gap: 15px;\n            margin-bottom: 12px;\n            counter-increment: step-counter;\n            font-size: 14px;\n        }\n        \n        .numbered-item::before {\n            content: counter(step-counter);\n            background: #1a365d;\n            color: white;\n            width: 24px;\n            height: 24px;\n            border-radius: 50%;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n            font-size: 12px;\n            font-weight: bold;\n            flex-shrink: 0;\n        }\n        \n        .guarantee-intro {\n            font-weight: bold;\n            margin-bottom: 15px;\n            color: #1a365d;\n            font-size: 14px;\n        }\n        \n        .guarantee-list {\n            list-style: none;\n            counter-reset: item-counter;\n        }\n        \n        .guarantee-list li {\n            margin-bottom: 8px;\n            padding-left: 20px;\n            position: relative;\n            font-size: 14px;\n            counter-increment: item-counter;\n        }\n        \n        .guarantee-list li::before {\n            content: counter(item-counter);\n            position: absolute;\n            left: 0;\n            background: #1a365d;\n            color: white;\n            width: 16px;\n            height: 16px;\n            border-radius: 50%;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n            font-size: 10px;\n            font-weight: bold;\n        }\n        \n        .important-section {\n            background: #f8fafc;\n            border-left: 4px solid #ff6500;\n            padding: 25px;\n            margin-bottom: 0;\n            border-radius: 0 8px 8px 0;\n        }\n        \n        .important-title {\n            font-size: 18px;\n            font-weight: bold;\n            color: #1a365d;\n            margin-bottom: 15px;\n        }\n        \n        .important-list {\n            list-style: none;\n        }\n        \n        .important-list li {\n            margin-bottom: 12px;\n            padding-left: 20px;\n            position: relative;\n            font-size: 14px;\n        }\n        \n        .important-list li::before {\n            content: '•';\n            color: #ff6500;\n            font-weight: bold;\n            position: absolute;\n            left: 0;\n            font-size: 16px;\n        }\n        \n        .footer {\n            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);\n            color: white;\n            padding: 20px 40px;\n            text-align: center;\n            font-size: 14px;\n            margin-top: 0;\n        }\n        \n        .footer-content {\n            display: flex;\n            align-items: center;\n            justify-content: center;\n            gap: 15px;\n            flex-wrap: wrap;\n        }\n        \n        .footer-divider {\n            color: #ff6500;\n            font-weight: bold;\n        }\n        \n        @media print {\n            body {\n                background: white;\n                padding: 0;\n            }\n            \n            .document-container {\n                max-width: none;\n                margin: 0;\n                box-shadow: none;\n            }\n            \n            .card {\n                break-inside: avoid;\n            }\n        }\n        \n        @media (max-width: 768px) {\n            .content {\n                padding: 20px;\n            }\n            \n            .header {\n                padding: 20px;\n            }\n            \n            .two-column {\n                grid-template-columns: 1fr;\n            }\n            \n            .footer-content {\n                flex-direction: column;\n                gap: 10px;\n            }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"document-container\">\n        <div class=\"header\">\n            <div class=\"logo-section\">\n                <div class=\"lightning-icon\"></div>\n                <div>\n                    <div class=\"logo-text\">Flash Team</div>\n                    <div class=\"tagline\">Fast, Friendly Repairs You Can Trust</div>\n                </div>\n            </div>\n        </div>\n        \n        <div class=\"content\">\n            <h1 class=\"main-title\">The Flash Team's Protection Plan</h1>\n            \n            <div class=\"intro-text\">\n                <strong>Dear Paul Gregory,</strong><br><br>\n                Thank you for choosing Flash Team. This document confirms that your <strong>Protection Plan</strong> is now active, subject to the plan terms, conditions and exclusions.\n            </div>\n            \n            <div class=\"activation-banner\">\n                <div class=\"activation-text\">\n                    <span class=\"lightning-small\"></span>\n                    Your Protection Plan is now active\n                </div>\n                <div class=\"activation-subtext\">\n                    This letter explains your cover and how to request assistance\n                </div>\n            </div>\n            \n            <div class=\"two-column\">\n                <div class=\"card\">\n                    <div class=\"card-header\">Your Account Details</div>\n                    <div class=\"card-content\">\n                        <div class=\"detail-row\">\n                            <span class=\"detail-label\">CUSTOMER</span>\n                            <span class=\"detail-value\">Paul Gregory</span>\n                        </div>\n                        <div class=\"detail-row\">\n                            <span class=\"detail-label\">EMAIL</span>\n                            <span class=\"detail-value\"></span>\n                        </div>\n                        <div class=\"detail-row\">\n                            <span class=\"detail-label\">PHONE</span>\n                            <span class=\"detail-value\"> 07760990303</span>\n                        </div>\n                        <div class=\"detail-row\">\n                            <span class=\"detail-label\">ADDRESS</span>\n                            <span class=\"detail-value\"> 17 stonelow green, North East Derbyshire, , S18 2ET</span>\n                        </div>\n                        <div class=\"detail-row\">\n                            <span class=\"detail-label\">START DATE</span>\n                            <span class=\"detail-value\">22/01/2026</span>\n                        </div>\n                        <div class=\"detail-row\">\n                            <span class=\"detail-label\">PLAN REF</span>\n                            <span class=\"detail-value\">TFT3203</span>\n                        </div>\n                    </div>\n                </div>\n                \n                <div class=\"card\">\n                    <div class=\"card-header\">What Your Plan Provides</div>\n                    <div class=\"card-content\">\n                        <div class=\"detail-row\" style=\"border-bottom: 2px solid #ff6500; margin-bottom: 15px; padding-bottom: 15px;\">\n                            <span class=\"detail-label\">Monthly Payment:</span>\n                            <span class=\"detail-value\">£10.00</span>\n                        </div>\n                        \n                        <div class=\"checklist-item\">\n                            <div class=\"check-icon\"></div>\n                            <span>Access to qualified engineers for covered breakdowns</span>\n                        </div>\n                        \n                        <div class=\"checklist-item\">\n                            <div class=\"check-icon\"></div>\n                            <span>Repairs to covered appliances or systems, where repair is possible.</span>\n                        </div>\n                        <div class=\"checklist-item\">\n                            <div class=\"check-icon\"></div>\n                            <span>If a repair is not economically viable, we may, at our discretion, offer a replacement of equivalent specification (new for old where applicable), subject to availability.</span>\n                        </div>\n                        <div class=\"checklist-item\">\n                            <div class=\"check-icon\"></div>\n                            <span>Fixed pricing with no call-out charge for covered faults</span>\n                        </div>\n                        <div class=\"checklist-item\">\n                            <div class=\"check-icon\"></div>\n                            <span>Appointments offered subject to engineer availability</span>\n                        </div>\n                    </div>\n                </div>\n            </div>\n            \n            <div class=\"card single-column-card\">\n                <div class=\"card-header\">Requesting Assistance</div>\n                <div class=\"card-content\">\n                    <div class=\"numbered-list\">\n                        <div class=\"numbered-item\">\n                            <span>Call 0330 822 7695</span>\n                        </div>\n                        <div class=\"numbered-item\">\n                            <span>Quote your plan reference TFT3203</span>\n                        </div>\n                        <div class=\"numbered-item\">\n                            <span>Describe the issue so we can assess eligibility</span>\n                        </div>\n                        <div class=\"numbered-item\">\n                            <span>Book an appointment subject to availability</span>\n                        </div>\n                    </div>\n                </div>\n            </div>\n            \n            <div class=\"card single-column-card\">\n                <div class=\"card-header\">Direct Debit Guarantee</div>\n                <div class=\"card-content\">\n                    <div class=\"guarantee-intro\">\n                        If you pay by Direct Debit, payments will appear on your bank statement as Warmcare.\n                    </div>\n                    <ul class=\"guarantee-list\">\n                        <li>This Guarantee is offered by all banks and building societies that accept instructions to pay Direct Debits</li>\n                        <li>If there are any changes to the amount, date or frequency of your Direct Debit we will notify you at least 10 working days in advance</li>\n                        <li>If you request us to collect a payment, confirmation will be given at the time of the request</li>\n                        <li>If an error is made in the payment of your Direct Debit, by us or your bank or building society you are entitled to a full and immediate refund of the amount paid</li>\n                        <li>You can cancel your Direct Debit at any time via your bank or building society</li>\n                    </ul>\n                </div>\n            </div>\n            \n            <div class=\"important-section\">\n                <div class=\"important-title\">Important Information</div>\n                <ul class=\"important-list\">\n                    <li>This Protection Plan is a <strong>service agreement</strong> and is not an insurance plan</li>\n                    <li>All services are provided subject to <strong>plan terms, conditions and exclusions</strong></li>\n                    <li><strong>Annual boiler service:</strong> Please contact us to <strong>book your annual boiler service</strong></li>\n                </ul>\n            </div>\n        </div>\n        \n        <div class=\"footer\">\n            <div class=\"footer-content\">\n                <span>Flash Team</span>\n                <span class=\"footer-divider\">•</span>\n                <span>Nationwide UK</span>\n                <span class=\"footer-divider\">•</span>\n                <span>0330 822 7695</span>\n                <span class=\"footer-divider\">•</span>\n                <span>theflashteam.co.uk</span>\n            </div>\n        </div>\n    </div>\n</body>\n</html>",
+        "isActive": true,
+        "version": 2,
+        "createdAt": "2026-01-22T09:31:19.844Z",
+        "updatedAt": "2026-01-22T09:31:19.844Z",
+        "createdById": "cmkfyoun90000kk62g97wyhsx"
+      }
+    ],
+    "generatedDocuments": [],
+    "smsLogs": [],
+    "leads": [],
+    "leadAppliances": [],
+    "leadDispositionHistory": [],
+    "leadToSaleLinks": [],
+    "leadImportBatches": []
+  },
+  "metadata": {
+    "totalRecords": 32,
+    "backupSize": "0.03MB",
+    "tables": {
+      "users": 12,
+      "sales": 0,
+      "appliances": 0,
+      "fieldConfigurations": 18,
+      "documentTemplates": 2,
+      "generatedDocuments": 0,
+      "smsLogs": 0,
+      "leads": 0,
+      "leadAppliances": 0,
+      "leadDispositionHistory": 0,
+      "leadToSaleLinks": 0,
+      "leadImportBatches": 0
+    },
+    "dataIntegrityHashes": {
+      "users": "iops1q",
+      "sales": "28y",
+      "appliances": "28y",
+      "leads": "28y"
+    }
+  }
+}
