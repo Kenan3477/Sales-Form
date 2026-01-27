@@ -65,6 +65,7 @@ model Sale {
   documentsGeneratedByUser User?             @relation("DocumentsGeneratedBy", fields: [documentsGeneratedBy], references: [id], onDelete: SetNull)
   smsLogs                SMSLog[]
   leadLink               LeadToSaleLink?
+  emailLogs              EmailLog[]          @relation("EmailLogs")
 
   @@index([documentsGenerated])
   @@map("sales")
@@ -146,6 +147,7 @@ model GeneratedDocument {
   metadata       Json?
   sale           Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
   template       DocumentTemplate @relation(fields: [templateId], references: [id])
+  emailLogs      EmailLog[]       @relation("DocumentEmailLogs")
 
   @@index([saleId])
   @@index([templateId])
@@ -301,4 +303,47 @@ model LeadToSaleLink {
   convertedByUser User @relation("ConvertedLeads", fields: [convertedBy], references: [id], onDelete: Restrict)
 
   @@map("LeadToSaleLink")
+}
+
+model EmailLog {
+  id               String    @id @default(cuid())
+  saleId           String?   @map("sale_id")
+  documentId       String?   @map("document_id")
+  recipientEmail   String    @map("recipient_email")
+  senderEmail      String    @map("sender_email") @default("Hello@theflashteam.co.uk")
+  subject          String
+  emailType        String    @map("email_type") @default("manual") // 'document_delivery', 'welcome', 'manual', 'bulk'
+  status           String    @default("PENDING") // 'PENDING', 'SENT', 'DELIVERED', 'FAILED'
+  sentAt           DateTime? @map("sent_at")
+  deliveredAt      DateTime? @map("delivered_at")
+  errorMessage     String?   @map("error_message")
+  metadata         Json?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  
+  // Relations
+  sale             Sale?              @relation("EmailLogs", fields: [saleId], references: [id], onDelete: Cascade)
+  document         GeneratedDocument? @relation("DocumentEmailLogs", fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([saleId])
+  @@index([documentId])
+  @@index([recipientEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_logs")
+}
+
+model EmailTemplate {
+  id           String   @id @default(cuid())
+  name         String
+  subject      String
+  htmlContent  String   @map("html_content")
+  textContent  String?  @map("text_content")
+  templateType String   @map("template_type") // 'document_delivery', 'welcome', 'custom'
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([templateType])
+  @@index([isActive])
+  @@map("email_templates")
 }

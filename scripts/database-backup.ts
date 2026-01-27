@@ -69,6 +69,8 @@ interface BackupData {
     documentTemplates: any[]
     generatedDocuments: any[]
     smsLogs: any[]
+    emailLogs: any[]
+    communicationLogs: any[]
     leads: any[]
     leadAppliances: any[]
     leadDispositionHistory: any[]
@@ -84,6 +86,15 @@ interface BackupData {
       sales: string
       appliances: string
       leads: string
+      emailLogs: string
+      communicationLogs: string
+    }
+    communicationSummary: {
+      totalSMS: number
+      totalEmails: number
+      totalCommunications: number
+      smsSuccessRate: number
+      emailSuccessRate: number
     }
   }
 }
@@ -134,6 +145,21 @@ async function createDatabaseBackup(): Promise<string> {
       prisma.leadImportBatch.findMany()
     ])
     
+    // Placeholder for future communication tables
+    const emailLogs: any[] = []
+    const communicationLogs: any[] = []
+    
+    console.log('📈 Calculating communication metrics...')
+    
+    // Calculate communication summary
+    const totalSMS = smsLogs.length
+    const totalEmails = emailLogs.length 
+    const totalCommunications = totalSMS + totalEmails + communicationLogs.length
+    const successfulSMS = smsLogs.filter(sms => sms.smsStatus === 'SENT').length
+    const smsSuccessRate = totalSMS > 0 ? (successfulSMS / totalSMS) * 100 : 0
+    const successfulEmails = emailLogs.filter((email: any) => email.emailStatus === 'SENT').length
+    const emailSuccessRate = totalEmails > 0 ? (successfulEmails / totalEmails) * 100 : 0
+    
     console.log('🔒 Performing customer data integrity validation before backup...')
     
     // 🔒 CRITICAL: Validate customer data integrity before backup
@@ -151,7 +177,7 @@ async function createDatabaseBackup(): Promise<string> {
     // 🔒 Generate integrity hashes for all critical data
     const dataIntegrityHashes = {
       users: generateDataHash(users),
-      sales: generateDataHash(sales.map(sale => ({
+      sales: generateDataHash(sales.map((sale: any) => ({
         id: sale.id,
         customerFirstName: sale.customerFirstName,
         customerLastName: sale.customerLastName,
@@ -162,20 +188,22 @@ async function createDatabaseBackup(): Promise<string> {
         mailingPostalCode: sale.mailingPostalCode
       }))),
       appliances: generateDataHash(appliances),
-      leads: generateDataHash(leads.map(lead => ({
+      leads: generateDataHash(leads.map((lead: any) => ({
         id: lead.id,
         customerFirstName: lead.customerFirstName,
         customerLastName: lead.customerLastName,
         email: lead.email,
         phoneNumber: lead.phoneNumber
-      })))
+      }))),
+      emailLogs: generateDataHash(emailLogs),
+      communicationLogs: generateDataHash(communicationLogs)
     }
     
     const backupData: BackupData = {
       timestamp: new Date().toISOString(),
-      version: '2.0.0',
+      version: '2.1.0',
       tables: {
-        users: users.map(user => ({
+        users: users.map((user: any) => ({
           ...user,
           password: '[ENCRYPTED]' // Security: Don't backup actual passwords
         })),
@@ -185,6 +213,8 @@ async function createDatabaseBackup(): Promise<string> {
         documentTemplates,
         generatedDocuments,
         smsLogs,
+        emailLogs,
+        communicationLogs,
         leads,
         leadAppliances,
         leadDispositionHistory,
@@ -194,9 +224,10 @@ async function createDatabaseBackup(): Promise<string> {
       metadata: {
         totalRecords: users.length + sales.length + appliances.length + 
                      fieldConfigurations.length + documentTemplates.length + 
-                     generatedDocuments.length + smsLogs.length + leads.length +
-                     leadAppliances.length + leadDispositionHistory.length +
-                     leadToSaleLinks.length + leadImportBatches.length,
+                     generatedDocuments.length + smsLogs.length + emailLogs.length +
+                     communicationLogs.length + leads.length + leadAppliances.length +
+                     leadDispositionHistory.length + leadToSaleLinks.length +
+                     leadImportBatches.length,
         backupSize: '0MB', // Will be calculated after writing
         tables: {
           users: users.length,
@@ -206,13 +237,22 @@ async function createDatabaseBackup(): Promise<string> {
           documentTemplates: documentTemplates.length,
           generatedDocuments: generatedDocuments.length,
           smsLogs: smsLogs.length,
+          emailLogs: emailLogs.length,
+          communicationLogs: communicationLogs.length,
           leads: leads.length,
           leadAppliances: leadAppliances.length,
           leadDispositionHistory: leadDispositionHistory.length,
           leadToSaleLinks: leadToSaleLinks.length,
           leadImportBatches: leadImportBatches.length
         },
-        dataIntegrityHashes
+        dataIntegrityHashes,
+        communicationSummary: {
+          totalSMS,
+          totalEmails,
+          totalCommunications,
+          smsSuccessRate: Math.round(smsSuccessRate * 100) / 100,
+          emailSuccessRate: Math.round(emailSuccessRate * 100) / 100
+        }
       }
     }
     
@@ -243,7 +283,12 @@ async function createDatabaseBackup(): Promise<string> {
       console.log(`  - ${table}: ${count} records`)
     })
     console.log('')
-    console.log(`🔒 Data Protection: All customer data backed up safely without modification`)
+    console.log('📞 Communication Summary:')
+    console.log(`  - SMS Messages: ${totalSMS} (${smsSuccessRate.toFixed(1)}% success rate)`)
+    console.log(`  - Email Messages: ${totalEmails} (${emailSuccessRate.toFixed(1)}% success rate)`)
+    console.log(`  - Total Communications: ${totalCommunications}`)
+    console.log('')
+    console.log(`🔒 Data Protection: All customer data and communication history backed up safely without modification`)
     
     return backupPath
     

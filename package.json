@@ -26,6 +26,7 @@
     "@types/crypto-js": "^4.2.2",
     "@types/handlebars": "^4.0.40",
     "@types/jszip": "^3.4.0",
+    "@types/nodemailer": "^7.0.5",
     "@types/papaparse": "^5.5.2",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
@@ -41,6 +42,7 @@
     "next": "16.1.0",
     "next-auth": "^4.24.5",
     "node-fetch": "^3.3.2",
+    "nodemailer": "^7.0.12",
     "papaparse": "^5.5.3",
     "pdf-lib": "^1.17.1",
     "playwright": "^1.45.0",
@@ -48,7 +50,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.48.2",
-    "vercel": "^50.4.9",
+    "vercel": "^50.5.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {

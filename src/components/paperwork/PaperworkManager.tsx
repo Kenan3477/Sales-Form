@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Download, FileText, Eye, Trash2, Plus, AlertCircle, CheckCircle } from 'lucide-react'
+import { Download, FileText, Eye, Trash2, Plus, AlertCircle, CheckCircle, Mail } from 'lucide-react'
 
 interface GeneratedDocument {
   id: string
@@ -42,6 +42,7 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteMode, setDeleteMode] = useState<'selected'>('selected')
+  const [emailSending, setEmailSending] = useState<string | null>(null)
 
   // Document selection functions
   const toggleDocumentSelection = (documentId: string) => {
@@ -202,6 +203,43 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
       }
     } catch (error) {
       console.error('Error loading templates:', error)
+    }
+  }
+
+  const sendDocumentEmail = async (documentId: string, filename: string) => {
+    setEmailSending(documentId)
+    setError('')
+    setSuccess('')
+
+    try {
+      const response = await fetch('/api/admin/emails-simple', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'send_document',
+          documentId,
+          saleId
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send email')
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        setSuccess(`Document "${filename}" emailed successfully to customer!`)
+      } else {
+        throw new Error(data.error || 'Failed to send email')
+      }
+    } catch (error) {
+      console.error('Error sending email:', error)
+      setError(error instanceof Error ? error.message : 'Failed to send email')
+    } finally {
+      setEmailSending(null)
     }
   }
 
@@ -585,6 +623,23 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                       >
                         <Download className="w-3 h-3 mr-1" />
                         Download
+                      </button>
+                      <button
+                        onClick={() => sendDocumentEmail(doc.id, doc.filename)}
+                        disabled={emailSending === doc.id}
+                        className="inline-flex items-center px-3 py-1.5 border border-green-300 text-xs font-medium rounded text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {emailSending === doc.id ? (
+                          <>
+                            <div className="w-3 h-3 mr-1 border border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-3 h-3 mr-1" />
+                            Email
+                          </>
+                        )}
                       </button>
                       <button
                         onClick={() => {
