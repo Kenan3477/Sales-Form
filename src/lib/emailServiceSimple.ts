@@ -9,7 +9,13 @@ export interface EmailSendResult {
 
 export class SimpleEmailService {
   private static createTransporter() {
-    return nodemailer.createTransport({
+    console.log('Creating transporter with configuration:')
+    console.log('HOST:', process.env.EMAIL_HOST)
+    console.log('PORT:', process.env.EMAIL_PORT)
+    console.log('USER:', process.env.EMAIL_USER)
+    console.log('PASSWORD length:', process.env.EMAIL_PASSWORD?.length)
+    
+    const config = {
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT || '587'),
       secure: false,
@@ -17,11 +23,19 @@ export class SimpleEmailService {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
-    })
+    }
+    
+    console.log('Final transporter config:', JSON.stringify({
+      ...config,
+      auth: { ...config.auth, pass: '[REDACTED]' }
+    }, null, 2))
+    
+    return nodemailer.createTransport(config)
   }
 
   static async sendDocumentEmail(documentId: string, saleId: string): Promise<EmailSendResult> {
     try {
+      console.log(`Sending individual document email - Document ID: ${documentId}, Sale ID: ${saleId}`)
       const sale = await prisma.sale.findUnique({
         where: { id: saleId },
         select: {
@@ -36,15 +50,36 @@ export class SimpleEmailService {
         select: {
           filename: true,
           filePath: true,
+          metadata: true,
+          mimeType: true,
         }
       })
 
       if (!sale) {
+        console.error(`Sale not found for ID: ${saleId}`)
         return { success: false, error: 'Sale not found' }
       }
 
+      if (!sale.email || sale.email.trim() === '') {
+        console.error(`Customer ${sale.customerFirstName} ${sale.customerLastName} has no email address`)
+        return { success: false, error: `Customer ${sale.customerFirstName} ${sale.customerLastName} has no email address` }
+      }
+
       if (!document) {
+        console.error(`Document not found for ID: ${documentId}`)
         return { success: false, error: 'Document not found' }
+      }
+
+      console.log(`Document found - Filename: ${document.filename}, MimeType: ${document.mimeType}`)
+      console.log(`Metadata exists: ${!!document.metadata}`)
+      
+      if (document.metadata && typeof document.metadata === 'object') {
+        console.log(`Metadata type check passed`)
+        console.log(`Has documentContent: ${'documentContent' in document.metadata}`)
+        if ('documentContent' in document.metadata) {
+          const docContent = document.metadata.documentContent as string
+          console.log(`DocumentContent length: ${docContent?.length || 'null/undefined'}`)
+        }
       }
 
       if (!sale.email) {
@@ -54,8 +89,27 @@ export class SimpleEmailService {
       const customerName = `${sale.customerFirstName} ${sale.customerLastName}`
       const transporter = this.createTransporter()
 
-      // Create download URL - we'll need to generate this
-      const downloadUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/paperwork/download/${documentId}`
+      // Get PDF content from metadata
+      let pdfContent: Buffer | null = null
+      console.log(`Starting PDF content extraction...`)
+      
+      if (document.metadata && typeof document.metadata === 'object' && 'documentContent' in document.metadata) {
+        console.log(`PDF extraction path 1: metadata and documentContent exist`)
+        const documentContent = document.metadata.documentContent as string
+        if (documentContent && document.mimeType === 'application/pdf') {
+          console.log(`PDF extraction path 2: content exists and mimeType is PDF`)
+          // PDF content is stored as base64 in metadata
+          pdfContent = Buffer.from(documentContent, 'base64')
+          console.log(`PDF Buffer created successfully - Size: ${pdfContent.length} bytes`)
+        } else {
+          console.log(`PDF extraction failed - Content: ${!!documentContent}, MimeType: ${document.mimeType}`)
+        }
+      } else {
+        console.log(`PDF extraction failed - Metadata structure check failed`)
+      }
+      
+      console.log(`Final PDF content status: ${pdfContent ? 'Available' : 'Not available'}`)
+      console.log(`Attachments array will have ${pdfContent ? '1' : '0'} items`)
 
       const mailOptions = {
         from: {
@@ -68,19 +122,13 @@ export class SimpleEmailService {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb;">Hello ${customerName},</h2>
             
-            <p>Thank you for choosing The Flash Team! Please find your sales document attached below.</p>
+            <p>Thank you for choosing The Flash Team! Please find your sales document attached to this email.</p>
             
             <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin: 0 0 10px 0; color: #374151;">Document Details:</h3>
               <p style="margin: 5px 0;"><strong>Document:</strong> ${document.filename}</p>
               <p style="margin: 5px 0;"><strong>Customer:</strong> ${customerName}</p>
-            </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${downloadUrl}" 
-                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                Download Your Document
-              </a>
+              <p style="margin: 5px 0;"><strong>Attached:</strong> PDF document</p>
             </div>
             
             <p style="color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px;">
@@ -90,9 +138,40 @@ export class SimpleEmailService {
             </p>
           </div>
         `,
+        attachments: pdfContent ? [{
+          filename: document.filename,
+          content: pdfContent,
+          contentType: 'application/pdf'
+        }] : []
       }
 
+      console.log(`Sending email to ${sale.email} with ${mailOptions.attachments.length} attachments`)
+      
       const info = await transporter.sendMail(mailOptions)
+      
+      console.log(`Email sent successfully - MessageID: ${info.messageId}`)
+      
+      // Log the email send to database
+      await prisma.emailLog.create({
+        data: {
+          saleId: saleId,
+          documentId: documentId,
+          recipientEmail: sale.email,
+          senderEmail: process.env.EMAIL_USER || 'Hello@theflashteam.co.uk',
+          subject: `Your Sales Document - ${document.filename}`,
+          emailType: 'document_delivery',
+          status: 'SENT',
+          sentAt: new Date(),
+          metadata: {
+            filename: document.filename,
+            customerName: customerName,
+            messageId: info.messageId,
+            attachmentCount: pdfContent ? 1 : 0
+          }
+        }
+      })
+      
+      console.log(`Email log entry created for document ${documentId}`)
       
       return {
         success: true,
@@ -147,6 +226,7 @@ export class SimpleEmailService {
 
   static async bulkSendDocuments(saleIds: string[]): Promise<EmailSendResult & { details?: any }> {
     try {
+      console.log('Starting bulk send for sale IDs:', saleIds)
       const results = {
         totalCustomers: 0,
         successfulCustomers: 0,
@@ -159,6 +239,7 @@ export class SimpleEmailService {
 
       for (const saleId of saleIds) {
         try {
+          console.log(`Processing sale ID: ${saleId}`)
           results.totalCustomers++
 
           // Get sale info
@@ -171,9 +252,19 @@ export class SimpleEmailService {
             }
           })
 
-          if (!sale || !sale.email) {
+          if (!sale) {
+            console.log(`Sale not found for ID: ${saleId}`)
             results.failedCustomers++
-            results.errors.push(`Customer ${saleId}: No email address`)
+            results.errors.push(`Sale ID ${saleId}: Sale not found`)
+            continue
+          }
+
+          console.log(`Found sale: ${sale.customerFirstName} ${sale.customerLastName}, email: '${sale.email}'`)
+
+          if (!sale.email || sale.email.trim() === '') {
+            console.log(`No email address for ${sale.customerFirstName} ${sale.customerLastName}`)
+            results.failedCustomers++
+            results.errors.push(`Customer ${sale.customerFirstName} ${sale.customerLastName}: No email address`)
             continue
           }
 

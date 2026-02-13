@@ -7,6 +7,37 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
 import { z } from 'zod';
 
+// PDF generation function for database templates
+async function generatePDFFromHTML(html: string): Promise<Buffer> {
+  console.log('🔧 Generating PDF from HTML template...');
+  
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [...chromium.args, '--disable-web-security'],
+    executablePath: await chromium.executablePath()
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      margin: {
+        top: '10mm',
+        bottom: '10mm', 
+        left: '10mm',
+        right: '10mm'
+      },
+      printBackground: true
+    });
+
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
+}
+
 // Bulk generation schema
 const bulkGenerateSchema = z.object({
   saleIds: z.array(z.string().min(1)).min(1),
@@ -261,30 +292,56 @@ export async function POST(request: NextRequest) {
             monthlyCost: templateData.monthlyCost,
             appliancesCount: templateData.appliances.length,
             hasBoilerCover: templateData.hasBoilerCover
-          });        // Generate document using Enhanced Template Service
+          });
+
+        // Generate document using Enhanced Template Service
         console.log(`📄 Generating document for ${sale.customerFirstName} ${sale.customerLastName}...`);
         console.log('🧪 Template data prepared');
-        let documentContent;
+        
+        // Handle different template types appropriately
+        let pdfBytes;
+        let documentContent = '';
         
         try {
-          // ALWAYS use Enhanced Template Service for consistent beautiful templates
-          console.log('📄 Using Enhanced Template Service for consistent Flash Team branding');
-          // Use the original templateId for EnhancedTemplateService (e.g., 'welcome-letter')
-          const templateIdForGeneration = isEnhancedServiceTemplate ? templateId : 'welcome-letter';
-          documentContent = await enhancedTemplateService.generateDocument(templateIdForGeneration, templateData);
-          
-          console.log(`✅ Generated document content length: ${documentContent.length}`);
-          
-          if (!documentContent || documentContent.length < 100) {
-            throw new Error(`Generated content is too short (${documentContent?.length || 0} chars) - likely generation failed`);
+          if (isEnhancedServiceTemplate) {
+            // Use Enhanced Template Service for built-in templates
+            console.log('📄 Using Enhanced Template Service for built-in template');
+            const templateIdForGeneration = templateId;
+            documentContent = await enhancedTemplateService.generateDocument(templateIdForGeneration, templateData);
+            
+            console.log(`✅ Generated document content length: ${documentContent.length}`);
+            
+            if (!documentContent || documentContent.length < 100) {
+              throw new Error(`Generated content is too short (${documentContent?.length || 0} chars) - likely generation failed`);
+            }
+            
+            // Generate PDF using the Enhanced Template Service
+            pdfBytes = await generateFlashTeamPDF(templateData);
+          } else {
+            // Handle database template (like uncontacted_customer_notice)
+            console.log('📄 Using database template for custom template');
+            
+            // For database templates, use the HTML content from the template
+            if (!template.htmlContent) {
+              throw new Error('Template HTML content is missing');
+            }
+            
+            let html = template.htmlContent;
+            
+            // Replace template variables in HTML
+            Object.entries(templateData).forEach(([key, value]) => {
+              const regex = new RegExp(`{{${key}}}`, 'g');
+              html = html.replace(regex, String(value || ''));
+            });
+            
+            // Generate PDF from the template HTML
+            pdfBytes = await generatePDFFromHTML(html);
+            documentContent = html;
           }
         } catch (enhancedServiceError) {
           console.error(`❌ Template generation error:`, enhancedServiceError);
           throw new Error(`Template generation failed: ${enhancedServiceError instanceof Error ? enhancedServiceError.message : 'Unknown template error'}`);
         }
-        
-        // Generate PDF using the Enhanced Template Service HTML content
-        const pdfBytes = await generateFlashTeamPDF(templateData);
         
         // Generate PDF filename and metadata
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');

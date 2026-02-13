@@ -10,7 +10,7 @@ import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-servi
 // Request validation schema
 const generateDocumentSchema = z.object({
   saleId: z.string().min(1),
-  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary']),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice']),
   templateId: z.string().optional(),
 });
 
@@ -44,6 +44,52 @@ function safeFilename(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
     .slice(0, 80);
+}
+
+// Generate PDF from HTML content using Puppeteer
+async function generatePDFFromHTML(html: string): Promise<Buffer> {
+  let executablePath: string | undefined;
+  let args: string[] = [];
+
+  // Configure for serverless environment
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    executablePath = await chromium.executablePath();
+    args = chromium.args;
+  } else {
+    try {
+      executablePath = await chromium.executablePath();
+      args = chromium.args.concat(args);
+    } catch (e) {
+      console.warn('Could not get chromium executable path:', e);
+    }
+  }
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath,
+    args,
+  });
+  
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.emulateMediaType("print");
+    
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px"
+      }
+    });
+    
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
 }
 
 // Generate Flash Team PDF using enhanced template service
@@ -247,6 +293,101 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('📄 Flash Team data prepared:', flashTeamData);
+    
+    // Check if this is the uncontacted customer notice template
+    if (validatedData.templateType === 'uncontacted_customer_notice') {
+      console.log('📝 Generating uncontacted customer notice template from database...');
+      
+      // Load the template from database
+      const template = await prisma.documentTemplate.findFirst({
+        where: {
+          templateType: 'uncontacted_customer_notice',
+          isActive: true
+        }
+      });
+
+      if (!template) {
+        return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+      }
+
+      // Prepare template variables for uncontacted customer notice
+      const templateVars = {
+        customerFirstName: sale.customerFirstName,
+        customerLastName: sale.customerLastName,
+        customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+        email: sale.email,
+        phone: sale.phoneNumber,
+        address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+        currentDate: new Date().toLocaleDateString('en-GB', { 
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }),
+        policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+        monthlyCost: sale.totalPlanCost?.toFixed(2) || "0.00",
+        hasApplianceCover: sale.applianceCoverSelected,
+        hasBoilerCover: sale.boilerCoverSelected
+      };
+
+      // Replace template variables in HTML
+      let html = template.htmlContent;
+      Object.entries(templateVars).forEach(([key, value]) => {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        html = html.replace(regex, String(value || ''));
+      });
+
+      // Generate PDF from HTML template
+      const pdfBuffer = await generatePDFFromHTML(html);
+      
+      // Generate filename for uncontacted customer notice
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `coverage-continuation-notice-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.pdf`;
+      
+      // Store the generated document
+      const generatedDocument = await prisma.generatedDocument.create({
+        data: {
+          saleId: sale.id,
+          templateId: template.id,
+          filename: fileName,
+          filePath: `virtual://generated-documents/${fileName}`,
+          fileSize: pdfBuffer.length,
+          mimeType: 'application/pdf',
+          metadata: {
+            templateType: validatedData.templateType,
+            customerName: templateVars.customerName,
+            generationMethod: 'database-template',
+            originalTemplateId: template.id,
+            documentContent: pdfBuffer.toString('base64')
+          }
+        }
+      });
+
+      console.log('📝 Successfully created GeneratedDocument:', generatedDocument.id);
+
+      // Mark the sale as having documents generated
+      await prisma.sale.update({
+        where: { id: sale.id },
+        data: {
+          documentsGenerated: true,
+          documentsGeneratedAt: new Date(),
+          documentsGeneratedBy: session.user.id
+        }
+      });
+
+      console.log('✅ Sale marked as having documents generated:', sale.id);
+      console.log('🎯 FINAL RESULT: Generated PDF file:', fileName);
+      console.log('🎯 Template name:', template.name);
+      console.log('🎯 File type:', 'application/pdf');
+
+      return NextResponse.json({
+        success: true,
+        document: {
+          id: generatedDocument.id,
+          filename: fileName,
+          templateName: template.name
+        }
+      });
+    }
     
     // Generate PDF directly using one-page template
     console.log('📄 Generating Flash Team PDF directly...');

@@ -236,11 +236,15 @@ export default function NewSalePage() {
     setError('') // Clear any previous errors
     
     // Check for high confidence duplicates before submission
+    // Allow submission if showDuplicateForm is true (user acknowledged the duplicate)
     if (duplicateCheck?.isDuplicate && duplicateCheck.confidence === 'HIGH' && !showDuplicateForm) {
+      console.log('Blocked submission due to HIGH confidence duplicate, showDuplicateForm:', showDuplicateForm)
       setError(`Cannot create sale: ${duplicateCheck.reason}. Please review the existing customer or use different contact details.`)
       setLoading(false)
       return
     }
+    
+    console.log('Proceeding with submission, showDuplicateForm:', showDuplicateForm, 'duplicateCheck:', duplicateCheck)
     
     // Manual validation for required fields since schema resolver is disabled
     if (!data.title || data.title.trim() === '') {
@@ -637,7 +641,11 @@ export default function NewSalePage() {
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => setDuplicateCheck(null)}
+                                onClick={() => {
+                                  // Set flag first, then clear duplicate check to avoid timing issues
+                                  setShowDuplicateForm(true)
+                                  setDuplicateCheck(null)
+                                }}
                                 className="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md"
                               >
                                 Acknowledge

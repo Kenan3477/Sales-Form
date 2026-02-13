@@ -72,3 +72,126 @@ This request could not be understood by the server: {"type":"UnknownJsonError","
   clientVersion: '5.22.0',
   meta: { modelName: 'GeneratedDocument' }
 }
+(node:13399) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/zenan/Sales%20Form/scripts/database-backup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/zenan/Sales Form/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+prisma:warn In production, we recommend using `prisma generate --no-engine` (See: `prisma generate --help`)
+🔄 STARTING AUTOMATED DATABASE BACKUP
+====================================
+📅 Backup Date: 2026-02-03T02:00:03.449Z
+📊 Fetching all database tables...
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.generatedDocument.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6004","message":"The Query did not produce a result within the maximum allowed execution time of 10 seconds. This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9c7e55294eb2befb)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 5)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'GeneratedDocument' }
+}
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.generatedDocument.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6004","message":"The Query did not produce a result within the maximum allowed execution time of 10 seconds. This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9c7e55294eb2befb)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 5)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'GeneratedDocument' }
+}
+(node:5423) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/zenan/Sales%20Form/scripts/database-backup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/zenan/Sales Form/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+prisma:warn In production, we recommend using `prisma generate --no-engine` (See: `prisma generate --help`)
+🔄 STARTING AUTOMATED DATABASE BACKUP
+====================================
+📅 Backup Date: 2026-02-07T02:00:02.943Z
+📊 Fetching all database tables...
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.generatedDocument.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6004","message":"The Query did not produce a result within the maximum allowed execution time of 10 seconds. This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9c9f4aa83ec5af90)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 5)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'GeneratedDocument' }
+}
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.generatedDocument.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6004","message":"The Query did not produce a result within the maximum allowed execution time of 10 seconds. This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9c9f4aa83ec5af90)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 5)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'GeneratedDocument' }
+}
+(node:38869) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/zenan/Sales%20Form/scripts/database-backup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/zenan/Sales Form/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+prisma:warn In production, we recommend using `prisma generate --no-engine` (See: `prisma generate --help`)
+🔄 STARTING AUTOMATED DATABASE BACKUP
+====================================
+📅 Backup Date: 2026-02-08T02:00:02.487Z
+📊 Fetching all database tables...
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.generatedDocument.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6004","message":"The Query did not produce a result within the maximum allowed execution time of 10 seconds. This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9ca788017b744866)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 5)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'GeneratedDocument' }
+}
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.generatedDocument.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6004","message":"The Query did not produce a result within the maximum allowed execution time of 10 seconds. This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9ca788017b744866)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 5)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'GeneratedDocument' }
+}

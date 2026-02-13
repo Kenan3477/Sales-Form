@@ -9,7 +9,7 @@ import puppeteer from 'puppeteer';
 // Request validation schema - PDF ONLY
 const previewDocumentSchema = z.object({
   saleId: z.string().min(1),
-  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary']),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice']),
   templateId: z.string().optional(),
   format: z.enum(['pdf']).default('pdf'), // PDF ONLY
 });
@@ -752,6 +752,112 @@ export async function POST(request: NextRequest) {
         year: 'numeric'
       })
     };
+
+    // Check if this is a database template that needs special handling
+    if (validatedData.templateId) {
+      console.log('📝 Loading template by ID for preview:', validatedData.templateId);
+      
+      // Load the template from database by ID
+      const template = await prisma.documentTemplate.findUnique({
+        where: {
+          id: validatedData.templateId,
+          isActive: true
+        }
+      });
+
+      if (template && template.templateType === 'uncontacted_customer_notice') {
+        console.log('📝 Found uncontacted customer notice template, using database template');
+        
+        // Prepare template variables for uncontacted customer notice
+        const templateVars = {
+          customerFirstName: sale.customerFirstName,
+          customerLastName: sale.customerLastName,
+          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+          email: sale.email,
+          phone: sale.phoneNumber,
+          address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+          currentDate: new Date().toLocaleDateString('en-GB', { 
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          }),
+          policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+          monthlyCost: sale.totalPlanCost?.toFixed(2) || "0.00",
+          hasApplianceCover: sale.applianceCoverSelected,
+          hasBoilerCover: sale.boilerCoverSelected
+        };
+
+        // Replace template variables in HTML
+        let html = template.htmlContent;
+        Object.entries(templateVars).forEach(([key, value]) => {
+          const regex = new RegExp(`{{${key}}}`, 'g');
+          html = html.replace(regex, String(value || ''));
+        });
+
+        // Return the HTML for preview
+        return new NextResponse(html, {
+          headers: {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        });
+      }
+    }
+
+    // Check if this is the uncontacted customer notice template type (legacy support)
+    if (validatedData.templateType === 'uncontacted_customer_notice') {
+      console.log('📝 Loading uncontacted customer notice template for preview by type...');
+      
+      // Load the template from database
+      const template = await prisma.documentTemplate.findFirst({
+        where: {
+          templateType: 'uncontacted_customer_notice',
+          isActive: true
+        }
+      });
+
+      if (!template) {
+        return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+      }
+
+      // Prepare template variables for uncontacted customer notice
+      const templateVars = {
+        customerFirstName: sale.customerFirstName,
+        customerLastName: sale.customerLastName,
+        customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+        email: sale.email,
+        phone: sale.phoneNumber,
+        address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+        currentDate: new Date().toLocaleDateString('en-GB', { 
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }),
+        policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+        monthlyCost: sale.totalPlanCost?.toFixed(2) || "0.00",
+        hasApplianceCover: sale.applianceCoverSelected,
+        hasBoilerCover: sale.boilerCoverSelected
+      };
+
+      // Replace template variables in HTML
+      let html = template.htmlContent;
+      Object.entries(templateVars).forEach(([key, value]) => {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        html = html.replace(regex, String(value || ''));
+      });
+
+      // Return the HTML for preview
+      return new NextResponse(html, {
+        headers: {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+    }
 
     // Use the perfect template embedded directly (same as GET route)
     let html = `<!DOCTYPE html>

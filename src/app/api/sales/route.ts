@@ -462,6 +462,27 @@ export async function GET(request: NextRequest) {
             id: true,
             email: true,
           }
+        },
+        emailLogs: {
+          where: {
+            status: 'SENT',
+            emailType: 'document_delivery'
+          },
+          select: {
+            id: true,
+            recipientEmail: true,
+            sentAt: true,
+            documentId: true,
+            document: {
+              select: {
+                id: true,
+                filename: true
+              }
+            }
+          },
+          orderBy: {
+            sentAt: 'desc'
+          }
         }
       },
       orderBy: {

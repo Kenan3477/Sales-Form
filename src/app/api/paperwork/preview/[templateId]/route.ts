@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { checkApiRateLimit } from '@/lib/rateLimit';
-import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer';
 
 export async function GET(
   request: NextRequest,
@@ -27,70 +24,89 @@ export async function GET(
     // Await params since they're now a Promise in Next.js 16
     const { templateId } = await params;
 
-    // Initialize enhanced template service
-    const enhancedTemplateService = new EnhancedTemplateService();
-
-    // For Flash Team, we only have the welcome-letter template
-    // Use sample data for preview
-    const htmlResult = await enhancedTemplateService.previewTemplate('welcome-letter');
-
-    // Generate PDF using puppeteer with @sparticuz/chromium for serverless
-    let executablePath: string | undefined;
-    let args: string[] = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-    ];
+    const { prisma } = await import('@/lib/prisma');
     
-    // Configure for serverless environment
-    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-      executablePath = await chromium.executablePath();
-      args = chromium.args.concat(args);
+    // Check if this is an Enhanced Service template
+    if (templateId === 'welcome-letter') {
+      console.log('📝 Loading Enhanced Service template for preview: welcome-letter');
+      
+      // Import the Enhanced Template Service
+      const { EnhancedTemplateService } = await import('@/lib/paperwork/enhanced-template-service');
+      const enhancedTemplateService = new EnhancedTemplateService();
+      
+      // Get the HTML from the enhanced service
+      const htmlResult = await enhancedTemplateService.previewTemplate('welcome-letter');
+      
+      console.log('✅ Enhanced Service template preview generated');
+      
+      return new NextResponse(htmlResult, {
+        headers: {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
     }
     
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath,
-      args,
-    });
-    
-    const page = await browser.newPage();
-    await page.setContent(htmlResult, { waitUntil: 'networkidle0' });
-    
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: false,
-      scale: 1.0,
-      margin: {
-        top: '0.2in',
-        right: '0.2in',
-        bottom: '0.2in',
-        left: '0.2in'
+    // Load template by ID from database
+    const template = await prisma.documentTemplate.findUnique({
+      where: {
+        id: templateId,
+        isActive: true
       }
     });
-    
-    await browser.close();
 
-    // Return PDF response
-    return new Response(Buffer.from(pdfBuffer), {
+    if (!template) {
+      return new Response('Template not found', { status: 404 });
+    }
+
+    console.log('📝 Loading template for preview:', template.name, template.templateType);
+
+    // Prepare sample template variables for preview
+    const sampleVars = {
+      customerFirstName: 'John',
+      customerLastName: 'Smith', 
+      customerName: 'John Smith',
+      email: 'john.smith@example.com',
+      phone: '020 1234 5678',
+      address: '123 Sample Street, London, England, SW1A 1AA',
+      currentDate: new Date().toLocaleDateString('en-GB', { 
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }),
+      policyNumber: 'TFT1234',
+      monthlyCost: '29.99',
+      hasApplianceCover: true,
+      hasBoilerCover: true,
+      applianceCount: 3
+    };
+
+    // Replace template variables in HTML
+    let html = template.htmlContent;
+    Object.entries(sampleVars).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      html = html.replace(regex, String(value || ''));
+    });
+
+    console.log('✅ Template preview generated for:', template.name);
+
+    // Return the HTML for preview
+    return new NextResponse(html, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename="template-preview.pdf"',
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
 
   } catch (error) {
-    console.error('Template preview error:', error);
-    
-    if (error instanceof Error && error.message.includes('not found')) {
-      return new Response('Template not found', { status: 404 });
-    }
-    
-    return new Response('Internal server error', { status: 500 });
+    console.error('❌ Error generating template preview:', error);
+    return new NextResponse(
+      'Failed to generate template preview',
+      { status: 500 }
+    );
   }
 }
