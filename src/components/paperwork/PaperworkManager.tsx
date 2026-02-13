@@ -294,18 +294,25 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
     }
   }
 
-  const previewDocument = async (templateType: string, format: 'html' | 'pdf' = 'html') => {
+  const previewDocument = async (templateType: string, format: 'html' | 'pdf' = 'html', templateId?: string) => {
     try {
+      const requestBody: any = {
+        saleId,
+        templateType,
+        format,
+      };
+      
+      // Include templateId if provided
+      if (templateId) {
+        requestBody.templateId = templateId;
+      }
+
       const response = await fetch('/api/paperwork/preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          saleId,
-          templateType,
-          format,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
@@ -471,23 +478,44 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                 <div className="mt-4 space-y-3">
                   {templates.map((template) => (
                     <div key={template.id} className="relative border border-gray-300 rounded-lg overflow-hidden">
-                      {/* Generate Flash Team PDF */}
+                      {/* Generate Document */}
                       <button
                         onClick={() => generateDocument(template.templateType, template.id)}
                         disabled={generating !== null}
-                        className="w-full text-left p-4 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 bg-gradient-to-r from-blue-50 to-blue-100"
+                        className={`w-full text-left p-4 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${
+                          template.templateType === 'uncontacted_customer_notice' 
+                            ? 'bg-gradient-to-r from-orange-50 to-orange-100' 
+                            : 'bg-gradient-to-r from-blue-50 to-blue-100'
+                        }`}
                       >
                         <div className="flex items-center">
-                          <span className="text-3xl mr-3">📄</span>
+                          <span className="text-3xl mr-3">
+                            {template.templateType === 'uncontacted_customer_notice' ? '📋' : '📄'}
+                          </span>
                           <div className="flex-1">
-                            <div className="text-sm font-bold text-blue-900">
-                              📥 Generate Flash Team PDF
+                            <div className={`text-sm font-bold ${
+                              template.templateType === 'uncontacted_customer_notice' 
+                                ? 'text-orange-900' 
+                                : 'text-blue-900'
+                            }`}>
+                              📥 Generate {template.name}
                             </div>
-                            <div className="text-xs text-blue-700 font-medium">
-                              Professional PDF with Flash Team branding - {template.description}
+                            <div className={`text-xs font-medium ${
+                              template.templateType === 'uncontacted_customer_notice' 
+                                ? 'text-orange-700' 
+                                : 'text-blue-700'
+                            }`}>
+                              {template.templateType === 'uncontacted_customer_notice' 
+                                ? 'Notice for customers who haven\'t been contacted' 
+                                : 'Professional PDF with Flash Team branding'}
+                              {template.description && ` - ${template.description}`}
                             </div>
                           </div>
-                          <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          <div className={`text-white px-3 py-1 rounded-full text-xs font-bold ${
+                            template.templateType === 'uncontacted_customer_notice' 
+                              ? 'bg-orange-600' 
+                              : 'bg-blue-600'
+                          }`}>
                             READY
                           </div>
                         </div>
@@ -513,7 +541,7 @@ export default function PaperworkManager({ saleId }: PaperworkManagerProps) {
                       {templates.slice(0, 2).map((template) => (
                         <button
                           key={`preview-${template.id}`}
-                          onClick={() => previewDocument(template.templateType, 'html')}
+                          onClick={() => previewDocument(template.templateType, 'html', template.id)}
                           className="px-3 py-2 text-xs border border-gray-300 rounded text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <Eye className="w-3 h-3 inline mr-1" />

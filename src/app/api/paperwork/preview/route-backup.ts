@@ -7,7 +7,7 @@ import { z } from 'zod';
 // Request validation schema
 const previewDocumentSchema = z.object({
   saleId: z.string().min(1),
-  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary']),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice']),
   templateId: z.string().optional(),
   format: z.enum(['html', 'pdf']).default('html'),
 });

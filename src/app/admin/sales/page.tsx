@@ -39,6 +39,16 @@ interface Sale {
     coverLimit: number
     cost: number
   }[]
+  emailLogs?: {
+    id: string
+    recipientEmail: string
+    sentAt: string
+    documentId: string | null
+    document: {
+      id: string
+      filename: string
+    } | null
+  }[]
 }
 
 export default function AdminSalesPage() {
@@ -131,7 +141,18 @@ export default function AdminSalesPage() {
       console.error('Error fetching sales:', error)
     }
     setLoading(false)
-  }, [filters])
+  }, [
+    filters.dateFrom,
+    filters.dateTo,
+    filters.agent,
+    filters.planType,
+    filters.applianceCount,
+    filters.hasBoilerCover,
+    filters.status,
+    filters.directDebitDateFrom,
+    filters.directDebitDateTo
+    // Note: search is excluded because it's client-side filtering only
+  ])
 
   useEffect(() => {
     if (session?.user?.role === 'ADMIN') {
@@ -626,6 +647,8 @@ export default function AdminSalesPage() {
       setEmailError(error instanceof Error ? error.message : 'Failed to send bulk emails. Please try again.')
     } finally {
       setEmailLoading(false)
+      // Refresh sales data to update email status
+      await fetchSales()
       // Clear progress after 5 seconds
       setTimeout(() => {
         setEmailProgress({ sent: 0, total: 0, errors: 0 })
@@ -1428,6 +1451,9 @@ export default function AdminSalesPage() {
                         Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -1492,6 +1518,22 @@ export default function AdminSalesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(sale.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {sale.emailLogs && sale.emailLogs.length > 0 ? (
+                            <div className="flex items-center space-x-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ✅ Sent
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {sale.emailLogs.length} email{sale.emailLogs.length !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                              ❌ Not sent
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex space-x-2">

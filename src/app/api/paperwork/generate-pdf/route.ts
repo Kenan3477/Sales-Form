@@ -10,7 +10,7 @@ import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-servi
 // Request validation schema
 const generateDocumentSchema = z.object({
   saleId: z.string().min(1),
-  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary']),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice']),
   templateId: z.string().optional(),
 });
 

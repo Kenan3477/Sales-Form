@@ -28,7 +28,11 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Document ID and Sale ID are required' }, { status: 400 })
         }
         
+        console.log('Individual email request received:')
+        console.log('Document ID:', documentId)
+        console.log('Sale ID:', saleId)
         const sendResult = await SimpleEmailService.sendDocumentEmail(documentId, saleId)
+        console.log('Individual email result:', JSON.stringify(sendResult, null, 2))
         return NextResponse.json(sendResult)
 
       case 'bulk_send':
@@ -36,7 +40,9 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Sale IDs array is required' }, { status: 400 })
         }
         
+        console.log('Bulk email request received with sale IDs:', saleIds)
         const bulkResult = await SimpleEmailService.bulkSendDocuments(saleIds)
+        console.log('Bulk email result:', JSON.stringify(bulkResult, null, 2))
         return NextResponse.json(bulkResult)
 
       default:
