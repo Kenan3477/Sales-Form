@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/prisma'
+import { WebEmailService } from './webEmailService'
 
 export interface EmailSendResult {
   success: boolean
@@ -99,25 +100,73 @@ export class SimpleEmailService {
 
   // Alternative email service for when SMTP is completely blocked
   private static async sendViaWebAPI(mailOptions: any): Promise<any> {
-    console.log('SMTP blocked - attempting to use alternative email delivery method...')
+    console.log('🌐 SMTP blocked - switching to web-based email service (Resend)...')
     
-    // For now, we'll throw an error with helpful information
-    // In the future, this could integrate with SendGrid, Mailgun, etc.
-    throw new Error(`
-      SMTP connections appear to be blocked in this serverless environment.
+    try {
+      // Extract customer name from email content or use a default
+      let customerName = 'Valued Customer'
+      if (mailOptions.html) {
+        const nameMatch = mailOptions.html.match(/Hello ([^,<]+)/i)
+        if (nameMatch) {
+          customerName = nameMatch[1].trim()
+        }
+      }
+
+      // Check if this is a document email with attachments
+      if (mailOptions.attachments && mailOptions.attachments.length > 0) {
+        const attachment = mailOptions.attachments[0]
+        const result = await WebEmailService.sendDocumentEmail(
+          customerName,
+          mailOptions.to,
+          attachment.content,
+          attachment.filename
+        )
+        
+        if (result.success) {
+          console.log('✅ Document email sent successfully via web service')
+          return { messageId: result.messageId }
+        } else {
+          throw new Error(`Web email service failed: ${result.error}`)
+        }
+      } else {
+        // Test email or plain email
+        const result = await WebEmailService.sendEmail(
+          mailOptions.to,
+          mailOptions.subject,
+          mailOptions.html || mailOptions.text || 'Email sent via web service'
+        )
+        
+        if (result.success) {
+          console.log('✅ Email sent successfully via web service')
+          return { messageId: result.messageId }
+        } else {
+          throw new Error(`Web email service failed: ${result.error}`)
+        }
+      }
+    } catch (webError: any) {
+      console.error('❌ Web email service also failed:', webError.message)
       
-      Attempted ports: 587 (TLS), 465 (SSL), 25 (Plain)
-      
-      To fix this issue:
-      1. Contact Vercel support to enable SMTP connections, OR
-      2. Integrate with a web-based email service (SendGrid, Mailgun, AWS SES)
-      3. Use Vercel's email capabilities if available
-      
-      Email that failed to send:
-      - To: ${mailOptions.to}
-      - Subject: ${mailOptions.subject}
-      - Has attachments: ${mailOptions.attachments?.length > 0 ? 'Yes' : 'No'}
-    `)
+      // Provide helpful error message
+      throw new Error(`
+        All email delivery methods failed:
+        
+        SMTP Status: Blocked in serverless environment (ports 587, 465, 25 all failed)
+        Web Service Status: ${webError.message}
+        
+        To fix this issue:
+        1. Set up Resend API key in Vercel environment variables:
+           - Go to Vercel Dashboard → Project Settings → Environment Variables
+           - Add: RESEND_API_KEY = your_resend_api_key
+           - Get free API key at: https://resend.com
+        
+        2. Alternative: Use SendGrid, Mailgun, or AWS SES
+        
+        Email that failed to send:
+        - To: ${mailOptions.to}
+        - Subject: ${mailOptions.subject}
+        - Has attachments: ${mailOptions.attachments?.length > 0 ? 'Yes' : 'No'}
+      `)
+    }
   }
 
   static async sendDocumentEmail(documentId: string, saleId: string): Promise<EmailSendResult> {
