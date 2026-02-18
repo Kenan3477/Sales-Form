@@ -16,13 +16,21 @@ export class SimpleEmailService {
     console.log('PASSWORD length:', process.env.EMAIL_PASSWORD?.length)
     
     const config = {
-      host: process.env.EMAIL_HOST,
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.EMAIL_PORT || '587'),
       secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
+      // DNS and timeout configuration for serverless environments
+      connectionTimeout: 60000, // 60 seconds
+      greetingTimeout: 30000, // 30 seconds  
+      socketTimeout: 60000, // 60 seconds
+      // Serverless optimization
+      pool: false,
+      maxConnections: 1,
+      maxMessages: 1,
     }
     
     console.log('Final transporter config:', JSON.stringify({
@@ -30,6 +38,36 @@ export class SimpleEmailService {
       auth: { ...config.auth, pass: '[REDACTED]' }
     }, null, 2))
     
+    return nodemailer.createTransport(config)
+  }
+
+  // Fallback transporter using direct IP addresses if DNS fails
+  private static createFallbackTransporter() {
+    console.log('Creating fallback transporter with IP addresses for DNS issues...')
+    
+    // Use Google's SMTP server IPs directly (142.250.191.108 is one of Gmail's SMTP IPs)
+    const config = {
+      host: '142.250.191.108', // Gmail SMTP server IP
+      port: parseInt(process.env.EMAIL_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+      connectionTimeout: 60000,
+      greetingTimeout: 30000,
+      socketTimeout: 60000,
+      pool: false,
+      maxConnections: 1,
+      maxMessages: 1,
+      // Ignore TLS certificate name mismatch when using IP
+      tls: {
+        rejectUnauthorized: false,
+        servername: 'smtp.gmail.com' // Tells the server we're connecting to Gmail
+      }
+    }
+    
+    console.log('Fallback transporter config created with IP:', config.host)
     return nodemailer.createTransport(config)
   }
 
@@ -87,7 +125,10 @@ export class SimpleEmailService {
       }
 
       const customerName = `${sale.customerFirstName} ${sale.customerLastName}`
-      const transporter = this.createTransporter()
+      
+      // Try main transporter first, fallback if DNS issues
+      let transporter = this.createTransporter()
+      let usesFallback = false
 
       // Get PDF content from metadata
       let pdfContent: Buffer | null = null
@@ -147,9 +188,21 @@ export class SimpleEmailService {
 
       console.log(`Sending email to ${sale.email} with ${mailOptions.attachments.length} attachments`)
       
-      const info = await transporter.sendMail(mailOptions)
+      let info
+      try {
+        info = await transporter.sendMail(mailOptions)
+      } catch (dnsError: any) {
+        if (dnsError.message?.includes('EBADNAME') || dnsError.message?.includes('queryA')) {
+          console.log('DNS error detected, trying fallback transporter with IP address...')
+          transporter = this.createFallbackTransporter()
+          usesFallback = true
+          info = await transporter.sendMail(mailOptions)
+        } else {
+          throw dnsError
+        }
+      }
       
-      console.log(`Email sent successfully - MessageID: ${info.messageId}`)
+      console.log(`Email sent successfully${usesFallback ? ' (using fallback IP)' : ''} - MessageID: ${info.messageId}`)
       
       // Log the email send to database
       await prisma.emailLog.create({
@@ -189,7 +242,8 @@ export class SimpleEmailService {
 
   static async testEmail(testEmail: string): Promise<EmailSendResult> {
     try {
-      const transporter = this.createTransporter()
+      let transporter = this.createTransporter()
+      let usesFallback = false
 
       const mailOptions = {
         from: {
@@ -208,7 +262,21 @@ export class SimpleEmailService {
         `,
       }
 
-      const info = await transporter.sendMail(mailOptions)
+      let info
+      try {
+        info = await transporter.sendMail(mailOptions)
+      } catch (dnsError: any) {
+        if (dnsError.message?.includes('EBADNAME') || dnsError.message?.includes('queryA')) {
+          console.log('DNS error in test email, trying fallback transporter...')
+          transporter = this.createFallbackTransporter()
+          usesFallback = true
+          info = await transporter.sendMail(mailOptions)
+        } else {
+          throw dnsError
+        }
+      }
+      
+      console.log(`Test email sent successfully${usesFallback ? ' (using fallback IP)' : ''} - MessageID: ${info.messageId}`)
       
       return {
         success: true,
