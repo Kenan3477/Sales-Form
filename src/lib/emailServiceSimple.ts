@@ -43,32 +43,81 @@ export class SimpleEmailService {
 
   // Fallback transporter using direct IP addresses if DNS fails
   private static createFallbackTransporter() {
-    console.log('Creating fallback transporter with IP addresses for DNS issues...')
+    console.log('Creating fallback transporter with alternative configuration for serverless issues...')
     
-    // Use Google's SMTP server IPs directly (142.250.191.108 is one of Gmail's SMTP IPs)
+    // Try alternative configuration for Vercel/serverless environments
     const config = {
-      host: '142.250.191.108', // Gmail SMTP server IP
-      port: parseInt(process.env.EMAIL_PORT || '587'),
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: 465, // Use secure port instead of 587
+      secure: true, // Use SSL
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+      // Reduced timeouts for faster failure detection
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 15000, // 15 seconds  
+      socketTimeout: 30000, // 30 seconds
+      pool: false,
+      maxConnections: 1,
+      maxMessages: 1,
+      // More permissive TLS settings for serverless
+      tls: {
+        rejectUnauthorized: false,
+        ciphers: 'SSLv3'
+      }
+    }
+    
+    console.log('Fallback transporter config created with port 465 (SSL):', config.host)
+    return nodemailer.createTransport(config)
+  }
+
+  // Secondary fallback using port 25
+  private static createSecondaryFallbackTransporter() {
+    console.log('Creating secondary fallback transporter with port 25...')
+    
+    const config = {
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: 25, // Standard SMTP port
       secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
-      connectionTimeout: 60000,
-      greetingTimeout: 30000,
-      socketTimeout: 60000,
+      connectionTimeout: 20000, // 20 seconds
+      greetingTimeout: 10000, // 10 seconds  
+      socketTimeout: 20000, // 20 seconds
       pool: false,
       maxConnections: 1,
       maxMessages: 1,
-      // Ignore TLS certificate name mismatch when using IP
-      tls: {
-        rejectUnauthorized: false,
-        servername: 'smtp.gmail.com' // Tells the server we're connecting to Gmail
-      }
+      ignoreTLS: true, // Ignore TLS for port 25
     }
     
-    console.log('Fallback transporter config created with IP:', config.host)
+    console.log('Secondary fallback transporter config created with port 25')
     return nodemailer.createTransport(config)
+  }
+
+  // Alternative email service for when SMTP is completely blocked
+  private static async sendViaWebAPI(mailOptions: any): Promise<any> {
+    console.log('SMTP blocked - attempting to use alternative email delivery method...')
+    
+    // For now, we'll throw an error with helpful information
+    // In the future, this could integrate with SendGrid, Mailgun, etc.
+    throw new Error(`
+      SMTP connections appear to be blocked in this serverless environment.
+      
+      Attempted ports: 587 (TLS), 465 (SSL), 25 (Plain)
+      
+      To fix this issue:
+      1. Contact Vercel support to enable SMTP connections, OR
+      2. Integrate with a web-based email service (SendGrid, Mailgun, AWS SES)
+      3. Use Vercel's email capabilities if available
+      
+      Email that failed to send:
+      - To: ${mailOptions.to}
+      - Subject: ${mailOptions.subject}
+      - Has attachments: ${mailOptions.attachments?.length > 0 ? 'Yes' : 'No'}
+    `)
   }
 
   static async sendDocumentEmail(documentId: string, saleId: string): Promise<EmailSendResult> {
@@ -189,20 +238,53 @@ export class SimpleEmailService {
       console.log(`Sending email to ${sale.email} with ${mailOptions.attachments.length} attachments`)
       
       let info
-      try {
-        info = await transporter.sendMail(mailOptions)
-      } catch (dnsError: any) {
-        if (dnsError.message?.includes('EBADNAME') || dnsError.message?.includes('queryA')) {
-          console.log('DNS error detected, trying fallback transporter with IP address...')
-          transporter = this.createFallbackTransporter()
-          usesFallback = true
-          info = await transporter.sendMail(mailOptions)
-        } else {
-          throw dnsError
+      let attemptCount = 0
+      let lastError: any
+      
+      // Try multiple transporter configurations
+      while (attemptCount < 3) {
+        try {
+          if (attemptCount === 0) {
+            console.log('Attempt 1: Using primary transporter (port 587)')
+            info = await transporter.sendMail(mailOptions)
+          } else if (attemptCount === 1) {
+            console.log('Attempt 2: Using fallback transporter (port 465, SSL)')
+            transporter = this.createFallbackTransporter()
+            usesFallback = true
+            info = await transporter.sendMail(mailOptions)
+          } else {
+            console.log('Attempt 3: Using secondary fallback transporter (port 25)')
+            transporter = this.createSecondaryFallbackTransporter()
+            usesFallback = true
+            info = await transporter.sendMail(mailOptions)
+          }
+          break // Success, exit the retry loop
+        } catch (error: any) {
+          lastError = error
+          attemptCount++
+          console.log(`Attempt ${attemptCount} failed:`, error.message)
+          
+          if (attemptCount >= 3) {
+            console.error('All SMTP transporter attempts failed')
+            // Try alternative delivery method as last resort
+            try {
+              await this.sendViaWebAPI(mailOptions)
+              throw new Error('SMTP blocked - see logs for alternative email solution options')
+            } catch (webApiError: any) {
+              throw webApiError
+            }
+          }
+          
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
       
-      console.log(`Email sent successfully${usesFallback ? ' (using fallback IP)' : ''} - MessageID: ${info.messageId}`)
+      if (!info) {
+        throw new Error('Failed to send email: No response received from any transporter')
+      }
+      
+      console.log(`Email sent successfully${usesFallback ? ' (using fallback)' : ''} - MessageID: ${info.messageId}`)
       
       // Log the email send to database
       await prisma.emailLog.create({
@@ -263,17 +345,50 @@ export class SimpleEmailService {
       }
 
       let info
-      try {
-        info = await transporter.sendMail(mailOptions)
-      } catch (dnsError: any) {
-        if (dnsError.message?.includes('EBADNAME') || dnsError.message?.includes('queryA')) {
-          console.log('DNS error in test email, trying fallback transporter...')
-          transporter = this.createFallbackTransporter()
-          usesFallback = true
-          info = await transporter.sendMail(mailOptions)
-        } else {
-          throw dnsError
+      let attemptCount = 0
+      let lastError: any
+      
+      // Try multiple transporter configurations
+      while (attemptCount < 3) {
+        try {
+          if (attemptCount === 0) {
+            console.log('Test Email Attempt 1: Using primary transporter (port 587)')
+            info = await transporter.sendMail(mailOptions)
+          } else if (attemptCount === 1) {
+            console.log('Test Email Attempt 2: Using fallback transporter (port 465, SSL)')
+            transporter = this.createFallbackTransporter()
+            usesFallback = true
+            info = await transporter.sendMail(mailOptions)
+          } else {
+            console.log('Test Email Attempt 3: Using secondary fallback transporter (port 25)')
+            transporter = this.createSecondaryFallbackTransporter()
+            usesFallback = true
+            info = await transporter.sendMail(mailOptions)
+          }
+          break // Success, exit the retry loop
+        } catch (error: any) {
+          lastError = error
+          attemptCount++
+          console.log(`Test Email Attempt ${attemptCount} failed:`, error.message)
+          
+          if (attemptCount >= 3) {
+            console.error('All test email SMTP transporter attempts failed')
+            // Try alternative delivery method as last resort
+            try {
+              await this.sendViaWebAPI(mailOptions)
+              throw new Error('SMTP blocked for test email - see logs for alternative email solution options')
+            } catch (webApiError: any) {
+              throw webApiError
+            }
+          }
+          
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
+      }
+      
+      if (!info) {
+        throw new Error('Failed to send test email: No response received from any transporter')
       }
       
       console.log(`Test email sent successfully${usesFallback ? ' (using fallback IP)' : ''} - MessageID: ${info.messageId}`)
