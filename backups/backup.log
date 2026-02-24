@@ -320,3 +320,85 @@ This request could not be understood by the server: {"type":"UnknownJsonError","
   clientVersion: '5.22.0',
   meta: { modelName: 'Sale' }
 }
+(node:96548) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/zenan/Sales%20Form/scripts/database-backup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/zenan/Sales Form/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+prisma:warn In production, we recommend using `prisma generate --no-engine` (See: `prisma generate --help`)
+🔄 STARTING AUTOMATED DATABASE BACKUP
+====================================
+📅 Backup Date: 2026-02-21T02:00:03.071Z
+📊 Fetching all database tables...
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.sale.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6009","message":"The response size of the query exceeded the the maximum of 5MB with 5.71MB. Consider refining the query by narrowing the selection set or applying appropriate filters.  This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9d12a5e678d52103)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 1)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'Sale' }
+}
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.sale.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6009","message":"The response size of the query exceeded the the maximum of 5MB with 5.71MB. Consider refining the query by narrowing the selection set or applying appropriate filters.  This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9d12a5e678d52103)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 1)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'Sale' }
+}
+(node:27911) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/zenan/Sales%20Form/scripts/database-backup.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/zenan/Sales Form/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+prisma:warn In production, we recommend using `prisma generate --no-engine` (See: `prisma generate --help`)
+🔄 STARTING AUTOMATED DATABASE BACKUP
+====================================
+📅 Backup Date: 2026-02-22T02:00:03.309Z
+📊 Fetching all database tables...
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.sale.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6009","message":"The response size of the query exceeded the the maximum of 5MB with 5.71MB. Consider refining the query by narrowing the selection set or applying appropriate filters.  This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9d1ae38adc00ef25)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 1)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'Sale' }
+}
+❌ Backup failed: PrismaClientKnownRequestError: 
+Invalid `prisma.sale.findMany()` invocation:
+
+
+This request could not be understood by the server: {"type":"UnknownJsonError","body":{"code":"P6009","message":"The response size of the query exceeded the the maximum of 5MB with 5.71MB. Consider refining the query by narrowing the selection set or applying appropriate filters.  This limit is configurable, see pris.ly/configure-limits for more information."}} (The request id was: 9d1ae38adc00ef25)
+    at $n.handleRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:7315)
+    at $n.handleAndLogRequestError (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async l (/Users/zenan/Sales Form/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async Promise.all (index 1)
+    at async createDatabaseBackup (file:///Users/zenan/Sales%20Form/scripts/database-backup.ts:133:9) {
+  code: 'P5000',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'Sale' }
+}

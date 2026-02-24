@@ -250,6 +250,15 @@ export async function POST(request: NextRequest) {
             .optional()
     }))
 
+    // Debug email validation
+    console.log('🔍 Email validation debug:', {
+      emailValue: body.email,
+      emailType: typeof body.email,
+      emailLength: body.email?.length,
+      isEmailRequired: fieldConfigMap.email,
+      rawBody: JSON.stringify(body, null, 2)
+    })
+
     const validatedData = dynamicSaleSchema.parse(body)
 
     // Calculate total cost
