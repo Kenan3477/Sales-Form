@@ -17,7 +17,11 @@ export const saleSchema = z.object({
   customerLastName: z.string().min(1, 'Last name is required'),
   title: z.string().min(1, 'Title is required'),
   phoneNumber: z.string().min(1, 'Phone number is required'),
-  email: z.string().email('Valid email is required'),
+  email: z.string()
+    .refine((val) => val === '' || z.string().email().safeParse(val).success, {
+      message: 'Please enter a valid email address or leave empty'
+    })
+    .optional(),
   notes: z.string().optional(),
   mailingStreet: z.string().optional(),
   mailingCity: z.string().min(1, 'City is required'),
