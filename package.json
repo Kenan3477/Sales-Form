@@ -52,7 +52,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.48.2",
     "resend": "^6.9.2",
-    "vercel": "^50.5.0",
+    "vercel": "^50.22.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {
