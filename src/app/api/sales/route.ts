@@ -240,11 +240,25 @@ export async function POST(request: NextRequest) {
     const dynamicSaleSchema = saleSchema.merge(z.object({
       email: fieldConfigMap.email 
         ? z.string()
-            .refine((val) => val === '' || z.string().email().safeParse(val).success, {
+            .refine((val) => {
+              if (val === '') return true; // Allow empty
+              const emailResult = z.string().email().safeParse(val);
+              if (!emailResult.success) {
+                console.log('❌ Invalid required email format:', val);
+              }
+              return emailResult.success;
+            }, {
               message: 'Please enter a valid email address'
             })
         : z.string()
-            .refine((val) => val === '' || z.string().email().safeParse(val).success, {
+            .refine((val) => {
+              if (val === '') return true; // Allow empty  
+              const emailResult = z.string().email().safeParse(val);
+              if (!emailResult.success) {
+                console.log('❌ Invalid optional email format:', val);
+              }
+              return emailResult.success;
+            }, {
               message: 'Please enter a valid email address or leave empty'
             })
             .optional()
@@ -256,7 +270,7 @@ export async function POST(request: NextRequest) {
       emailType: typeof body.email,
       emailLength: body.email?.length,
       isEmailRequired: fieldConfigMap.email,
-      rawBody: JSON.stringify(body, null, 2)
+      rawEmailString: JSON.stringify(body.email)
     })
 
     const validatedData = dynamicSaleSchema.parse(body)
