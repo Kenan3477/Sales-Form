@@ -300,6 +300,15 @@ export default function NewSalePage() {
         ignoreDuplicateWarning: showDuplicateForm
       }
 
+      // Debug email value being sent
+      console.log('📧 Frontend email debug:', {
+        emailValue: submitData.email,
+        emailType: typeof submitData.email,
+        emailLength: submitData.email?.length,
+        isValidEmail: submitData.email ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitData.email) : 'empty',
+        rawSubmitData: JSON.stringify(submitData, null, 2)
+      })
+
       const response = await fetch('/api/sales', {
         method: 'POST',
         headers: {
