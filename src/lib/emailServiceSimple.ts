@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/prisma'
 import { WebEmailService } from './webEmailService'
+import { GmailAPIService } from './gmailService'
 
 export interface EmailSendResult {
   success: boolean
@@ -290,7 +291,53 @@ export class SimpleEmailService {
       let attemptCount = 0
       let lastError: any
       
-      // Try multiple transporter configurations
+      // Try Gmail API first (preferred method for Hello@theflashteam.co.uk)
+      console.log('🚀 Attempting to send via Gmail API (Hello@theflashteam.co.uk)...')
+      try {
+        const gmailResult = await GmailAPIService.sendDocumentEmail(
+          customerName,
+          sale.email,
+          pdfContent || Buffer.from('No PDF content available'),
+          document.filename
+        )
+
+        if (gmailResult.success) {
+          console.log(`✅ Email sent successfully via Gmail API - MessageID: ${gmailResult.messageId}`)
+          
+          // Log the email send to database
+          await prisma.emailLog.create({
+            data: {
+              saleId: saleId,
+              documentId: documentId,
+              recipientEmail: sale.email,
+              senderEmail: process.env.EMAIL_USER || 'Hello@theflashteam.co.uk',
+              subject: `Your Sales Document - ${document.filename}`,
+              emailType: 'document_delivery',
+              status: 'SENT',
+              sentAt: new Date(),
+              metadata: {
+                messageId: gmailResult.messageId,
+                method: 'gmail_api',
+                hasAttachment: !!pdfContent,
+                customerName: customerName
+              }
+            }
+          })
+
+          return { success: true, messageId: gmailResult.messageId }
+        } else {
+          console.log(`⚠️ Gmail API failed: ${gmailResult.error}`)
+          lastError = new Error(gmailResult.error || 'Gmail API failed')
+        }
+      } catch (gmailError: any) {
+        console.log(`⚠️ Gmail API error: ${gmailError.message}`)
+        lastError = gmailError
+      }
+      
+      // Fallback to SMTP if Gmail API fails
+      console.log('🔄 Gmail API failed, falling back to SMTP...')
+      
+      // Try multiple SMTP transporter configurations
       while (attemptCount < 3) {
         try {
           if (attemptCount === 0) {
@@ -299,28 +346,32 @@ export class SimpleEmailService {
           } else if (attemptCount === 1) {
             console.log('Attempt 2: Using fallback transporter (port 465, SSL)')
             transporter = this.createFallbackTransporter()
-            usesFallback = true
             info = await transporter.sendMail(mailOptions)
           } else {
             console.log('Attempt 3: Using secondary fallback transporter (port 25)')
             transporter = this.createSecondaryFallbackTransporter()
-            usesFallback = true
             info = await transporter.sendMail(mailOptions)
           }
           break // Success, exit the retry loop
         } catch (error: any) {
           lastError = error
           attemptCount++
-          console.log(`Attempt ${attemptCount} failed:`, error.message)
+          console.log(`SMTP Attempt ${attemptCount} failed:`, error.message)
           
           if (attemptCount >= 3) {
             console.error('All SMTP transporter attempts failed')
             // Try alternative delivery method as last resort
             try {
               await this.sendViaWebAPI(mailOptions)
-              throw new Error('SMTP blocked - see logs for alternative email solution options')
+              throw new Error('All email delivery methods failed: SMTP Status: Blocked in serverless environment (ports 587, 465, 25 all failed) Web Service Status: Web email service failed: Resend API key not configured. Please set RESEND_API_KEY environment variable. To fix this issue: 1. Set up Resend API key in Vercel environment variables: - Go to Vercel Dashboard → Project Settings → Environment Variables - Add: RESEND_API_KEY = your_resend_api_key - Get free API key at: https://resend.com 2. Alternative: Use SendGrid, Mailgun, or AWS SES Email that failed to send: - To: ' + sale.email + ' - Subject: ' + mailOptions.subject + ' - ' + document.filename + ' - Has attachments: ' + (pdfContent ? 'Yes' : 'No'))
             } catch (webApiError: any) {
-              throw webApiError
+              throw new Error(`All email delivery methods failed: Gmail API Status: ${lastError?.message || 'Failed'} SMTP Status: Blocked in serverless environment (ports 587, 465, 25 all failed) Web Service Status: ${webApiError.message}. 
+
+Email that failed to send:
+- To: ${sale.email}
+- Subject: ${mailOptions.subject} 
+- ${document.filename}
+- Has attachments: ${pdfContent ? 'Yes' : 'No'}`)
             }
           }
           
@@ -330,12 +381,12 @@ export class SimpleEmailService {
       }
       
       if (!info) {
-        throw new Error('Failed to send email: No response received from any transporter')
+        throw new Error('Failed to send email: No response received from any SMTP transporter after Gmail API also failed')
       }
       
-      console.log(`Email sent successfully${usesFallback ? ' (using fallback)' : ''} - MessageID: ${info.messageId}`)
+      console.log(`Email sent successfully via SMTP - MessageID: ${info.messageId}`)
       
-      // Log the email send to database
+      // Log the SMTP email send to database (Gmail API already logged above)
       await prisma.emailLog.create({
         data: {
           saleId: saleId,
@@ -350,6 +401,7 @@ export class SimpleEmailService {
             filename: document.filename,
             customerName: customerName,
             messageId: info.messageId,
+            method: 'smtp_fallback',
             attachmentCount: pdfContent ? 1 : 0
           }
         }
