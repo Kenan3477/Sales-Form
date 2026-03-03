@@ -20,7 +20,8 @@ export class SimpleEmailService {
     const config = {
       host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: false,
+      secure: false, // Use STARTTLS
+      requireTLS: true, // Require TLS encryption
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
@@ -33,6 +34,11 @@ export class SimpleEmailService {
       pool: false,
       maxConnections: 1,
       maxMessages: 1,
+      // Gmail specific settings
+      tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: false
+      }
     }
     
     console.log('Final transporter config:', JSON.stringify({
