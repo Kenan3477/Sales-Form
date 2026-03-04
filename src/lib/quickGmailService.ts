@@ -19,7 +19,7 @@ export class QuickGmailService {
           clientSecret: process.env.GMAIL_CLIENT_SECRET,
           refreshToken: process.env.GMAIL_REFRESH_TOKEN,
         },
-      });
+      } as any);
 
       const mailOptions = {
         from: `The Flash Team <${process.env.EMAIL_USER}>`,
