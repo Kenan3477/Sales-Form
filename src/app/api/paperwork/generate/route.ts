@@ -6,6 +6,7 @@ import { z } from 'zod';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
 import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
+import { formatAddress, formatPrice, formatMonthlyPrice, formatCustomerName } from '@/lib/paperwork/formatters';
 
 // Request validation schema
 const generateDocumentSchema = z.object({
@@ -229,10 +230,10 @@ export async function POST(request: NextRequest) {
 
     // Transform sale data for template
     const templateData = {
-      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
-      email: sale.email,
-      phone: sale.phoneNumber,
-      address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+      customerName: formatCustomerName(sale.customerFirstName, sale.customerLastName),
+      email: sale.email || '',
+      phone: sale.phoneNumber || '',
+      address: formatAddress(sale),
       coverageStartDate: new Date().toLocaleDateString('en-GB'),
       policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, // Format: TFT0123
       totalCost: (sale.totalPlanCost * 12).toFixed(2), // Annual cost = monthly * 12
@@ -245,10 +246,10 @@ export async function POST(request: NextRequest) {
       annualBoilerService: sale.boilerCoverSelected, // Include service if boiler cover selected
       // Customer data structure for new template
       customer: {
-        name: `${sale.customerFirstName} ${sale.customerLastName}`,
-        email: sale.email,
-        phone: sale.phoneNumber,
-        address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`
+        name: formatCustomerName(sale.customerFirstName, sale.customerLastName),
+        email: sale.email || '',
+        phone: sale.phoneNumber || '',
+        address: formatAddress(sale)
       },
       coverage: {
         startDate: new Date().toLocaleDateString('en-GB')
@@ -257,15 +258,15 @@ export async function POST(request: NextRequest) {
         referenceNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
         coverage: {
           hasBoilerCover: sale.boilerCoverSelected,
-          boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+          boilerPriceFormatted: formatMonthlyPrice(sale.boilerPriceSelected)
         }
       },
       appliances: sale.appliances.map(appliance => ({
         name: appliance.appliance + (appliance.otherText ? ` (${appliance.otherText})` : ''),
-        coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
-        monthlyCost: `£${appliance.cost.toFixed(2)}`
+        coverLimit: formatPrice(appliance.coverLimit),
+        monthlyCost: formatPrice(appliance.cost)
       })),
-      boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : null,
+      boilerCost: formatPrice(sale.boilerPriceSelected),
       currentDate: new Date().toLocaleDateString('en-GB', { 
         day: 'numeric',
         month: 'long',
@@ -281,10 +282,10 @@ export async function POST(request: NextRequest) {
     
     // Prepare data for Flash Team template
     const flashTeamData = {
-      customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
-      email: sale.email,
-      phone: sale.phoneNumber,
-      address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+      customerName: formatCustomerName(sale.customerFirstName, sale.customerLastName),
+      email: sale.email || '',
+      phone: sale.phoneNumber || '',
+      address: formatAddress(sale),
       coverageStartDate: new Date().toLocaleDateString('en-GB'),
       policyNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`, 
       monthlyCost: sale.totalPlanCost?.toFixed(2) || "0.00",
@@ -312,12 +313,12 @@ export async function POST(request: NextRequest) {
 
       // Prepare template variables for uncontacted customer notice
       const templateVars = {
-        customerFirstName: sale.customerFirstName,
-        customerLastName: sale.customerLastName,
-        customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
-        email: sale.email,
-        phone: sale.phoneNumber,
-        address: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+        customerFirstName: sale.customerFirstName || '',
+        customerLastName: sale.customerLastName || '',
+        customerName: formatCustomerName(sale.customerFirstName, sale.customerLastName),
+        email: sale.email || '',
+        phone: sale.phoneNumber || '',
+        address: formatAddress(sale),
         currentDate: new Date().toLocaleDateString('en-GB', { 
           day: 'numeric',
           month: 'long',

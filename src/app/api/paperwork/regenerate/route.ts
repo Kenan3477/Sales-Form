@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
         referenceNumber: `TFT${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
         coverage: {
           hasBoilerCover: sale.boilerCoverSelected,
-          boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+          boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : ''
         }
       },
       appliances: sale.appliances.map(appliance => ({
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
         coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
         monthlyCost: `£${appliance.cost.toFixed(2)}`
       })),
-      boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : null,
+      boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : '',
       currentDate: new Date().toLocaleDateString('en-GB', { 
         day: 'numeric',
         month: 'long',

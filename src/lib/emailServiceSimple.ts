@@ -20,26 +20,16 @@ export class SimpleEmailService {
     const config = {
       host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: false, // Use STARTTLS
-      requireTLS: true, // Require TLS encryption
+      secure: false,
+      requireTLS: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
-      // DNS and timeout configuration for serverless environments
-      connectionTimeout: 60000, // 60 seconds
-      greetingTimeout: 30000, // 30 seconds  
-      socketTimeout: 60000, // 60 seconds
-      // Serverless optimization
-      pool: false,
-      maxConnections: 1,
-      maxMessages: 1,
-      // Gmail specific settings
       tls: {
-        ciphers: 'SSLv3',
         rejectUnauthorized: false
       }
-    }
+    } as const
     
     console.log('Final transporter config:', JSON.stringify({
       ...config,
@@ -297,108 +287,38 @@ export class SimpleEmailService {
       let attemptCount = 0
       let lastError: any
       
-      // Try Gmail API first (preferred method for Hello@theflashteam.co.uk)
-      console.log('🚀 Attempting to send via Gmail API (Hello@theflashteam.co.uk)...')
+      // Direct SMTP - we know this works locally
+      console.log('� Sending via Gmail SMTP (hello@theflashteam.co.uk)...')
+      
       try {
-        const gmailResult = await GmailAPIService.sendDocumentEmail(
-          customerName,
-          sale.email,
-          pdfContent || Buffer.from('No PDF content available'),
-          document.filename
-        )
-
-        if (gmailResult.success) {
-          console.log(`✅ Email sent successfully via Gmail API - MessageID: ${gmailResult.messageId}`)
-          
-          // Log the email send to database
-          await prisma.emailLog.create({
-            data: {
-              saleId: saleId,
-              documentId: documentId,
-              recipientEmail: sale.email,
-              senderEmail: process.env.EMAIL_USER || 'Hello@theflashteam.co.uk',
-              subject: `Your Sales Document - ${document.filename}`,
-              emailType: 'document_delivery',
-              status: 'SENT',
-              sentAt: new Date(),
-              metadata: {
-                messageId: gmailResult.messageId,
-                method: 'gmail_api',
-                hasAttachment: !!pdfContent,
-                customerName: customerName
-              }
-            }
-          })
-
-          return { success: true, messageId: gmailResult.messageId }
-        } else {
-          console.log(`⚠️ Gmail API failed: ${gmailResult.error}`)
-          lastError = new Error(gmailResult.error || 'Gmail API failed')
-        }
-      } catch (gmailError: any) {
-        console.log(`⚠️ Gmail API error: ${gmailError.message}`)
-        lastError = gmailError
-      }
-      
-      // Fallback to SMTP if Gmail API fails
-      console.log('🔄 Gmail API failed, falling back to SMTP...')
-      
-      // Try multiple SMTP transporter configurations
-      while (attemptCount < 3) {
-        try {
-          if (attemptCount === 0) {
-            console.log('Attempt 1: Using primary transporter (port 587)')
-            info = await transporter.sendMail(mailOptions)
-          } else if (attemptCount === 1) {
-            console.log('Attempt 2: Using fallback transporter (port 465, SSL)')
-            transporter = this.createFallbackTransporter()
-            info = await transporter.sendMail(mailOptions)
-          } else {
-            console.log('Attempt 3: Using secondary fallback transporter (port 25)')
-            transporter = this.createSecondaryFallbackTransporter()
-            info = await transporter.sendMail(mailOptions)
-          }
-          break // Success, exit the retry loop
-        } catch (error: any) {
-          lastError = error
-          attemptCount++
-          console.log(`SMTP Attempt ${attemptCount} failed:`, error.message)
-          
-          if (attemptCount >= 3) {
-            console.error('All SMTP transporter attempts failed')
-            // Try alternative delivery method as last resort
-            try {
-              await this.sendViaWebAPI(mailOptions)
-              throw new Error('All email delivery methods failed: SMTP Status: Blocked in serverless environment (ports 587, 465, 25 all failed) Web Service Status: Web email service failed: Resend API key not configured. Please set RESEND_API_KEY environment variable. To fix this issue: 1. Set up Resend API key in Vercel environment variables: - Go to Vercel Dashboard → Project Settings → Environment Variables - Add: RESEND_API_KEY = your_resend_api_key - Get free API key at: https://resend.com 2. Alternative: Use SendGrid, Mailgun, or AWS SES Email that failed to send: - To: ' + sale.email + ' - Subject: ' + mailOptions.subject + ' - ' + document.filename + ' - Has attachments: ' + (pdfContent ? 'Yes' : 'No'))
-            } catch (webApiError: any) {
-              throw new Error(`All email delivery methods failed: Gmail API Status: ${lastError?.message || 'Failed'} SMTP Status: Blocked in serverless environment (ports 587, 465, 25 all failed) Web Service Status: ${webApiError.message}. 
-
-Email that failed to send:
+        console.log('Using Gmail SMTP on port 587 with STARTTLS')
+        info = await transporter.sendMail(mailOptions)
+        console.log('✅ Email sent successfully via SMTP!')
+      } catch (error: any) {
+        console.error('❌ SMTP failed:', error.message)
+        throw new Error(`Email delivery failed: ${error.message}
+        
+Email details:
 - To: ${sale.email}
 - Subject: ${mailOptions.subject} 
 - ${document.filename}
-- Has attachments: ${pdfContent ? 'Yes' : 'No'}`)
-            }
-          }
-          
-          // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 2000))
-        }
-      }
-      
-      if (!info) {
-        throw new Error('Failed to send email: No response received from any SMTP transporter after Gmail API also failed')
+- Has attachments: ${pdfContent ? 'Yes' : 'No'}
+
+Please check:
+1. Gmail App Password is valid
+2. 2-factor authentication is enabled
+3. Network connectivity allows SMTP`)
       }
       
       console.log(`Email sent successfully via SMTP - MessageID: ${info.messageId}`)
       
-      // Log the SMTP email send to database (Gmail API already logged above)
+      // Log the SMTP email send to database
       await prisma.emailLog.create({
         data: {
           saleId: saleId,
           documentId: documentId,
           recipientEmail: sale.email,
-          senderEmail: process.env.EMAIL_USER || 'Hello@theflashteam.co.uk',
+          senderEmail: process.env.EMAIL_USER || 'hello@theflashteam.co.uk',
           subject: `Your Sales Document - ${document.filename}`,
           emailType: 'document_delivery',
           status: 'SENT',
@@ -407,7 +327,7 @@ Email that failed to send:
             filename: document.filename,
             customerName: customerName,
             messageId: info.messageId,
-            method: 'smtp_fallback',
+            method: 'smtp_direct',
             attachmentCount: pdfContent ? 1 : 0
           }
         }

@@ -667,7 +667,12 @@ export class EnhancedTemplateService {
           return obj && obj[prop] !== undefined ? obj[prop] : undefined;
         }, data);
         
-        return value !== undefined ? String(value) : match;
+        // Convert null/undefined to empty string, otherwise convert to string
+        if (value === null || value === undefined) {
+          return '';
+        }
+        
+        return String(value);
       });
 
       return html;

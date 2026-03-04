@@ -5,9 +5,13 @@ import { prisma } from '../../../../lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🚀 CSV Export GET request received')
+    
     const session = await getServerSession(authOptions)
+    console.log('📝 Session check:', { hasSession: !!session, userRole: session?.user?.role })
     
     if (!session || session.user.role !== 'ADMIN') {
+      console.log('❌ Unauthorized access attempt')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -16,6 +20,8 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo')
     const agentFilter = searchParams.get('agent')
     const ids = searchParams.getAll('ids') // Get array of selected IDs
+
+    console.log('🔍 Request parameters:', { dateFrom, dateTo, agentFilter, idsCount: ids.length })
 
     let whereClause: any = {}
 
@@ -42,6 +48,33 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log('🔧 Database query where clause:', JSON.stringify(whereClause, null, 2))
+
+    // If specific IDs are provided, use those instead of other filters
+    if (ids && ids.length > 0) {
+      whereClause.id = {
+        in: ids
+      }
+    } else {
+      // Admin filters (only apply when not selecting specific IDs)
+      if (agentFilter) {
+        whereClause.createdById = agentFilter
+      }
+
+      // Date filters (only apply when not selecting specific IDs)
+      if (dateFrom || dateTo) {
+        whereClause.createdAt = {}
+        if (dateFrom) {
+          whereClause.createdAt.gte = new Date(dateFrom)
+        }
+        if (dateTo) {
+          whereClause.createdAt.lte = new Date(dateTo + 'T23:59:59.999Z')
+        }
+      }
+    }
+
+    console.log('🔧 Database query where clause:', JSON.stringify(whereClause, null, 2))
+
     const sales = await prisma.sale.findMany({
       where: whereClause,
       include: {
@@ -57,6 +90,17 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc'
       }
     })
+
+    console.log(`📊 Database query result: Found ${sales.length} sales`)
+    
+    if (sales.length > 0) {
+      console.log('📋 Sample sale data:', {
+        id: sales[0].id,
+        customerName: `${sales[0].customerFirstName} ${sales[0].customerLastName}`,
+        createdAt: sales[0].createdAt,
+        hasAppliances: sales[0].appliances.length > 0
+      })
+    }
 
     // Generate CSV headers - Complete CRM format
     const headers = [
@@ -493,14 +537,25 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 CSV Export POST request received')
+    
     const session = await getServerSession(authOptions)
+    console.log('📝 Session check:', { hasSession: !!session, userRole: session?.user?.role })
     
     if (!session || session.user.role !== 'ADMIN') {
+      console.log('❌ Unauthorized access attempt')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const { filters, selectedIds, excludeCustomers } = body
+    
+    console.log('🔍 POST request data:', { 
+      hasFilters: !!filters,
+      selectedIdsCount: selectedIds?.length || 0,
+      excludeCustomersCount: excludeCustomers?.length || 0,
+      filters
+    })
 
     let whereClause: any = {}
 
@@ -527,6 +582,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('🔧 POST Database query where clause:', JSON.stringify(whereClause, null, 2))
+
     const sales = await prisma.sale.findMany({
       where: whereClause,
       include: {
@@ -542,6 +599,8 @@ export async function POST(request: NextRequest) {
         createdAt: 'desc',
       },
     })
+
+    console.log(`📊 POST Database query result: Found ${sales.length} sales`)
 
     // OPTIMIZED: Filter out duplicates with hash maps for O(1) lookups instead of O(n*m) nested loops
     let filteredSales = sales

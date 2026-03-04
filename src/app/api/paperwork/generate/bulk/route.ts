@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
               coverLimit: `£${appliance.coverLimit.toFixed(2)}`,
               monthlyCost: `£${appliance.cost.toFixed(2)}`
             })),
-            boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : null,
+            boilerCost: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}` : '',
             currentDate: new Date().toLocaleDateString('en-GB', { 
               day: 'numeric',
               month: 'long',
@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
             agreement: {
               coverage: {
                 hasBoilerCover: sale.boilerCoverSelected,
-                boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : null
+                boilerPriceFormatted: sale.boilerPriceSelected ? `£${sale.boilerPriceSelected.toFixed(2)}/month` : ''
               }
             },
             metadata: {
