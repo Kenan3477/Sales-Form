@@ -71,7 +71,8 @@ export default function AdminSalesPage() {
     hasBoilerCover: '', // yes, no
     status: '', // ACTIVE, CANCELLED, etc.
     directDebitDateFrom: '',
-    directDebitDateTo: ''
+    directDebitDateTo: '',
+    emailStatus: '' // all, sent, not-sent
   })
   const [duplicateCheckFile, setDuplicateCheckFile] = useState<File | null>(null)
   const [showDuplicateCheck, setShowDuplicateCheck] = useState(false)
@@ -506,6 +507,15 @@ export default function AdminSalesPage() {
     setSelectedSales(salesWithEmail)
   }
 
+  const handleSelectCustomersNotEmailed = () => {
+    const salesNotEmailed = filteredSales.filter(sale => {
+      const hasEmail = !!sale.email
+      const hasEmailLogs = sale.emailLogs && sale.emailLogs.length > 0
+      return hasEmail && !hasEmailLogs
+    }).map(sale => sale.id)
+    setSelectedSales(salesNotEmailed)
+  }
+
   const handleSelectSale = (saleId: string, checked: boolean) => {
     if (checked) {
       setSelectedSales(prev => [...prev, saleId])
@@ -888,15 +898,25 @@ export default function AdminSalesPage() {
   }
 
   const filteredSales = sales.filter(sale => {
+    // Search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase()
-      return (
+      const searchMatch = (
         sale.customerFirstName.toLowerCase().includes(searchLower) ||
         sale.customerLastName.toLowerCase().includes(searchLower) ||
         sale.email.toLowerCase().includes(searchLower) ||
         sale.createdBy.email.toLowerCase().includes(searchLower)
       )
+      if (!searchMatch) return false
     }
+
+    // Email status filter
+    if (filters.emailStatus) {
+      const hasEmailLogs = sale.emailLogs && sale.emailLogs.length > 0
+      if (filters.emailStatus === 'sent' && !hasEmailLogs) return false
+      if (filters.emailStatus === 'not-sent' && hasEmailLogs) return false
+    }
+
     return true
   })
 
@@ -1028,6 +1048,15 @@ export default function AdminSalesPage() {
                 </svg>
                 <span>Select Email Customers ({filteredSales.filter(sale => sale.email).length})</span>
               </button>
+              <button
+                onClick={handleSelectCustomersNotEmailed}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>Select Not Emailed ({filteredSales.filter(sale => sale.email && (!sale.emailLogs || sale.emailLogs.length === 0)).length})</span>
+              </button>
               <Link
                 href="/admin/sales/sms"
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -1114,7 +1143,7 @@ export default function AdminSalesPage() {
           {/* Filters */}
           <div className="bg-white p-4 rounded-lg shadow mb-6">
             <h3 className="text-sm font-medium text-gray-900 mb-3">Filters</h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 lg:grid-cols-9">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 lg:grid-cols-10">
               <div>
                 <label htmlFor="search" className="block text-xs font-medium text-gray-700">
                   Search
@@ -1246,6 +1275,21 @@ export default function AdminSalesPage() {
                 </select>
               </div>
               <div>
+                <label htmlFor="emailStatus" className="block text-xs font-medium text-gray-700">
+                  Email Status
+                </label>
+                <select
+                  id="emailStatus"
+                  value={filters.emailStatus}
+                  onChange={(e) => setFilters({...filters, emailStatus: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"
+                >
+                  <option value="">All Customers</option>
+                  <option value="sent">Email Sent</option>
+                  <option value="not-sent">Email Not Sent</option>
+                </select>
+              </div>
+              <div>
                 <label htmlFor="hasBoilerCover" className="block text-xs font-medium text-gray-700">
                   Boiler Cover
                 </label>
@@ -1261,7 +1305,39 @@ export default function AdminSalesPage() {
                 </select>
               </div>
             </div>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex flex-wrap justify-between items-center gap-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilters({...filters, emailStatus: 'not-sent'})}
+                  className="bg-orange-100 hover:bg-orange-200 text-orange-800 px-3 py-1 rounded-md text-sm font-medium border border-orange-300"
+                >
+                  📧 Show Not Emailed
+                </button>
+                <button
+                  onClick={() => setFilters({...filters, emailStatus: 'sent'})}
+                  className="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded-md text-sm font-medium border border-green-300"
+                >
+                  ✅ Show Emailed
+                </button>
+                <button
+                  onClick={() => setFilters({
+                    dateFrom: '',
+                    dateTo: '',
+                    agent: '',
+                    search: '',
+                    planType: '',
+                    applianceCount: '',
+                    hasBoilerCover: '',
+                    status: '',
+                    directDebitDateFrom: '',
+                    directDebitDateTo: '',
+                    emailStatus: ''
+                  })}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md text-sm font-medium border border-gray-300"
+                >
+                  🔄 Clear All
+                </button>
+              </div>
               <button
                 onClick={fetchSales}
                 className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
