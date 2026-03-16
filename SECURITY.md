@@ -213,4 +213,18 @@ ALLOWED_ORIGINS="https://yourdomain.vercel.app"
 - [OWASP Security Guidelines](https://owasp.org/www-project-top-ten/)
 - [Prisma Security Best Practices](https://www.prisma.io/docs/concepts/components/prisma-client/debugging#log-levels)
 
-**Note**: This security implementation provides enterprise-level protection for sensitive customer data. All security measures are production-ready and follow industry best practices.
+**Note**: This security implementation provides enterprise-level protection for sensitive customer data. All security measures are production-ready and follow industry best practices.# 🔒 SECURITY NOTICE
+
+## API Key Management
+- All API keys must be stored in environment variables
+- Never commit API keys to version control
+- Use `.env` files (which are gitignored)
+- Regularly rotate API keys
+
+## Exposed Key Incident
+- On March 16, 2026, a Google API key was accidentally exposed in commit history
+- The key `AIzaSyCisZ-oFUH3oYLF0u_r9wyTQ_AjryXJMmM` has been REVOKED
+- All files containing this key have been removed
+
+## Reporting Security Issues
+Report security vulnerabilities to the repository owner immediately.

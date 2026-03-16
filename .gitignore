@@ -41,3 +41,23 @@ coverage/
 debug-scripts/
 *.debug.js
 *.debug.ts
+
+# Security - Never commit API keys
+**/secrets/**
+**/*secret*
+**/*key*
+**/*credential*
+**/config/keys.*
+**/config/secrets.*
+**/.env*
+*.key
+*.secret
+*_key
+*_secret
+*credentials*
+
+# Research engine files (contain sensitive data)
+asis_*
+*research_engine*
+RESEARCH_ENGINE_*
+
