@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiseguys Template Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        .preview-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .preview-header {
+            background: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .preview-content {
+            padding: 0;
+        }
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="preview-header">
+            <h1>🎨 Wiseguys Welcome Letter Template Preview</h1>
+            <p>Professional branded template for Wiseguys Bournemouth</p>
+        </div>
+        <div class="preview-content" id="template-preview">
+            <!-- Template will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        // Sample data for testing
+        const sampleData = {
+            customerName: 'John & Sarah Smith',
+            email: 'john.smith@example.com',
+            phone: '01202 123 456',
+            serviceDate: new Date().toLocaleDateString('en-GB', { 
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            establishedYear: '2020'
+        };
+
+        // Wiseguys template HTML (simplified for preview)
+        const wiseguysTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiseguys Bournemouth - Welcome Letter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.4;
+            color: #1f2937;
+            background: white;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        
+        .document-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a365d 0%, #2563eb 50%, #3b82f6 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ef4444 0%, #f97316 30%, #eab308 60%, #22c55e 100%);
+        }
+        
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #ef4444, #f97316);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 900;
+            color: white;
+            border: 4px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            margin: 0 auto 15px;
+        }
+        
+        .company-name {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 42px;
+            font-weight: 800;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+        }
+        
+        .company-tagline {
+            font-size: 16px;
+            font-weight: 500;
+            color: #e2e8f0;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        
+        .company-location {
+            font-size: 14px;
+            font-weight: 400;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 50%, #fecaca 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 35px;
+            text-align: center;
+        }
+        
+        .welcome-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 15px;
+        }
+        
+        .welcome-message {
+            font-size: 18px;
+            font-weight: 500;
+            color: #7c2d12;
+            line-height: 1.5;
+        }
+        
+        .customer-greeting {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .customer-greeting .name {
+            color: #dc2626;
+            font-weight: 700;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .service-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .service-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .service-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .service-description {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .quote-section {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 6px solid #2563eb;
+            border-radius: 0 12px 12px 0;
+            padding: 30px;
+            margin: 35px 0;
+            position: relative;
+        }
+        
+        .quote-text {
+            font-size: 18px;
+            font-style: italic;
+            color: #1e40af;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .quote-author {
+            text-align: right;
+            font-weight: 600;
+            color: #1e3a8a;
+            font-size: 14px;
+        }
+        
+        .contact-info {
+            background: #1f2937;
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin: 35px 0;
+        }
+        
+        .contact-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #fbbf24;
+        }
+        
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .contact-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #ef4444, #f97316);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .contact-details {
+            flex: 1;
+        }
+        
+        .contact-label {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .contact-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .footer {
+            background: #111827;
+            color: #9ca3af;
+            padding: 25px 40px;
+            text-align: center;
+            border-top: 3px solid #ef4444;
+        }
+        
+        .footer-content {
+            text-align: center;
+        }
+        
+        .footer-text {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <div class="header">
+            <div class="logo-placeholder">WG</div>
+            <h1 class="company-name">Wiseguys</h1>
+            <p class="company-tagline">"Your Local Home Services Experts"</p>
+            <div class="company-location">
+                📍 Bournemouth, UK
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="welcome-banner">
+                <h2 class="welcome-title">Welcome to the Family!</h2>
+                <p class="welcome-message">
+                    Thank you for choosing Wiseguys Bournemouth for your home services. 
+                    We're excited to serve you with our professional and reliable solutions.
+                </p>
+            </div>
+
+            <div class="customer-greeting">
+                Hello <span class="name">${sampleData.customerName}</span>, and welcome aboard!
+            </div>
+
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🔧</div>
+                    <h3 class="service-title">Home Repairs</h3>
+                    <p class="service-description">Professional repair services for all your home maintenance needs</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🏠</div>
+                    <h3 class="service-title">Property Services</h3>
+                    <p class="service-description">Comprehensive property management and maintenance solutions</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">⚡</div>
+                    <h3 class="service-title">Emergency Support</h3>
+                    <p class="service-description">24/7 emergency response for urgent home service issues</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🛡️</div>
+                    <h3 class="service-title">Protection Plans</h3>
+                    <p class="service-description">Comprehensive protection plans for your peace of mind</p>
+                </div>
+            </div>
+
+            <div class="quote-section">
+                <p class="quote-text">
+                    "At Wiseguys, we believe every home deserves expert care. Our team of professionals 
+                    is committed to delivering exceptional service with a personal touch that makes all the difference."
+                </p>
+                <div class="quote-author">- The Wiseguys Team</div>
+            </div>
+
+            <div style="background: #f9fafb; border-radius: 12px; padding: 25px; margin: 30px 0;">
+                <h3 style="font-family: 'Montserrat', sans-serif; color: #1f2937; margin-bottom: 20px; text-align: center;">Your Account Information</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                        <span style="font-weight: 500; color: #6b7280;">Customer:</span>
+                        <span style="font-weight: 600; color: #1f2937;">${sampleData.customerName}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                        <span style="font-weight: 500; color: #6b7280;">Email:</span>
+                        <span style="font-weight: 600; color: #1f2937;">${sampleData.email}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                        <span style="font-weight: 500; color: #6b7280;">Phone:</span>
+                        <span style="font-weight: 600; color: #1f2937;">${sampleData.phone}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                        <span style="font-weight: 500; color: #6b7280;">Service Date:</span>
+                        <span style="font-weight: 600; color: #1f2937;">${sampleData.serviceDate}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 25px; margin: 30px 0;">
+                <h3 style="font-family: 'Montserrat', sans-serif; color: #065f46; margin-bottom: 15px; text-align: center;">What Happens Next?</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="background: #10b981; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">1</span>
+                        <span style="color: #065f46;">We'll contact you within 24 hours to schedule your service</span>
+                    </li>
+                    <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="background: #10b981; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">2</span>
+                        <span style="color: #065f46;">Our expert technicians will arrive at the agreed time</span>
+                    </li>
+                    <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="background: #10b981; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">3</span>
+                        <span style="color: #065f46;">We'll complete the work to your complete satisfaction</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="contact-info">
+                <h3 class="contact-title">Get in Touch</h3>
+                <div class="contact-grid">
+                    <div class="contact-item">
+                        <div class="contact-icon">📞</div>
+                        <div class="contact-details">
+                            <div class="contact-label">Phone</div>
+                            <div class="contact-value">01202 XXX XXX</div>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div class="contact-details">
+                            <div class="contact-label">Email</div>
+                            <div class="contact-value">hello@wiseguys.co.uk</div>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">🌐</div>
+                        <div class="contact-details">
+                            <div class="contact-label">Website</div>
+                            <div class="contact-value">www.wiseguys.co.uk</div>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📱</div>
+                        <div class="contact-details">
+                            <div class="contact-label">Facebook</div>
+                            <div class="contact-value">@wiseguysbournemouth</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    <strong>Wiseguys Bournemouth</strong><br>
+                    Professional Home Services • Est. ${sampleData.establishedYear} • Serving Bournemouth & Surrounding Areas
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        // Load the template into the preview
+        document.getElementById('template-preview').innerHTML = wiseguysTemplate;
+    </script>
+</body>
+</html>

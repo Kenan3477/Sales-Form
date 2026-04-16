@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiseguys Authentic Template Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2a2a2a;
+            font-family: Arial, sans-serif;
+        }
+        .preview-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #3a3a3a;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 3px solid #7ED321;
+        }
+        .preview-header {
+            background: linear-gradient(135deg, #7ED321, #6BB31A);
+            color: #333;
+            padding: 25px;
+            text-align: center;
+            border-bottom: 4px solid #333;
+        }
+        .preview-content {
+            padding: 0;
+            background: #3a3a3a;
+            color: white;
+        }
+        iframe {
+            width: 100%;
+            height: 900px;
+            border: none;
+            background: #3a3a3a;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 900;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+        }
+        p {
+            font-size: 16px;
+            margin: 0;
+            font-weight: 500;
+        }
+        .owl-icons {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="preview-header">
+            <div class="owl-icons">🦉 🔧 🦉</div>
+            <h1>🎨 Authentic Wiseguys Template</h1>
+            <p>Professional Device Repair Specialists • Bournemouth, UK</p>
+            <p><strong>Authentic Branding:</strong> Charcoal Grey + Lime Green + Real Customer Reviews</p>
+        </div>
+        <div class="preview-content" id="template-preview">
+            <!-- Template will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        // Sample data for testing with authentic Wiseguys info
+        const sampleData = {
+            customerName: 'John & Sarah Smith',
+            email: 'john.smith@example.com',
+            phone: '07123 456 789',
+            serviceDate: 'Friday, 25 March 2026'
+        };
+
+        // Authentic Wiseguys template HTML
+        const authentticWiseguysTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiseguys Bournemouth - Welcome Letter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.5;
+            color: #ffffff;
+            background: #3a3a3a;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        
+        .document-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #3a3a3a;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 50%, #2a2a2a 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            border-bottom: 4px solid #7ED321;
+        }
+        
+        .wiseguys-logo {
+            width: 120px;
+            height: 120px;
+            background: #3a3a3a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 3px solid #7ED321;
+            margin: 0 auto 20px;
+        }
+        
+        .logo-w {
+            font-size: 72px;
+            font-weight: 900;
+            color: #7ED321;
+            font-family: 'Roboto', sans-serif;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .owl-left {
+            position: absolute;
+            top: -10px;
+            left: -15px;
+            width: 45px;
+            height: 45px;
+            background: #8B4513;
+            border-radius: 50% 50% 40% 40%;
+            border: 2px solid #7ED321;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        .owl-left::before {
+            content: '🥽';
+            font-size: 16px;
+        }
+        
+        .owl-right {
+            position: absolute;
+            top: -10px;
+            right: -15px;
+            width: 45px;
+            height: 45px;
+            background: #D2691E;
+            border-radius: 50% 50% 40% 40%;
+            border: 2px solid #7ED321;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        .owl-right::before {
+            content: '🔧';
+            font-size: 16px;
+        }
+        
+        .company-name {
+            font-family: 'Roboto', sans-serif;
+            font-size: 48px;
+            font-weight: 900;
+            color: #7ED321;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .company-tagline {
+            font-size: 18px;
+            color: #cccccc;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        
+        .company-location {
+            font-size: 16px;
+            color: #7ED321;
+            font-weight: 500;
+        }
+        
+        .main-content {
+            padding: 40px;
+            background: #3a3a3a;
+            color: white;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #7ED321 0%, #6BB31A 50%, #5A9916 100%);
+            border: 3px solid #7ED321;
+            border-radius: 20px;
+            padding: 35px;
+            margin-bottom: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(126, 211, 33, 0.3);
+        }
+        
+        .welcome-title {
+            font-family: 'Roboto', sans-serif;
+            font-size: 36px;
+            font-weight: 900;
+            color: #333333;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        
+        .welcome-message {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2a2a2a;
+            line-height: 1.6;
+        }
+        
+        .customer-greeting {
+            font-size: 24px;
+            font-weight: 700;
+            color: #7ED321;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .customer-greeting .name {
+            color: #ffffff;
+            font-weight: 900;
+        }
+        
+        .section-title {
+            font-family: 'Roboto', sans-serif;
+            font-size: 28px;
+            font-weight: 900;
+            color: #7ED321;
+            margin-bottom: 25px;
+            text-align: center;
+            text-transform: uppercase;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: #7ED321;
+            border-radius: 2px;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .service-card {
+            background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+            border: 2px solid #7ED321;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        
+        .service-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: #7ED321;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #333333;
+        }
+        
+        .service-title {
+            font-family: 'Roboto', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #7ED321;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        
+        .service-description {
+            font-size: 14px;
+            color: #cccccc;
+            line-height: 1.5;
+        }
+        
+        .quote-section {
+            background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+            border-left: 6px solid #7ED321;
+            border-radius: 0 15px 15px 0;
+            padding: 35px;
+            margin: 40px 0;
+            position: relative;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        
+        .quote-icon {
+            position: absolute;
+            top: -15px;
+            left: 25px;
+            width: 50px;
+            height: 50px;
+            background: #7ED321;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .quote-text {
+            font-size: 18px;
+            font-style: italic;
+            color: #ffffff;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            padding-left: 40px;
+        }
+        
+        .quote-author {
+            text-align: right;
+            font-weight: 600;
+            color: #7ED321;
+            font-size: 16px;
+        }
+        
+        .contact-info {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            margin: 40px 0;
+            border: 2px solid #7ED321;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        .contact-title {
+            font-family: 'Roboto', sans-serif;
+            font-size: 26px;
+            font-weight: 900;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #7ED321;
+            text-transform: uppercase;
+        }
+        
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            background: #7ED321;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333333;
+            font-size: 20px;
+        }
+        
+        .contact-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #7ED321;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            color: #cccccc;
+            padding: 30px 40px;
+            text-align: center;
+            border-top: 4px solid #7ED321;
+        }
+        
+        .footer-text strong {
+            color: #7ED321;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <div class="header">
+            <div class="wiseguys-logo">
+                <div class="logo-w">W</div>
+                <div class="owl-left"></div>
+                <div class="owl-right"></div>
+            </div>
+            <h1 class="company-name">Wiseguys</h1>
+            <p class="company-tagline">Device Repair Specialists</p>
+            <div class="company-location">📍 Bournemouth, UK</div>
+        </div>
+
+        <div class="main-content">
+            <div class="welcome-banner">
+                <h2 class="welcome-title">Welcome to Wiseguys!</h2>
+                <p class="welcome-message">
+                    Thank you for choosing Wiseguys Bournemouth for your device repair needs. 
+                    We're the wise choice for professional, reliable tech solutions!
+                </p>
+            </div>
+
+            <div class="customer-greeting">
+                Hello <span class="name">${sampleData.customerName}</span>, welcome to the family!
+            </div>
+
+            <div>
+                <h2 class="section-title">Our Expert Services</h2>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-icon">📱</div>
+                        <h3 class="service-title">Mobile & Tablet</h3>
+                        <p class="service-description">Professional repair services for smartphones and tablets with same-day turnaround</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">💻</div>
+                        <h3 class="service-title">PC & Laptop</h3>
+                        <p class="service-description">Complete computer repair and maintenance services for all makes and models</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🎮</div>
+                        <h3 class="service-title">Gaming Console</h3>
+                        <p class="service-description">Specialist console repair services to get you back gaming quickly</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🚚</div>
+                        <h3 class="service-title">Collection Service</h3>
+                        <p class="service-description">We collect from your home or work with safe & secure handling and delivery back</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quote-section">
+                <div class="quote-icon">"</div>
+                <p class="quote-text">
+                    "Wiseguys really are very wise and have been an absolute godsend. They have helped me set up new computers for my kids going to Uni and college and transfer files off old computers. Without them I would have really struggled as I'm so computer illiterate. They never once made me feel stupid and always explained things in simple, non-techie language. Thank you so much - you are all stars ⭐"
+                </p>
+                <div class="quote-author">- Lindsay Tara, Verified Customer</div>
+            </div>
+
+            <div class="contact-info">
+                <h3 class="contact-title">Get in Touch</h3>
+                <div class="contact-grid">
+                    <div class="contact-item">
+                        <div class="contact-icon">📞</div>
+                        <div>
+                            <div style="font-size: 12px; color: #cccccc; text-transform: uppercase;">Phone</div>
+                            <div class="contact-value">01202 806060</div>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div>
+                            <div style="font-size: 12px; color: #cccccc; text-transform: uppercase;">Email</div>
+                            <div class="contact-value">hello@wiseguys.co.uk</div>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">🌐</div>
+                        <div>
+                            <div style="font-size: 12px; color: #cccccc; text-transform: uppercase;">Website</div>
+                            <div class="contact-value">www.wiseguys.co.uk</div>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📱</div>
+                        <div>
+                            <div style="font-size: 12px; color: #cccccc; text-transform: uppercase;">Facebook</div>
+                            <div class="contact-value">WiseGuys - Bournemouth</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-text">
+                <strong>Wiseguys Bournemouth</strong><br>
+                Device Repair Specialists • Same Day Service • Collection & Delivery Available<br>
+                Mobile • Tablet • PC • Laptop • Console Repairs
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        // Load the template into the preview
+        document.getElementById('template-preview').innerHTML = authentticWiseguysTemplate;
+    </script>
+</body>
+</html>

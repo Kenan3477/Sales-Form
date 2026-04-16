@@ -1,0 +1,7 @@
+# Disable Vercel deployment
+# This file prevents Vercel from deploying this project
+
+# Ignore everything
+*
+
+# This effectively disables deployment until vercel.json.disabled is renamed back

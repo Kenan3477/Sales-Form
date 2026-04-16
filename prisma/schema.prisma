@@ -28,6 +28,9 @@ model User {
   leadDispositions  LeadDispositionHistory[] @relation("LeadDispositions")
   leadImportBatches LeadImportBatch[]  @relation("LeadImportBatches")
 
+  // Campaign relations
+  campaignSettings  CampaignSettings[] @relation("CampaignSettingsCreator")
+
   @@map("users")
 }
 
@@ -346,4 +349,22 @@ model EmailTemplate {
   @@index([templateType])
   @@index([isActive])
   @@map("email_templates")
+}
+
+model CampaignSettings {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(false)
+  settings    Json     // Stores the entire CampaignSettings object
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creator User @relation("CampaignSettingsCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("campaign_settings")
 }

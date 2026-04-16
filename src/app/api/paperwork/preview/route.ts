@@ -9,7 +9,7 @@ import puppeteer from 'puppeteer';
 // Request validation schema - PDF ONLY
 const previewDocumentSchema = z.object({
   saleId: z.string().min(1),
-  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice']),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice', 'wiseguys-tech-plan']),
   templateId: z.string().optional(),
   format: z.enum(['pdf']).default('pdf'), // PDF ONLY
 });
@@ -804,6 +804,44 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+
+      if (template && template.templateType === 'wiseguys-tech-plan') {
+        console.log('📝 Found Wiseguys tech plan template, using database template');
+        
+        // Prepare template variables for Wiseguys tech plan
+        const templateVars = {
+          customerFirstName: sale.customerFirstName,
+          customerLastName: sale.customerLastName,
+          customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+          customerAddress: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+          planType: 'Remote Support Tech Plan',
+          monthlyPrice: sale.totalPlanCost?.toFixed(2) || "0.00",
+          customerId: `WG${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+          activationDate: new Date().toLocaleDateString('en-GB', { 
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          }),
+          planId: `${sale.id.slice(-8).toUpperCase()}`
+        };
+
+        // Replace template variables in HTML
+        let html = template.htmlContent;
+        Object.entries(templateVars).forEach(([key, value]) => {
+          const regex = new RegExp(`{{${key}}}`, 'g');
+          html = html.replace(regex, String(value || ''));
+        });
+
+        // Return the HTML for preview
+        return new NextResponse(html, {
+          headers: {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        });
+      }
     }
 
     // Check if this is the uncontacted customer notice template type (legacy support)
@@ -839,6 +877,57 @@ export async function POST(request: NextRequest) {
         monthlyCost: sale.totalPlanCost?.toFixed(2) || "0.00",
         hasApplianceCover: sale.applianceCoverSelected,
         hasBoilerCover: sale.boilerCoverSelected
+      };
+
+      // Replace template variables in HTML
+      let html = template.htmlContent;
+      Object.entries(templateVars).forEach(([key, value]) => {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        html = html.replace(regex, String(value || ''));
+      });
+
+      // Return the HTML for preview
+      return new NextResponse(html, {
+        headers: {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+    }
+
+    // Check if this is the wiseguys tech plan template type
+    if (validatedData.templateType === 'wiseguys-tech-plan') {
+      console.log('📝 Loading Wiseguys tech plan template for preview by type...');
+      
+      // Load the template from database
+      const template = await prisma.documentTemplate.findFirst({
+        where: {
+          templateType: 'wiseguys-tech-plan',
+          isActive: true
+        }
+      });
+
+      if (!template) {
+        return NextResponse.json({ error: 'Wiseguys template not found' }, { status: 404 });
+      }
+
+      // Prepare template variables for Wiseguys tech plan
+      const templateVars = {
+        customerFirstName: sale.customerFirstName,
+        customerLastName: sale.customerLastName,
+        customerName: `${sale.customerFirstName} ${sale.customerLastName}`,
+        customerAddress: `${sale.mailingStreet}, ${sale.mailingCity}, ${sale.mailingProvince}, ${sale.mailingPostalCode}`,
+        planType: 'Remote Support Tech Plan',
+        monthlyPrice: sale.totalPlanCost?.toFixed(2) || "0.00",
+        customerId: `WG${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+        activationDate: new Date().toLocaleDateString('en-GB', { 
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }),
+        planId: `${sale.id.slice(-8).toUpperCase()}`
       };
 
       // Replace template variables in HTML

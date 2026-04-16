@@ -11,7 +11,7 @@ import { formatAddress, formatPrice, formatMonthlyPrice, formatCustomerName } fr
 // Request validation schema
 const generateDocumentSchema = z.object({
   saleId: z.string().min(1),
-  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice']),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice', 'wiseguys-tech-plan']),
   templateId: z.string().optional(),
 });
 

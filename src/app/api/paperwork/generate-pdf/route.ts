@@ -6,11 +6,12 @@ import { z } from 'zod';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer';
 import { EnhancedTemplateService } from '@/lib/paperwork/enhanced-template-service';
+import { WiseguysProfessionalTemplateService } from '@/lib/paperwork/wiseguys-professional-template';
 
 // Request validation schema
 const generateDocumentSchema = z.object({
   saleId: z.string().min(1),
-  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice']),
+  templateType: z.enum(['welcome_letter', 'service_agreement', 'direct_debit_form', 'coverage_summary', 'uncontacted_customer_notice', 'wiseguys-tech-plan']),
   templateId: z.string().optional(),
 });
 
@@ -46,23 +47,38 @@ function safeFilename(s: string): string {
     .slice(0, 80);
 }
 
-// Generate Flash Team PDF using enhanced template service
-async function generateFlashTeamPDF(data: any): Promise<Buffer> {
-  // Use our enhanced template service to generate the beautiful template
-  const templateService = new EnhancedTemplateService();
-  const html = await templateService.generateDocument('welcome-letter', {
-    // Map the data to match our template variables exactly
-    customerName: data.customerName || '[Customer Name]',
-    email: data.email || '',
-    phone: data.phone || '',
-    address: data.address || '',
-    coverageStartDate: data.coverageStartDate || '',
-    policyNumber: data.policyNumber || '',
-    monthlyCost: data.monthlyCost || '',
-    totalCost: data.totalCost || data.monthlyCost || ''
-  });
+// Generate PDF using appropriate template service
+async function generatePDF(templateType: string, data: any): Promise<Buffer> {
+  let html: string;
+  
+  // Choose the appropriate template service
+  if (templateType === 'wiseguys-tech-plan') {
+    console.log('📄 Using Wiseguys Professional Template Service');
+    html = await WiseguysProfessionalTemplateService.renderTemplate('wiseguys-tech-plan', {
+      customerName: data.customerName || '[Customer Name]',
+      customerAddress: data.address || '[Customer Address]',
+      planType: 'Remote Support Tech Plan',
+      monthlyPrice: data.monthlyCost || '0.00',
+      planId: data.policyNumber || 'PLAN001'
+    });
+  } else {
+    console.log('📄 Using Enhanced Template Service (Flash Team)');
+    const templateService = new EnhancedTemplateService();
+    html = await templateService.generateDocument('welcome-letter', {
+      customerName: data.customerName || '[Customer Name]',
+      email: data.email || '',
+      phone: data.phone || '',
+      address: data.address || '',
+      coverageStartDate: data.coverageStartDate || '',
+      policyNumber: data.policyNumber || '',
+      monthlyCost: data.monthlyCost || '',
+      totalCost: data.totalCost || data.monthlyCost || ''
+    });
+  }
 
-  // Configure for serverless environment
+  console.log('📄 HTML generated, length:', html.length);
+
+  // Configure for serverless environment with better error handling
   let executablePath: string | undefined;
   let args: string[] = [
     '--no-sandbox',
@@ -72,27 +88,70 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
     '--no-first-run',
     '--no-zygote',
     '--disable-gpu',
+    '--disable-web-security',
+    '--disable-features=VizDisplayCompositor'
   ];
   
-  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+  // Try to use system Chrome for development, bundled chromium for production
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      // In development, try to use system Chrome
+      const { execSync } = await import('child_process');
+      const systemChromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+      execSync(`ls "${systemChromePath}"`, { stdio: 'ignore' });
+      executablePath = systemChromePath;
+      console.log('📄 Using system Chrome for development');
+    }
+  } catch (e) {
+    console.log('📄 System Chrome not found, trying bundled chromium');
+  }
+  
+  if (!executablePath && (process.env.VERCEL || process.env.NODE_ENV === 'production')) {
     try {
       executablePath = await chromium.executablePath();
-      args = chromium.args.concat(args);
+      args = [...chromium.args, ...args];
+      console.log('📄 Using bundled chromium for production');
     } catch (e) {
-      console.warn('Could not get chromium executable path:', e);
+      console.error('📄 Could not get chromium executable path:', e);
+      throw new Error('PDF generation not available - Chromium executable not found');
     }
   }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath,
-    args,
-  });
+  if (!executablePath) {
+    throw new Error('No Chrome/Chromium executable found for PDF generation');
+  }
+
+  console.log('📄 Launching browser with args:', args.length);
+  
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath,
+      args,
+      timeout: 30000, // 30 second timeout
+    });
+    console.log('📄 Browser launched successfully');
+  } catch (error) {
+    console.error('📄 Browser launch failed:', error);
+    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Browser launch error'}`);
+  }
   
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    console.log('📄 New page created');
+    
+    await page.setContent(html, { 
+      waitUntil: "domcontentloaded", // Changed from networkidle0 to be faster
+      timeout: 30000 // Increased timeout to 30 seconds
+    });
+    console.log('📄 Content set on page');
+    
+    // Wait a bit for any CSS animations or transitions to complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     await page.emulateMediaType("print");
+    console.log('📄 Print media type emulated');
     
     const pdfBuffer = await page.pdf({
       format: "A4",
@@ -104,11 +163,17 @@ async function generateFlashTeamPDF(data: any): Promise<Buffer> {
         left: '0.1in'
       },
       scale: 1.0,
+      timeout: 15000 // 15 second timeout for PDF generation
     });
     
+    console.log('📄 PDF generated, size:', pdfBuffer.length, 'bytes');
     return Buffer.from(pdfBuffer);
+  } catch (error) {
+    console.error('📄 PDF generation error:', error);
+    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown PDF error'}`);
   } finally {
     await browser.close();
+    console.log('📄 Browser closed');
   }
 }
 
@@ -248,27 +313,27 @@ export async function POST(request: NextRequest) {
 
     console.log('📄 Flash Team data prepared:', flashTeamData);
     
-    // Generate PDF directly using one-page template
-    console.log('📄 Generating Flash Team PDF directly...');
+    // Generate PDF using appropriate template service
+    console.log('📄 Generating PDF with template type:', validatedData.templateType);
     
-    const pdfBuffer = await generateFlashTeamPDF(flashTeamData);
-    console.log('✅ Flash Team PDF generated, size:', pdfBuffer.length, 'bytes');
+    const pdfBuffer = await generatePDF(validatedData.templateType, flashTeamData);
+    console.log('✅ PDF generated, size:', pdfBuffer.length, 'bytes');
 
       // Generate filename 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `flash-team-protection-plan-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.pdf`;
+      const templateName = validatedData.templateType === 'wiseguys-tech-plan' ? 'Wiseguys Remote Support Tech Plan' : 'Flash Team Protection Plan';
+      const fileName = `${validatedData.templateType}-${sale.customerFirstName}-${sale.customerLastName}-${timestamp}.pdf`;
       
-      // Create a basic template record for compatibility
-      const templateName = 'Flash Team Protection Plan';
-      const templateId = 'flash-team-default';
+      // Use appropriate template ID
+      const templateId = validatedData.templateType === 'wiseguys-tech-plan' ? 'wiseguys-tech-plan' : 'flash-team-default';
       
       // Store PDF document in database
-      console.log(`� Storing Flash Team PDF in database (serverless environment)`);
+      console.log(`📄 Storing ${templateName} PDF in database`);
 
       const generatedDocument = await prisma.generatedDocument.create({
         data: {
           saleId: sale.id,
-          templateId: templateId, // Use default template ID for Flash Team
+          templateId: templateId,
           filename: fileName,
           filePath: `virtual://generated-documents/${fileName}`,
           fileSize: pdfBuffer.length,
@@ -276,7 +341,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             templateType: validatedData.templateType,
             customerName: flashTeamData.customerName,
-            generationMethod: 'flash-team-pdf-generator',
+            generationMethod: validatedData.templateType === 'wiseguys-tech-plan' ? 'wiseguys-pdf-generator' : 'flash-team-pdf-generator',
             // Store the actual PDF content in metadata
             documentContent: pdfBuffer.toString('base64')
           }
@@ -300,12 +365,13 @@ export async function POST(request: NextRequest) {
       console.log('🎯 FINAL RESULT: Generated PDF file:', fileName);
       console.log('🎯 Template name:', templateName);
       console.log('🎯 File type: application/pdf');
+      console.log('🎯 Template type:', validatedData.templateType);
 
       return NextResponse.json({
         success: true,
         document: {
           id: generatedDocument.id,
-          content: `Flash Team PDF generated successfully (${pdfBuffer.length} bytes)`,
+          content: `${templateName} PDF generated successfully (${pdfBuffer.length} bytes)`,
           fileName: fileName,
           templateName: templateName,
           saleId: sale.id,

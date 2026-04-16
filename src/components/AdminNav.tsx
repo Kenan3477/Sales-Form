@@ -32,6 +32,26 @@ export default function AdminNav() {
                 Sales Management
               </Link>
               <Link
+                href="/admin/campaigns"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/admin/campaigns') || pathname?.startsWith('/admin/campaigns/')
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Lead Campaigns
+              </Link>
+              <Link
+                href="/admin/leads/import"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/admin/leads/import')
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Lead Import
+              </Link>
+              <Link
                 href="/admin/users"
                 className={`px-3 py-2 rounded-md text-sm font-medium ${
                   isActive('/admin/users')

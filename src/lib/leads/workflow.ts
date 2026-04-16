@@ -1,10 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import { LeadStatus } from '@prisma/client'
+import { CampaignManagementService } from './campaign'
+
+const campaignService = new CampaignManagementService()
 
 export interface LeadWorkflowOptions {
   agentId: string
   includeCallbacks?: boolean
   prioritizeCallbacks?: boolean
+  useCampaignSettings?: boolean
 }
 
 export interface NextLeadResult {
@@ -12,6 +16,7 @@ export interface NextLeadResult {
   hasMore: boolean
   totalAssigned: number
   totalCallbacks: number
+  campaignOptimized?: boolean
 }
 
 export class LeadWorkflowService {

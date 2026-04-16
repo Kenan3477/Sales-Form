@@ -11,15 +11,77 @@ import { z } from 'zod';
 async function generatePDFFromHTML(html: string): Promise<Buffer> {
   console.log('🔧 Generating PDF from HTML template...');
   
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [...chromium.args, '--disable-web-security'],
-    executablePath: await chromium.executablePath()
-  });
+  // Configure for serverless environment with better error handling
+  let executablePath: string | undefined;
+  let args: string[] = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu',
+    '--disable-web-security',
+    '--disable-features=VizDisplayCompositor'
+  ];
+  
+  // Try to use system Chrome for development, bundled chromium for production
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      // In development, try to use system Chrome
+      const { execSync } = await import('child_process');
+      const systemChromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+      execSync(`ls "${systemChromePath}"`, { stdio: 'ignore' });
+      executablePath = systemChromePath;
+      console.log('📄 Using system Chrome for development');
+    }
+  } catch (e) {
+    console.log('📄 System Chrome not found, trying bundled chromium');
+  }
+  
+  if (!executablePath && (process.env.VERCEL || process.env.NODE_ENV === 'production')) {
+    try {
+      executablePath = await chromium.executablePath();
+      args = [...chromium.args, ...args];
+      console.log('📄 Using bundled chromium for production');
+    } catch (e) {
+      console.error('📄 Could not get chromium executable path:', e);
+      throw new Error('PDF generation not available - Chromium executable not found');
+    }
+  }
+
+  if (!executablePath) {
+    throw new Error('No Chrome/Chromium executable found for PDF generation');
+  }
+
+  console.log('📄 Launching browser for PDF generation...');
+  
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath,
+      args,
+      timeout: 30000, // 30 second timeout
+    });
+    console.log('📄 Browser launched successfully');
+  } catch (error) {
+    console.error('📄 Browser launch failed:', error);
+    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Browser launch error'}`);
+  }
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    console.log('📄 New page created');
+    
+    await page.setContent(html, { 
+      waitUntil: "domcontentloaded", // Changed from networkidle0 to be faster
+      timeout: 30000 // Increased timeout to 30 seconds
+    });
+    console.log('📄 Content set on page');
+    
+    // Wait a bit for any CSS animations or transitions to complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -29,12 +91,18 @@ async function generatePDFFromHTML(html: string): Promise<Buffer> {
         left: '10mm',
         right: '10mm'
       },
-      printBackground: true
+      printBackground: true,
+      timeout: 15000 // 15 second timeout for PDF generation
     });
 
+    console.log('📄 PDF generated successfully, size:', pdfBuffer.length, 'bytes');
     return Buffer.from(pdfBuffer);
+  } catch (error) {
+    console.error('📄 PDF generation error:', error);
+    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown PDF error'}`);
   } finally {
     await browser.close();
+    console.log('📄 Browser closed');
   }
 }
 
